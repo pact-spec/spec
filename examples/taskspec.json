@@ -1,0 +1,21 @@
+{
+  "description": "Deduplicate a 2,100,000-row customer CSV; normalize country fields to ISO-3166 alpha-2; merge conflicting records by most-recent timestamp.",
+  "skill": "data-cleaning/dedupe",
+  "inputs": {
+    "schema_uri": "https://buyer.example/specs/customers.schema.json",
+    "sample_uri": "https://buyer.example/specs/sample-10k.csv",
+    "size_hint": { "rows": 2100000, "bytes": 480000000 }
+  },
+  "deliverable": {
+    "format": "csv",
+    "schema_uri": "https://buyer.example/specs/output.schema.json"
+  },
+  "acceptance": {
+    "harness_uri": "https://buyer.example/specs/acceptance-tests.tar",
+    "thresholds": { "dup_rate_max": 0.001, "schema_valid_rate": 1.0 }
+  },
+  "constraints": {
+    "tools_prohibited": ["external-APIs"],
+    "confidential": false
+  }
+}

@@ -1,0 +1,952 @@
+
+
+
+
+Network Working Group                                          L. Sharma
+Internet-Draft                                               Independent
+Intended status: Experimental                               24 July 2026
+Expires: 25 January 2027
+
+
+          PACT: A Contract Layer for Autonomous Agent Commerce
+                        draft-laxsharma-pact-00
+
+Abstract
+
+   Existing agent interoperability protocols move tasks (A2A) and money
+   (x402, AP2) but provide no mechanism that binds work to payment to
+   proof of completion.  This document specifies PACT (Propose, Agree,
+   Complete, Trust), an application-layer contract protocol for commerce
+   between autonomous agents.  PACT defines (1) a sealed-bid second-
+   price task-award procedure; (2) the Verifiable Task Contract (VTC), a
+   signed JSON object binding parties, scope, price, verification
+   method, and liability; (3) escrowed, optimistically released
+   settlement with a fraud-proof challenge window; (4) graded
+   verification methods ranging from deterministic re-execution to zero-
+   knowledge proofs of inference and staked arbitration; and (5) co-
+   signed Work Attestations from which agent reputation is derived as a
+   byproduct of settlement.  PACT composes existing primitives:
+   Decentralized Identifiers, JSON Web Signatures, OAuth token-exchange
+   delegation chains, the x402 payment protocol, and AP2 mandates.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 25 January 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+
+
+Sharma                   Expires 25 January 2027                [Page 1]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+     1.1.  Motivation  . . . . . . . . . . . . . . . . . . . . . . .   2
+     1.2.  Relationship to Existing Work . . . . . . . . . . . . . .   3
+   2.  Conventions and Definitions . . . . . . . . . . . . . . . . .   4
+   3.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   4
+   4.  Protocol Overview . . . . . . . . . . . . . . . . . . . . . .   5
+     4.1.  Phase P: Propose  . . . . . . . . . . . . . . . . . . . .   5
+     4.2.  Phase A: Agree  . . . . . . . . . . . . . . . . . . . . .   6
+     4.3.  Phase C: Complete . . . . . . . . . . . . . . . . . . . .   6
+     4.4.  Phase T: Trust  . . . . . . . . . . . . . . . . . . . . .   7
+   5.  The Verifiable Task Contract  . . . . . . . . . . . . . . . .   7
+     5.1.  Hash Commitments and Content Conveyance . . . . . . . . .   8
+     5.2.  The Task Specification  . . . . . . . . . . . . . . . . .   8
+   6.  Discovery: the pact.json Well-Known URI . . . . . . . . . . .   9
+   7.  Verification Methods  . . . . . . . . . . . . . . . . . . . .   9
+   8.  Settlement Bindings . . . . . . . . . . . . . . . . . . . . .  10
+   9.  Contract Trees and Liability  . . . . . . . . . . . . . . . .  11
+   10. Work Attestations and Reputation  . . . . . . . . . . . . . .  11
+   11. Contract Channels . . . . . . . . . . . . . . . . . . . . . .  12
+   12. Security Considerations . . . . . . . . . . . . . . . . . . .  12
+   13. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  13
+   14. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  13
+   15. References  . . . . . . . . . . . . . . . . . . . . . . . . .  14
+     15.1.  Normative References . . . . . . . . . . . . . . . . . .  14
+     15.2.  Informative References . . . . . . . . . . . . . . . . .  15
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  17
+
+1.  Introduction
+
+1.1.  Motivation
+
+   The 2024-2026 wave of agent interoperability protocols solved
+   discovery, messaging, identity, and payment execution.  It did not
+   solve commerce.  An agent engaging an unfamiliar counterpart agent
+   today has no standard way to (a) obtain a binding, priced commitment
+   to perform work; (b) condition payment on verified completion; (c)
+   bound its liability when the counterpart subcontracts; or (d)
+
+
+
+Sharma                   Expires 25 January 2027                [Page 2]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   accumulate portable, verifiable evidence of its own reliability.
+
+   The absence of these mechanisms confines agent-to-agent delegation to
+   prearranged, high-trust relationships, precluding open markets for
+   machine work.  PACT supplies the missing layer.
+
+1.2.  Relationship to Existing Work
+
+   PACT is a modern realization of the Contract Net Protocol [CNET]
+   (announcement, bidding, award), which predated the identity, payment,
+   and verification substrate PACT builds upon.  PACT composes, and does
+   not replace: A2A [A2A] for task transport; the x402 payment protocol
+   [X402] for settlement execution; AP2 [AP2] mandates for human payment
+   authorization; OAuth 2.0 Token Exchange [RFC8693] for delegation
+   chains; JWS [RFC7515] and JCS [RFC8785] for signing; and
+   Decentralized Identifiers [DID] for party identity.
+
+   Several contemporaneous individual drafts address adjacent parts of
+   this problem.  VCAP [VCAP] specifies marketplace-mediated escrow with
+   verify-then-release settlement and free-form negotiation; PACT
+   differs in requiring no marketplace intermediary, replacing
+   negotiation with a sealed-bid second-price award (Section 4.1),
+   settling optimistically against bonds and fraud proofs (Section 4.3),
+   and adding recursive contract trees (Section 9) and settlement-
+   derived attestations (Section 10).  AGTP [AGTP] defines an
+   application-layer transport with runtime endpoint negotiation, over
+   which PACT exchanges can be carried.  The Agentic Dispute Protocol
+   [ADP] specifies dispute handling for agent interactions; an ADP-
+   conformant service is a candidate Arbiter for the T3-jury tier
+   (Section 7).  Verify-then-pay architectures are also explored in the
+   literature [TESSPAY]; PACT's optimistic model makes the opposite
+   latency trade and compensates with bonds and challenge windows.
+
+   On reputation, ATEP [ATEP] defines a portable credential format for
+   an agent's cross-platform track record, and ERC-8004 [ERC8004]
+   provides on-chain identity and reputation registries.  PACT is
+   complementary to both: its Work Attestations are the settlement-
+   native evidence (emitted only through bonded, escrowed contracts)
+   that such passports and registries can carry or index.  The economic
+   design agenda for agent markets, including auction-based allocation
+   and verifiable reputation, is surveyed in [VAE]; PACT is a concrete
+   wire-level realization of several of its recommendations.
+
+   Further contemporaneous work: Virtuals' Agent Commerce Protocol
+   [VACP] and ERC-8183 [ERC8183] pair on-chain escrow with evaluator
+   agents; RAILS [RAILS] develops verification-native clearing with
+   admissibility-graded verifier classes.  PACT differs in its open
+   sealed-bid award, bonded recursive contract trees, rail-agnostic
+
+
+
+Sharma                   Expires 25 January 2027                [Page 3]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   settlement bindings (Section 8), and settlement-derived attestations.
+   PACT Bonds generalize leveled-commitment breach penalties [LEVCOM]
+   from the automated-contracting literature, which also documents the
+   over-commitment ("eager bidder") failure mode PACT's bonds price in.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  Terminology
+
+   Buyer Agent:  An agent procuring work.
+
+   Seller Agent:  An agent offering to perform work.
+
+   Call-for-Bids:  A signed solicitation broadcast by a Buyer Agent;
+      abbreviated CFB.
+
+   VTC:  Verifiable Task Contract; the signed contract object defined in
+      Section 5.
+
+   TaskSpec:  The structured task specification committed to by
+      "spec_hash" (Section 5.2).
+
+   Bond:  Value staked by a Seller Agent, slashable upon a successful
+      fraud proof or arbitration loss.
+
+   Challenger:  Any party submitting a fraud proof during a challenge
+      window.
+
+   Facilitator:  A service that executes escrow locks, releases, and
+      slashes strictly according to the VTC's terms, with no
+      discretionary control over outcomes (see Section 8).
+
+   Verification Tier:  The method by which work product is judged
+      (Section 7).
+
+   Arbiter:  The party or panel resolving disputes for tiers that
+      require judgment.
+
+   Work Attestation:  The co-signed record of a settled contract
+      (Section 10).
+
+   Contract Channel:  A session within which multiple VTCs are formed
+
+
+
+Sharma                   Expires 25 January 2027                [Page 4]
+
+Internet-Draft                    PACT                         July 2026
+
+
+      and settled off-ledger with net settlement on close (Section 11).
+
+   Watchtower:  A delegate that monitors channels and challenge windows
+      on behalf of a party that may be offline (Section 11).
+
+4.  Protocol Overview
+
+   PACT proceeds in four phases: Propose, Agree, Complete, Trust.
+
+4.1.  Phase P: Propose
+
+   The Buyer Agent broadcasts a Call-for-Bids (CFB) containing at
+   minimum: a task specification or its hash, a deadline, a maximum
+   price, the required Verification Tier, and a bid deadline.  The CFB
+   MUST be signed by the Buyer Agent.
+
+   Seller Agents respond with sealed bids committing to a price, a bond
+   amount, and acceptance of the Verification Tier.  Bids MUST be
+   submitted as cryptographic commitments (commit-reveal or recipient-
+   key encryption) such that no bidder can observe another's bid before
+   the bid deadline.
+
+   Unless the CFB states a different ranking basis, bids are ranked by
+   price alone.  The Buyer Agent MUST award to the best-ranked bid at
+   the price of the second-best-ranked bid (Vickrey award).  Rationale:
+   second-price sealed-bid awards make truthful bidding a dominant
+   strategy, removing the incentive for adversarial inter-agent
+   negotiation (see Section 12).  Free-form negotiation between agents
+   is NOT RECOMMENDED for unattended operation.
+
+   A CFB awards a single task.  Combinatorial awards over bundles of
+   tasks are out of scope for this version; see Section 12 for the
+   false-name-bidding rationale.
+
+   A CFB is a JSON object with members: "pact", "type" ("CallForBids"),
+   "id", "buyer", "task" (containing "spec_hash", "deadline", and the
+   specification itself inline as "spec" or by reference as "spec_uri";
+   see Section 5.1 and Section 5.2), "max_price", "verification"
+   ("tier", "criteria_hash"), "bid_deadline", "challenge" defaults for
+   the resulting VTC, and "signatures".  Bids received after
+   "bid_deadline" MUST be rejected.
+
+
+
+
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027                [Page 5]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   A Bid is a JSON object with members: "pact", "type" ("Bid"),
+   "cfb_id", "bidder", "commitment" (a hash over price, bond amount, and
+   a bidder-chosen nonce), and "signatures".  After "bid_deadline",
+   bidders reveal price, bond, and nonce; the Buyer Agent MUST verify
+   each revelation against its commitment before ranking.  Media types
+   for both messages are registered in Section 14.  Note that these
+   protocol messages are distinct from the static capability document of
+   Section 6.
+
+4.2.  Phase A: Agree
+
+   The Buyer Agent and the awarded Seller Agent construct a VTC
+   (Section 5).  Both parties MUST sign the JCS-canonicalized [RFC8785]
+   VTC using JWS [RFC7515].  The Buyer Agent then locks the contract
+   price with a Facilitator using a conditional-settlement binding
+   (Section 8), and the Seller Agent posts its Bond.  Where the Buyer
+   Agent acts on behalf of a human or organization, its authority SHOULD
+   be represented by an OAuth token containing an "act" delegation chain
+   [RFC8693], and payment authorization MAY additionally be represented
+   by an AP2 Intent or Cart Mandate [AP2].
+
+4.3.  Phase C: Complete
+
+   The Seller Agent delivers work either atomically or as a sequence of
+   hash-committed checkpoints.  Settlement is optimistic: upon delivery
+   of each checkpoint or the final work product, the Facilitator SHOULD
+   release the corresponding payment immediately, subject to a challenge
+   window whose duration is fixed in the VTC.
+
+   During the challenge window, any party MAY submit a fraud proof
+   appropriate to the contract's Verification Tier.  A valid fraud proof
+   MUST cause the Facilitator to revert unspent releases, slash the
+   Seller Agent's Bond, and record the outcome in the parties' Work
+   Attestations.  Disputes in judgment-based tiers are resolved by the
+   named Arbiter.
+
+   From the slashed Bond, the Facilitator MUST reimburse a successful
+   challenger's documented verification and submission costs and MUST
+   pay the challenger a bounty capped at a small fraction of the Bond;
+   any remainder MUST be directed to a neutral sink rather than to any
+   party to the dispute.  Rationale: with slashing alone, rational
+   verifiers stop checking (the verifier's dilemma [LUU15] [TRUEBIT]);
+   deployed optimistic systems pay bounded defender bounties, capped to
+   avoid first-claimant races and self-challenge griefing.  Total
+   dispute duration MUST be bounded by the VTC's "challenge" parameters.
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027                [Page 6]
+
+Internet-Draft                    PACT                         July 2026
+
+
+4.4.  Phase T: Trust
+
+   Upon expiry of the final challenge window, the Facilitator closes
+   escrow and both parties exchange co-signed Work Attestations
+   (Section 10).  An implementation MUST NOT emit a Work Attestation for
+   a contract that did not reach settlement through a Facilitator.
+
+5.  The Verifiable Task Contract
+
+   A VTC is a JSON object with the following top-level members:
+
+   pact:  REQUIRED.  Protocol version string.
+
+   type:  REQUIRED.  "VerifiableTaskContract".
+
+   id:  REQUIRED.  Unique contract identifier.
+
+   parties:  REQUIRED.  Object: "buyer" and "seller" identifiers, which
+      SHOULD be DIDs resolvable to verification keys.
+
+   task:  REQUIRED.  Object: "spec_hash" (hash of the TaskSpec,
+      Section 5.2) and "deadline".
+
+   price:  REQUIRED.  Object: "amount", "currency", "settlement"
+      (binding identifier, Section 8), and OPTIONAL "channel".
+
+   verification:  REQUIRED.  Object: "tier" (Section 7),
+      "criteria_hash", and OPTIONAL "arbiter".
+
+   liability:  REQUIRED.  Object: "seller_bond", OPTIONAL "parent"
+      (Section 9), OPTIONAL "insurance".
+
+   challenge:  REQUIRED.  Object: "window_seconds" and OPTIONAL
+      "max_dispute_seconds" bounding total dispute duration.
+
+   signatures:  REQUIRED.  Array of JWS signatures over the JCS-
+      canonical form of the VTC excluding the "signatures" member.  MUST
+      contain at least one signature from each party.
+
+   A VTC is valid only if all REQUIRED members are present and all
+   signatures verify against keys bound to the party identifiers.  The
+   "task" member MAY additionally carry "spec_uri".
+
+
+
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027                [Page 7]
+
+Internet-Draft                    PACT                         July 2026
+
+
+5.1.  Hash Commitments and Content Conveyance
+
+   Hash-valued members ("spec_hash", "criteria_hash") are commitments,
+   not retrieval keys.  The committed content MUST be conveyed to every
+   party required to act on it (inline, or by a companion URI member
+   such as "spec_uri") before that party signs.  A recipient MUST verify
+   that the conveyed content matches the hash before signing, and each
+   party MUST retain the preimage at least until the later of contract
+   finality and the end of any audit period agreed in the VTC.  In a
+   dispute, presenting content that matches a co-signed hash constitutes
+   proof of the agreed content.  Hash values are algorithm-prefixed
+   (e.g., "sha256:..."); the "ni" URI scheme [RFC6920] MAY be used for
+   interoperable hash naming.  Content dereferenced from "spec_uri" is
+   integrity-protected by the hash, not by its transport.
+
+5.2.  The Task Specification
+
+   The content committed by "spec_hash" is a TaskSpec: a JSON object,
+   canonicalized with JCS [RFC8785] before hashing, with the following
+   members:
+
+   description:  REQUIRED.  Natural-language statement of the work,
+      written for machine comprehension.
+
+   skill:  OPTIONAL.  Identifier of a published skill the task targets
+      (e.g., an A2A AgentSkill "id").
+
+   inputs:  OPTIONAL.  Object: input "schema_uri", a hash-committed
+      representative "sample_uri", and a "size_hint".
+
+   deliverable:  REQUIRED.  Object: output format and "schema_uri".
+
+   acceptance:  REQUIRED.  Object conveying the verification instrument
+      for the contract's tier: a test "harness_uri" for T0-reexec, model
+      and enclave policy for T1-tee, a proof statement for T2-zkml, or a
+      rubric for T3-jury, plus machine-readable "thresholds".  The
+      instrument is the content committed by the CFB's
+      "verification.criteria_hash"; the two MUST match, and the
+      conveyance and retention rules of Section 5.1 apply.
+
+   constraints:  OPTIONAL.  Object: tool prohibitions, confidentiality,
+      and compliance conditions.  The task deadline is carried in the
+      "task" member of the CFB and VTC, not here.
+
+
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027                [Page 8]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   Where the natural-language "description" and the acceptance
+   instrument conflict, the acceptance instrument governs.  PACT
+   settlement is gated on verification, so the operative definition of
+   completion is the one the verifier applies; the description conveys
+   intent, and sellers are expected to price bids from the acceptance
+   instrument and sample inputs rather than from prose alone.
+
+   Confidential tasks MAY publish a CFB that omits the inline "spec" and
+   gates "spec_uri" behind authentication (mirroring the authenticated
+   extended card pattern of [A2A]); the hash commitment prevents
+   substitution of the specification after disclosure.
+
+6.  Discovery: the pact.json Well-Known URI
+
+   An origin advertising PACT capability publishes a JSON document at
+   the well-known URI [RFC8615] path "/.well-known/pact.json" containing
+   at minimum:
+
+   pactVersion:  REQUIRED.  Supported protocol version(s).
+
+   roles:  REQUIRED.  Array: "buyer", "seller", or both.
+
+   verification_tiers:  REQUIRED.  Supported tiers (Section 7).
+
+   settlement:  REQUIRED.  Supported settlement bindings.
+
+   channels:  OPTIONAL.  Boolean; Contract Channel support.
+
+   min_bond_pct:  OPTIONAL.  Minimum bond as percent of price.
+
+   attestation_jwks:  OPTIONAL.  URI of the key set used to sign Work
+      Attestations.
+
+   Naming note: the well-known name "pact.json" is unrelated to the
+   artifact files of the Pact consumer-contract-testing framework and to
+   the Pact smart-contract language, neither of which occupies a well-
+   known URI; no registry conflict exists.
+
+7.  Verification Methods
+
+   This document defines four initial Verification Tiers.  The tier
+   governs what constitutes a valid fraud proof (Section 4.3).
+
+   T0-reexec:  Deterministic re-execution.  The work product is
+      recomputable; a fraud proof is a failing re-execution transcript.
+      Suitable for code, data transformation, and other reproducible
+      tasks.
+
+
+
+
+Sharma                   Expires 25 January 2027                [Page 9]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   T1-tee:  Attested execution.  The Seller Agent executes within a
+      trusted execution environment; delivery includes a remote-
+      attestation quote binding program, input, and output.  Attestation
+      Evidence and Attestation Results MUST be conveyed as Entity
+      Attestation Tokens [RFC9711] under the RATS architecture
+      [RFC9334], with the Facilitator or Arbiter acting as RATS Relying
+      Party.  A fraud proof is an invalid or mismatched attestation.
+
+   T2-zkml:  Zero-knowledge proof of inference.  Delivery includes a
+      succinct proof that a committed model produced the output from the
+      committed input.  A fraud proof is a failed proof verification.
+      At the time of this writing, proof generation is practical for
+      models up to roughly the 1B-parameter class; layerwise and sampled
+      partial verification MAY be used to extend coverage.
+
+   T3-jury:  Staked arbitration.  The named Arbiter (a panel of staked
+      jurors, human or machine) rules on subjective criteria; jurors on
+      the losing side of the ruling are slashed.
+
+   Additional tiers can be registered through the registry established
+   in Section 14.
+
+8.  Settlement Bindings
+
+   A settlement binding maps VTC lifecycle events (lock, release, slash,
+   close) onto a payment system.  This document defines:
+
+   pact-escrow:  An x402 payment scheme (in the [X402] v2 sense: schemes
+      define payment formation, verification, and settlement semantics;
+      extensions are non-payment add-ons) in which a Facilitator holds
+      funds under a conditional-release predicate keyed to VTC events,
+      evaluated at the facilitator "/verify" and "/settle" interfaces
+      with phase-dependent amounts (following the precedent of the
+      "upto" scheme) and CAIP-2 network identifiers.  The predicate MUST
+      enforce the challenge window.  This scheme is aligned with the
+      deferred-settlement direction in the x402 ecosystem (escrow
+      deposit, off-chain vouchers, batch redemption) and with the
+      community escrow-scheme proposal; it adds what neither provides:
+      release gated on verified work, bonds, and slashing.
+
+   ap2-mandate:  A binding in which release is additionally gated on
+      presentation of a valid AP2 Payment Mandate [AP2], for contracts
+      whose buyer-side authority originates from a human payment
+      delegation.
+
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 10]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   Settlement bindings are rail-agnostic by design: bindings for other
+   machine-payment rails (for example, the Stripe/Tempo Machine Payments
+   Protocol [MPP]) or conventional payment systems follow the same
+   lifecycle mapping and are out of scope for this document.
+
+   Escrowed funds SHOULD be held in an instrument (for example, an on-
+   chain contract) that the Facilitator cannot unilaterally redirect,
+   preserving the property that the Facilitator executes the VTC's terms
+   without discretionary control over funds.
+
+9.  Contract Trees and Liability
+
+   A VTC MAY name a "parent" contract, forming a contract tree.  The
+   following invariants apply:
+
+   *  A child contract's deadline MUST NOT exceed its parent's.
+
+   *  The seller of a parent contract is the buyer of its children.
+
+   *  A successful fraud proof or arbitration loss at a child node
+      slashes the child seller's bond; if the resulting remedy is
+      insufficient to cure the parent's obligations, the parent seller's
+      bond is exposed in turn (cascade).
+
+   *  The Work Attestation of a parent contract MUST include a Merkle
+      commitment over the attestation hashes of all its children, so
+      that a single root attestation proves the delegation tree.
+
+10.  Work Attestations and Reputation
+
+   A Work Attestation is a JSON object recording: the VTC id and hash,
+   the settlement outcome (settled, cured, slashed, arbitrated), the
+   amounts, timestamps, and the tree commitment of Section 9, signed by
+   both parties (JWS over JCS).
+
+   Reputation in PACT is defined as the set of an agent's Work
+   Attestations.  Because attestations are emitted only upon facilitated
+   settlement (Section 4.4), fabricating a favorable history requires
+   funding real, bonded, fee-bearing contracts, making Sybil and wash-
+   trading attacks economically bounded (Section 12).  Agents SHOULD
+   support selective-disclosure presentation of attestation aggregates
+   (e.g., SD-JWT [RFC9901] or BBS-based proofs [BBS]) so that track
+   records can be proven without revealing counterparties.  Attestations
+   MAY additionally be exported into portable passport formats such as
+   ATEP [ATEP] or anchored in on-chain registries such as ERC-8004
+   [ERC8004].
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 11]
+
+Internet-Draft                    PACT                         July 2026
+
+
+11.  Contract Channels
+
+   Two agents anticipating repeated dealings MAY open a Contract
+   Channel: a master VTC that locks an aggregate escrow and fixes
+   standing terms.  Individual micro-contracts within the channel are
+   formed and settled by exchanging signed channel states off-ledger;
+   either party MAY close the channel by presenting the latest mutually
+   signed state to the Facilitator, which nets and settles the balance.
+   Channel state MUST be strictly monotonic (sequence-numbered) and each
+   state MUST be signed by both parties.
+
+   Because a stale channel state can be presented while a party is
+   offline, a channel party MUST be able to delegate challenge-window
+   monitoring to a third party (a watchtower), and challenge windows
+   SHOULD be sized to tolerate expected participant downtime.  The
+   construction follows the generalized state-channel literature
+   [PERUN].
+
+12.  Security Considerations
+
+   Adversarial negotiation.  Free-form inter-agent negotiation exposes
+   agents to persuasion and prompt-injection attacks by their
+   counterparties.  PACT's sealed-bid second-price award (Section 4.1)
+   removes the strategic value of such manipulation for the award
+   itself.  Task specifications MUST be treated as untrusted data, never
+   as instructions.
+
+   Auction manipulation.  Second-price awards carry known attack
+   surfaces [LONELY].  Loser collusion and bid rotation raise clearing
+   prices; bond costs and attestation-weighted bidder eligibility raise
+   the price of sustained cartels.  The Buyer Agent, which conducts the
+   award, MUST NOT be able to introduce or alter a bid after observing
+   others: the bid-commitment requirement of Section 4.1 exists to
+   prevent shill insertion of a price-setting second bid, and TEE-sealed
+   bidding MAY be used for stronger guarantees.  False-name (Sybil)
+   bidding yields no advantage in single-item second-price awards
+   [YOKOO]; it does in combinatorial awards, which is why bundle
+   auctions are out of scope for this version.
+
+   Sybil and wash trading.  Reputation derives only from settled,
+   bonded, fee-bearing contracts (Section 10).  Facilitator and arbiter
+   fees, bond opportunity cost, and Merkle-committed counterparty
+   diversity raise the cost of manufactured histories.  Verifiers of
+   reputation SHOULD weight attestations by counterparty distinctness
+   and settled value.
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 12]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   Facilitator compromise.  The Facilitator executes but does not
+   adjudicate; it MUST NOT exercise discretion over award or
+   adjudication outcomes, and it MUST publish an auditable log of locks,
+   releases, and slashes.  Multi-facilitator escrow (threshold release)
+   is RECOMMENDED for high-value contracts.
+
+   Verifier and oracle risk.  T1 inherits the trust model of the TEE
+   vendor; T2 inherits the soundness of the proof system; T3 inherits
+   the incentive design of the jury.  The VTC's tier choice is a
+   security parameter and MUST be explicit.
+
+   Griefing.  Every challenge MUST carry a challenger stake, forfeited
+   if the challenge fails; this bounds the cost that frivolous
+   challenges can impose on honest sellers.
+
+   Market-level failure.  Implementations SHOULD support velocity caps
+   and position limits per identity, and SHOULD subscribe to revocation
+   and risk events using the OpenID Shared Signals Framework 1.0 and
+   CAEP 1.0 (Final Specifications) [SSF], permitting mid-contract
+   suspension of a compromised counterparty.
+
+13.  Privacy Considerations
+
+   VTCs commit to task content by hash; the content itself need not be
+   disclosed to facilitators, arbiters (absent a dispute), or
+   registries.  Selective-disclosure attestation proofs (Section 10)
+   permit reputation without counterparty disclosure.  Channel micro-
+   contracts are visible only to the channel parties until close.
+
+14.  IANA Considerations
+
+   This document requests registration of:
+
+   *  The well-known URI "pact.json" in the "Well-Known URIs" registry
+      [RFC8615].  URI suffix: "pact.json"; change controller: IETF;
+      reference: Section 6 of this document.
+
+   *  The media types "application/pact-contract+json" (the VTC,
+      Section 5), "application/pact-attestation+json" (Section 10),
+      "application/pact-cfb+json", and "application/pact-bid+json"
+      (Section 4.1), per the procedures of [RFC6838].
+
+   *  A new "PACT Verification Tiers" registry with initial entries
+      T0-reexec, T1-tee, T2-zkml, T3-jury (Section 7); registration
+      policy Specification Required [RFC8126].
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 13]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   *  A new "PACT Settlement Bindings" registry with initial entries
+      pact-escrow and ap2-mandate (Section 8); registration policy
+      Specification Required [RFC8126].
+
+15.  References
+
+15.1.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, 2017,
+              <https://www.rfc-editor.org/info/rfc8174>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, 2015,
+              <https://www.rfc-editor.org/info/rfc7515>.
+
+   [RFC8615]  Nottingham, M., "Well-Known Uniform Resource Identifiers
+              (URIs)", RFC 8615, 2019,
+              <https://www.rfc-editor.org/info/rfc8615>.
+
+   [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Bradley, J., and C.
+              Mortimore, "OAuth 2.0 Token Exchange", RFC 8693, 2020,
+              <https://www.rfc-editor.org/info/rfc8693>.
+
+   [RFC8785]  Rundgren, A., Jordan, B., and S. Erdtman, "JSON
+              Canonicalization Scheme (JCS)", RFC 8785, 2020,
+              <https://www.rfc-editor.org/info/rfc8785>.
+
+   [RFC9334]  Birkholz, H., Thaler, D., Richardson, M., Smith, N., and
+              W. Pan, "Remote ATtestation procedureS (RATS)
+              Architecture", RFC 9334, 2023,
+              <https://www.rfc-editor.org/info/rfc9334>.
+
+   [RFC9711]  Lundblade, L., Mandyam, G., O'Donoghue, J., and C.
+              Wallace, "The Entity Attestation Token (EAT)", RFC 9711,
+              2025, <https://www.rfc-editor.org/info/rfc9711>.
+
+   [RFC6920]  Farrell, S., Kutscher, D., Dannewitz, C., Ohlman, B.,
+              Keranen, A., and P. Hallam-Baker, "Naming Things with
+              Hashes", RFC 6920, 2013,
+              <https://www.rfc-editor.org/info/rfc6920>.
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 14]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   [RFC6838]  Freed, N., Klensin, J., and T. Hansen, "Media Type
+              Specifications and Registration Procedures", BCP 13,
+              RFC 6838, 2013, <https://www.rfc-editor.org/info/rfc6838>.
+
+   [RFC8126]  Cotton, M., Leiba, B., and T. Narten, "Guidelines for
+              Writing an IANA Considerations Section in RFCs", BCP 26,
+              RFC 8126, 2017, <https://www.rfc-editor.org/info/rfc8126>.
+
+15.2.  Informative References
+
+   [CNET]     Smith, R.G., "The Contract Net Protocol: High-Level
+              Communication and Control in a Distributed Problem
+              Solver", IEEE Transactions on Computers, vol. C-29, no.
+              12, 1980.
+
+   [A2A]      A2A Project, "Agent2Agent (A2A) Protocol Specification,
+              v1.0", 2026,
+              <https://a2a-protocol.org/latest/specification/>.
+
+   [AP2]      AP2 Project, "Agent Payments Protocol (AP2)", 2025,
+              <https://ap2-protocol.org/>.
+
+   [X402]     x402 Foundation, "x402: An Open Protocol for Internet-
+              Native Payments", 2026, <https://x402.org/>.
+
+   [DID]      W3C, "Decentralized Identifiers (DIDs) v1.0", W3C
+              Recommendation, July 2022,
+              <https://www.w3.org/TR/did-core/>.
+
+   [RFC9901]  Fett, D., Yasuda, K., and B. Campbell, "Selective
+              Disclosure for JSON Web Tokens (SD-JWT)", RFC 9901,
+              November 2025, <https://www.rfc-editor.org/info/rfc9901>.
+
+   [BBS]      Looker, T., Kalos, V., Whitehead, A., and M. Lodder, "The
+              BBS Signature Scheme", Work in Progress, Internet-Draft,
+              draft-irtf-cfrg-bbs-signatures-10, 2026,
+              <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-
+              bbs-signatures-10>.
+
+   [SSF]      OpenID Foundation, "OpenID Shared Signals Framework 1.0
+              and OpenID CAEP 1.0", Final Specifications, September
+              2025,
+              <https://openid.net/wg/sharedsignals/specifications/>.
+
+   [LUU15]    Luu, L., Teutsch, J., Kulkarni, R., and P. Saxena,
+              "Demystifying Incentives in the Consensus Computer", ACM
+              CCS 2015, 2015.
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 15]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   [TRUEBIT]  Teutsch, J. and C. Reitwiessner, "A Scalable Verification
+              Solution for Blockchains (TrueBit)", arXiv:1908.04756,
+              2019, <https://arxiv.org/abs/1908.04756>.
+
+   [LONELY]   Ausubel, L. and P. Milgrom, "The Lovely but Lonely Vickrey
+              Auction", 2004.
+
+   [YOKOO]    Yokoo, M., "False-Name Bids in Combinatorial Auctions",
+              ACM SIGecom Exchanges 7(1), 2007.
+
+   [PERUN]    Dziembowski, S., Eckey, L., Faust, S., and D. Malinowski,
+              "Perun: Virtual Payment Hubs over Cryptocurrencies", IEEE
+              Symposium on Security and Privacy 2019, 2019.
+
+   [LEVCOM]   Sandholm, T. and V. Lesser, "Leveled Commitment Contracts
+              and Strategic Breach", Games and Economic Behavior 35,
+              2001.
+
+   [VACP]     Virtuals Protocol, "Agent Commerce Protocol (ACP)",
+              whitepaper, 2026, <https://whitepaper.virtuals.io/about-
+              virtuals/agent-commerce-protocol-acp>.
+
+   [ERC8183]  Ethereum community, "ERC-8183", Ethereum Request for
+              Comments, 2026.
+
+   [RAILS]    RAILS authors, "RAILS: Verification-Native Clearing for
+              Agentic Commerce", arXiv:2606.08790, 2026,
+              <https://arxiv.org/abs/2606.08790>.
+
+   [MPP]      Stripe and Tempo, "Machine Payments Protocol", March 2026,
+              <https://stripe.com/blog/machine-payments-protocol>.
+
+   [VCAP]     Stone, B., "VCAP: Verified Commerce for Agent Protocols",
+              Work in Progress, Internet-Draft, draft-stone-vcap-01,
+              March 2026,
+              <https://datatracker.ietf.org/doc/draft-stone-vcap/>.
+
+   [AGTP]     "Agent Transfer Protocol (AGTP)", Work in Progress,
+              Internet-Draft, draft-hood-independent-agtp-09, 2026,
+              <https://datatracker.ietf.org/doc/draft-hood-independent-
+              agtp/>.
+
+   [ADP]      "Agentic Dispute Protocol", Work in Progress, Internet-
+              Draft, draft-kotecha-agentic-dispute-protocol-00, 2026,
+              <https://datatracker.ietf.org/doc/draft-kotecha-agentic-
+              dispute-protocol/>.
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 16]
+
+Internet-Draft                    PACT                         July 2026
+
+
+   [TESSPAY]  "TessPay: Verify-then-Pay Infrastructure for Trusted
+              Agentic Commerce", arXiv:2602.00213, 2026,
+              <https://arxiv.org/abs/2602.00213>.
+
+   [ATEP]     Stone, B., "ATEP: Agent Trust and Execution Passport",
+              Work in Progress, Internet-Draft, draft-stone-atep-01,
+              2026,
+              <https://datatracker.ietf.org/doc/draft-stone-atep/>.
+
+   [ERC8004]  Ethereum community, "ERC-8004: Trustless Agents", Ethereum
+              Request for Comments, 2026.
+
+   [VAE]      "Virtual Agent Economies", arXiv:2509.10147, September
+              2025, <https://arxiv.org/abs/2509.10147>.
+
+Author's Address
+
+   Lax Sharma
+   Independent
+   Email: laxsharma79@gmail.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharma                   Expires 25 January 2027               [Page 17]

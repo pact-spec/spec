@@ -1,0 +1,768 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude" version="3" category="exp"
+     docName="draft-laxsharma-pact-00" ipr="trust200902" submissionType="IETF"
+     tocInclude="true" symRefs="true" sortRefs="false">
+  <front>
+    <title abbrev="PACT">PACT: A Contract Layer for Autonomous Agent Commerce</title>
+    <seriesInfo name="Internet-Draft" value="draft-laxsharma-pact-00"/>
+    <author fullname="Lax Sharma" initials="L." surname="Sharma">
+      <organization>Independent</organization>
+      <address><email>laxsharma79@gmail.com</email></address>
+    </author>
+    <date year="2026" month="July" day="24"/>
+    <keyword>autonomous agents</keyword>
+    <keyword>agent commerce</keyword>
+    <keyword>escrow</keyword>
+    <keyword>verification</keyword>
+    <abstract>
+      <t>Existing agent interoperability protocols move tasks (A2A) and money
+      (x402, AP2) but provide no mechanism that binds work to payment to
+      proof of completion.  This document specifies PACT (Propose, Agree,
+      Complete, Trust), an application-layer contract protocol for commerce
+      between autonomous agents.  PACT defines (1) a sealed-bid second-price
+      task-award procedure; (2) the Verifiable Task Contract (VTC), a signed
+      JSON object binding parties, scope, price, verification method, and
+      liability; (3) escrowed, optimistically released settlement with a
+      fraud-proof challenge window; (4) graded verification methods ranging
+      from deterministic re-execution to zero-knowledge proofs of inference
+      and staked arbitration; and (5) co-signed Work Attestations from which
+      agent reputation is derived as a byproduct of settlement.  PACT
+      composes existing primitives: Decentralized Identifiers, JSON Web
+      Signatures, OAuth token-exchange delegation chains, the x402 payment
+      protocol, and AP2 mandates.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="intro"><name>Introduction</name>
+      <section anchor="motivation"><name>Motivation</name>
+        <t>The 2024-2026 wave of agent interoperability protocols solved
+        discovery, messaging, identity, and payment execution.  It did not
+        solve commerce.  An agent engaging an unfamiliar counterpart agent
+        today has no standard way to (a) obtain a binding, priced commitment
+        to perform work; (b) condition payment on verified completion;
+        (c) bound its liability when the counterpart subcontracts; or
+        (d) accumulate portable, verifiable evidence of its own
+        reliability.</t>
+        <t>The absence of these mechanisms confines agent-to-agent
+        delegation to prearranged, high-trust relationships, precluding open
+        markets for machine work.  PACT supplies the missing layer.</t>
+      </section>
+      <section anchor="related"><name>Relationship to Existing Work</name>
+        <t>PACT is a modern realization of the Contract Net Protocol
+        <xref target="CNET"/> (announcement, bidding, award), which predated
+        the identity, payment, and verification substrate PACT builds upon.
+        PACT composes, and does not replace: A2A <xref target="A2A"/> for
+        task transport; the x402 payment protocol <xref target="X402"/> for
+        settlement execution; AP2 <xref target="AP2"/> mandates for human
+        payment authorization; OAuth 2.0 Token Exchange
+        <xref target="RFC8693"/> for delegation chains; JWS
+        <xref target="RFC7515"/> and JCS <xref target="RFC8785"/> for
+        signing; and Decentralized Identifiers <xref target="DID"/> for
+        party identity.</t>
+        <t>Several contemporaneous individual drafts address adjacent parts
+        of this problem.  VCAP <xref target="VCAP"/> specifies
+        marketplace-mediated escrow with verify-then-release settlement and
+        free-form negotiation; PACT differs in requiring no marketplace
+        intermediary, replacing negotiation with a sealed-bid second-price
+        award (<xref target="propose"/>), settling optimistically against
+        bonds and fraud proofs (<xref target="complete"/>), and adding
+        recursive contract trees (<xref target="trees"/>) and
+        settlement-derived attestations (<xref target="attestations"/>).
+        AGTP <xref target="AGTP"/> defines an application-layer transport
+        with runtime endpoint negotiation, over which PACT exchanges can be
+        carried.  The Agentic Dispute Protocol <xref target="ADP"/>
+        specifies dispute handling for agent interactions; an ADP-conformant
+        service is a candidate Arbiter for the T3-jury tier
+        (<xref target="tiers"/>).  Verify-then-pay architectures are also
+        explored in the literature <xref target="TESSPAY"/>; PACT's
+        optimistic model makes the opposite latency trade and compensates
+        with bonds and challenge windows.</t>
+        <t>On reputation, ATEP <xref target="ATEP"/> defines a portable
+        credential format for an agent's cross-platform track record, and
+        ERC-8004 <xref target="ERC8004"/> provides on-chain identity and
+        reputation registries.  PACT is complementary to both: its Work
+        Attestations are the settlement-native evidence (emitted only
+        through bonded, escrowed contracts) that such passports and
+        registries can carry or index.  The economic design agenda for
+        agent markets, including auction-based allocation and verifiable
+        reputation, is surveyed in <xref target="VAE"/>; PACT is a concrete
+        wire-level realization of several of its recommendations.</t>
+        <t>Further contemporaneous work: Virtuals' Agent Commerce Protocol
+        <xref target="VACP"/> and ERC-8183 <xref target="ERC8183"/> pair
+        on-chain escrow with evaluator agents; RAILS
+        <xref target="RAILS"/> develops verification-native clearing with
+        admissibility-graded verifier classes.  PACT differs in its open
+        sealed-bid award, bonded recursive contract trees, rail-agnostic
+        settlement bindings (<xref target="bindings"/>), and
+        settlement-derived attestations.  PACT Bonds generalize
+        leveled-commitment breach penalties <xref target="LEVCOM"/> from
+        the automated-contracting literature, which also documents the
+        over-commitment ("eager bidder") failure mode PACT's bonds price
+        in.</t>
+      </section>
+    </section>
+    <section anchor="conventions"><name>Conventions and Definitions</name>
+      <t>The key words "<bcp14>MUST</bcp14>", "<bcp14>MUST NOT</bcp14>",
+      "<bcp14>REQUIRED</bcp14>", "<bcp14>SHALL</bcp14>",
+      "<bcp14>SHALL NOT</bcp14>", "<bcp14>SHOULD</bcp14>",
+      "<bcp14>SHOULD NOT</bcp14>", "<bcp14>RECOMMENDED</bcp14>",
+      "<bcp14>NOT RECOMMENDED</bcp14>", "<bcp14>MAY</bcp14>", and
+      "<bcp14>OPTIONAL</bcp14>" in this document are to be interpreted as
+      described in BCP 14 <xref target="RFC2119"/> <xref target="RFC8174"/>
+      when, and only when, they appear in all capitals, as shown here.</t>
+    </section>
+    <section anchor="terminology"><name>Terminology</name>
+      <dl newline="false" spacing="normal">
+        <dt>Buyer Agent:</dt><dd>An agent procuring work.</dd>
+        <dt>Seller Agent:</dt><dd>An agent offering to perform work.</dd>
+        <dt>Call-for-Bids:</dt><dd>A signed solicitation broadcast by a
+        Buyer Agent; abbreviated CFB.</dd>
+        <dt>VTC:</dt><dd>Verifiable Task Contract; the signed contract
+        object defined in <xref target="vtc"/>.</dd>
+        <dt>TaskSpec:</dt><dd>The structured task specification committed to
+        by "spec_hash" (<xref target="taskspec"/>).</dd>
+        <dt>Bond:</dt><dd>Value staked by a Seller Agent, slashable upon a
+        successful fraud proof or arbitration loss.</dd>
+        <dt>Challenger:</dt><dd>Any party submitting a fraud proof during a
+        challenge window.</dd>
+        <dt>Facilitator:</dt><dd>A service that executes escrow locks,
+        releases, and slashes strictly according to the VTC's terms, with no
+        discretionary control over outcomes (see
+        <xref target="bindings"/>).</dd>
+        <dt>Verification Tier:</dt><dd>The method by which work product is
+        judged (<xref target="tiers"/>).</dd>
+        <dt>Arbiter:</dt><dd>The party or panel resolving disputes for tiers
+        that require judgment.</dd>
+        <dt>Work Attestation:</dt><dd>The co-signed record of a settled
+        contract (<xref target="attestations"/>).</dd>
+        <dt>Contract Channel:</dt><dd>A session within which multiple VTCs
+        are formed and settled off-ledger with net settlement on close
+        (<xref target="channels"/>).</dd>
+        <dt>Watchtower:</dt><dd>A delegate that monitors channels and
+        challenge windows on behalf of a party that may be offline
+        (<xref target="channels"/>).</dd>
+      </dl>
+    </section>
+    <section anchor="overview"><name>Protocol Overview</name>
+      <t>PACT proceeds in four phases: Propose, Agree, Complete, Trust.</t>
+      <section anchor="propose"><name>Phase P: Propose</name>
+        <t>The Buyer Agent broadcasts a Call-for-Bids (CFB) containing at
+        minimum: a task specification or its hash, a deadline, a maximum
+        price, the required Verification Tier, and a bid deadline.  The CFB
+        <bcp14>MUST</bcp14> be signed by the Buyer Agent.</t>
+        <t>Seller Agents respond with sealed bids committing to a price, a
+        bond amount, and acceptance of the Verification Tier.  Bids
+        <bcp14>MUST</bcp14> be submitted as cryptographic commitments
+        (commit-reveal or recipient-key encryption) such that no bidder can
+        observe another's bid before the bid deadline.</t>
+        <t>Unless the CFB states a different ranking basis, bids are ranked
+        by price alone.  The Buyer Agent <bcp14>MUST</bcp14> award to the
+        best-ranked bid at the price of the second-best-ranked bid (Vickrey
+        award).  Rationale: second-price sealed-bid awards make truthful
+        bidding a dominant strategy, removing the incentive for adversarial
+        inter-agent negotiation (see <xref target="security"/>).  Free-form
+        negotiation between agents is <bcp14>NOT RECOMMENDED</bcp14> for
+        unattended operation.</t>
+        <t>A CFB awards a single task.  Combinatorial awards over bundles of
+        tasks are out of scope for this version; see
+        <xref target="security"/> for the false-name-bidding rationale.</t>
+        <t>A CFB is a JSON object with members: "pact", "type"
+        ("CallForBids"), "id", "buyer", "task" (containing "spec_hash",
+        "deadline", and the specification itself inline as "spec" or by
+        reference as "spec_uri"; see <xref target="hashes"/> and
+        <xref target="taskspec"/>), "max_price", "verification" ("tier",
+        "criteria_hash"), "bid_deadline", "challenge" defaults for the
+        resulting VTC, and "signatures".  Bids received after
+        "bid_deadline" <bcp14>MUST</bcp14> be rejected.</t>
+        <t>A Bid is a JSON object with members: "pact", "type" ("Bid"),
+        "cfb_id", "bidder", "commitment" (a hash over price, bond amount,
+        and a bidder-chosen nonce), and "signatures".  After
+        "bid_deadline", bidders reveal price, bond, and nonce; the Buyer
+        Agent <bcp14>MUST</bcp14> verify each revelation against its
+        commitment before ranking.  Media types for both messages are
+        registered in <xref target="iana"/>.  Note that these protocol
+        messages are distinct from the static capability document of
+        <xref target="discovery"/>.</t>
+      </section>
+      <section anchor="agree"><name>Phase A: Agree</name>
+        <t>The Buyer Agent and the awarded Seller Agent construct a VTC
+        (<xref target="vtc"/>).  Both parties <bcp14>MUST</bcp14> sign the
+        JCS-canonicalized <xref target="RFC8785"/> VTC using JWS
+        <xref target="RFC7515"/>.  The Buyer Agent then locks the contract
+        price with a Facilitator using a conditional-settlement binding
+        (<xref target="bindings"/>), and the Seller Agent posts its Bond.
+        Where the Buyer Agent acts on behalf of a human or organization,
+        its authority <bcp14>SHOULD</bcp14> be represented by an OAuth
+        token containing an "act" delegation chain
+        <xref target="RFC8693"/>, and payment authorization
+        <bcp14>MAY</bcp14> additionally be represented by an AP2 Intent or
+        Cart Mandate <xref target="AP2"/>.</t>
+      </section>
+      <section anchor="complete"><name>Phase C: Complete</name>
+        <t>The Seller Agent delivers work either atomically or as a
+        sequence of hash-committed checkpoints.  Settlement is optimistic:
+        upon delivery of each checkpoint or the final work product, the
+        Facilitator <bcp14>SHOULD</bcp14> release the corresponding payment
+        immediately, subject to a challenge window whose duration is fixed
+        in the VTC.</t>
+        <t>During the challenge window, any party <bcp14>MAY</bcp14> submit
+        a fraud proof appropriate to the contract's Verification Tier.  A
+        valid fraud proof <bcp14>MUST</bcp14> cause the Facilitator to
+        revert unspent releases, slash the Seller Agent's Bond, and record
+        the outcome in the parties' Work Attestations.  Disputes in
+        judgment-based tiers are resolved by the named Arbiter.</t>
+        <t>From the slashed Bond, the Facilitator <bcp14>MUST</bcp14>
+        reimburse a successful challenger's documented verification and
+        submission costs and <bcp14>MUST</bcp14> pay the challenger a
+        bounty capped at a small fraction of the Bond; any remainder
+        <bcp14>MUST</bcp14> be directed to a neutral sink rather than to
+        any party to the dispute.  Rationale: with slashing alone, rational
+        verifiers stop checking (the verifier's dilemma
+        <xref target="LUU15"/> <xref target="TRUEBIT"/>); deployed
+        optimistic systems pay bounded defender bounties, capped to avoid
+        first-claimant races and self-challenge griefing.  Total dispute
+        duration <bcp14>MUST</bcp14> be bounded by the VTC's "challenge"
+        parameters.</t>
+      </section>
+      <section anchor="trust"><name>Phase T: Trust</name>
+        <t>Upon expiry of the final challenge window, the Facilitator
+        closes escrow and both parties exchange co-signed Work Attestations
+        (<xref target="attestations"/>).  An implementation
+        <bcp14>MUST NOT</bcp14> emit a Work Attestation for a contract that
+        did not reach settlement through a Facilitator.</t>
+      </section>
+    </section>
+    <section anchor="vtc"><name>The Verifiable Task Contract</name>
+      <t>A VTC is a JSON object with the following top-level members:</t>
+      <dl newline="false" spacing="normal">
+        <dt>pact:</dt><dd><bcp14>REQUIRED</bcp14>.  Protocol version
+        string.</dd>
+        <dt>type:</dt><dd><bcp14>REQUIRED</bcp14>.
+        "VerifiableTaskContract".</dd>
+        <dt>id:</dt><dd><bcp14>REQUIRED</bcp14>.  Unique contract
+        identifier.</dd>
+        <dt>parties:</dt><dd><bcp14>REQUIRED</bcp14>.  Object: "buyer" and
+        "seller" identifiers, which <bcp14>SHOULD</bcp14> be DIDs
+        resolvable to verification keys.</dd>
+        <dt>task:</dt><dd><bcp14>REQUIRED</bcp14>.  Object: "spec_hash"
+        (hash of the TaskSpec, <xref target="taskspec"/>) and
+        "deadline".</dd>
+        <dt>price:</dt><dd><bcp14>REQUIRED</bcp14>.  Object: "amount",
+        "currency", "settlement" (binding identifier,
+        <xref target="bindings"/>), and <bcp14>OPTIONAL</bcp14>
+        "channel".</dd>
+        <dt>verification:</dt><dd><bcp14>REQUIRED</bcp14>.  Object: "tier"
+        (<xref target="tiers"/>), "criteria_hash", and
+        <bcp14>OPTIONAL</bcp14> "arbiter".</dd>
+        <dt>liability:</dt><dd><bcp14>REQUIRED</bcp14>.  Object:
+        "seller_bond", <bcp14>OPTIONAL</bcp14> "parent"
+        (<xref target="trees"/>), <bcp14>OPTIONAL</bcp14>
+        "insurance".</dd>
+        <dt>challenge:</dt><dd><bcp14>REQUIRED</bcp14>.  Object:
+        "window_seconds" and <bcp14>OPTIONAL</bcp14>
+        "max_dispute_seconds" bounding total dispute duration.</dd>
+        <dt>signatures:</dt><dd><bcp14>REQUIRED</bcp14>.  Array of JWS
+        signatures over the JCS-canonical form of the VTC excluding the
+        "signatures" member.  <bcp14>MUST</bcp14> contain at least one
+        signature from each party.</dd>
+      </dl>
+      <t>A VTC is valid only if all <bcp14>REQUIRED</bcp14> members are
+      present and all signatures verify against keys bound to the party
+      identifiers.  The "task" member <bcp14>MAY</bcp14> additionally carry
+      "spec_uri".</t>
+      <section anchor="hashes"><name>Hash Commitments and Content
+      Conveyance</name>
+        <t>Hash-valued members ("spec_hash", "criteria_hash") are
+        commitments, not retrieval keys.  The committed content
+        <bcp14>MUST</bcp14> be conveyed to every party required to act on
+        it (inline, or by a companion URI member such as "spec_uri") before
+        that party signs.  A recipient <bcp14>MUST</bcp14> verify that the
+        conveyed content matches the hash before signing, and each party
+        <bcp14>MUST</bcp14> retain the preimage at least until the later of
+        contract finality and the end of any audit period agreed in the
+        VTC.  In a dispute, presenting content that matches a co-signed
+        hash constitutes proof of the agreed content.  Hash values are
+        algorithm-prefixed (e.g., "sha256:..."); the "ni" URI scheme
+        <xref target="RFC6920"/> <bcp14>MAY</bcp14> be used for
+        interoperable hash naming.  Content dereferenced from "spec_uri" is
+        integrity-protected by the hash, not by its transport.</t>
+      </section>
+      <section anchor="taskspec"><name>The Task Specification</name>
+        <t>The content committed by "spec_hash" is a TaskSpec: a JSON
+        object, canonicalized with JCS <xref target="RFC8785"/> before
+        hashing, with the following members:</t>
+        <dl newline="false" spacing="normal">
+          <dt>description:</dt><dd><bcp14>REQUIRED</bcp14>.
+          Natural-language statement of the work, written for machine
+          comprehension.</dd>
+          <dt>skill:</dt><dd><bcp14>OPTIONAL</bcp14>.  Identifier of a
+          published skill the task targets (e.g., an A2A AgentSkill
+          "id").</dd>
+          <dt>inputs:</dt><dd><bcp14>OPTIONAL</bcp14>.  Object: input
+          "schema_uri", a hash-committed representative "sample_uri", and
+          a "size_hint".</dd>
+          <dt>deliverable:</dt><dd><bcp14>REQUIRED</bcp14>.  Object:
+          output format and "schema_uri".</dd>
+          <dt>acceptance:</dt><dd><bcp14>REQUIRED</bcp14>.  Object
+          conveying the verification instrument for the contract's tier: a
+          test "harness_uri" for T0-reexec, model and enclave policy for
+          T1-tee, a proof statement for T2-zkml, or a rubric for T3-jury,
+          plus machine-readable "thresholds".  The instrument is the
+          content committed by the CFB's "verification.criteria_hash"; the
+          two <bcp14>MUST</bcp14> match, and the conveyance and retention
+          rules of <xref target="hashes"/> apply.</dd>
+          <dt>constraints:</dt><dd><bcp14>OPTIONAL</bcp14>.  Object: tool
+          prohibitions, confidentiality, and compliance conditions.  The
+          task deadline is carried in the "task" member of the CFB and
+          VTC, not here.</dd>
+        </dl>
+        <t>Where the natural-language "description" and the acceptance
+        instrument conflict, the acceptance instrument governs.  PACT
+        settlement is gated on verification, so the operative definition of
+        completion is the one the verifier applies; the description conveys
+        intent, and sellers are expected to price bids from the acceptance
+        instrument and sample inputs rather than from prose alone.</t>
+        <t>Confidential tasks <bcp14>MAY</bcp14> publish a CFB that omits
+        the inline "spec" and gates "spec_uri" behind authentication
+        (mirroring the authenticated extended card pattern of
+        <xref target="A2A"/>); the hash commitment prevents substitution of
+        the specification after disclosure.</t>
+      </section>
+    </section>
+    <section anchor="discovery"><name>Discovery: the pact.json Well-Known
+    URI</name>
+      <t>An origin advertising PACT capability publishes a JSON document at
+      the well-known URI <xref target="RFC8615"/> path
+      "/.well-known/pact.json" containing at minimum:</t>
+      <dl newline="false" spacing="normal">
+        <dt>pactVersion:</dt><dd><bcp14>REQUIRED</bcp14>.  Supported
+        protocol version(s).</dd>
+        <dt>roles:</dt><dd><bcp14>REQUIRED</bcp14>.  Array: "buyer",
+        "seller", or both.</dd>
+        <dt>verification_tiers:</dt><dd><bcp14>REQUIRED</bcp14>.  Supported
+        tiers (<xref target="tiers"/>).</dd>
+        <dt>settlement:</dt><dd><bcp14>REQUIRED</bcp14>.  Supported
+        settlement bindings.</dd>
+        <dt>channels:</dt><dd><bcp14>OPTIONAL</bcp14>.  Boolean; Contract
+        Channel support.</dd>
+        <dt>min_bond_pct:</dt><dd><bcp14>OPTIONAL</bcp14>.  Minimum bond as
+        percent of price.</dd>
+        <dt>attestation_jwks:</dt><dd><bcp14>OPTIONAL</bcp14>.  URI of the
+        key set used to sign Work Attestations.</dd>
+      </dl>
+      <t>Naming note: the well-known name "pact.json" is unrelated to the
+      artifact files of the Pact consumer-contract-testing framework and to
+      the Pact smart-contract language, neither of which occupies a
+      well-known URI; no registry conflict exists.</t>
+    </section>
+    <section anchor="tiers"><name>Verification Methods</name>
+      <t>This document defines four initial Verification Tiers.  The tier
+      governs what constitutes a valid fraud proof
+      (<xref target="complete"/>).</t>
+      <dl newline="false" spacing="normal">
+        <dt>T0-reexec:</dt><dd>Deterministic re-execution.  The work
+        product is recomputable; a fraud proof is a failing re-execution
+        transcript.  Suitable for code, data transformation, and other
+        reproducible tasks.</dd>
+        <dt>T1-tee:</dt><dd>Attested execution.  The Seller Agent executes
+        within a trusted execution environment; delivery includes a
+        remote-attestation quote binding program, input, and output.
+        Attestation Evidence and Attestation Results <bcp14>MUST</bcp14> be
+        conveyed as Entity Attestation Tokens <xref target="RFC9711"/>
+        under the RATS architecture <xref target="RFC9334"/>, with the
+        Facilitator or Arbiter acting as RATS Relying Party.  A fraud proof
+        is an invalid or mismatched attestation.</dd>
+        <dt>T2-zkml:</dt><dd>Zero-knowledge proof of inference.  Delivery
+        includes a succinct proof that a committed model produced the
+        output from the committed input.  A fraud proof is a failed proof
+        verification.  At the time of this writing, proof generation is
+        practical for models up to roughly the 1B-parameter class;
+        layerwise and sampled partial verification <bcp14>MAY</bcp14> be
+        used to extend coverage.</dd>
+        <dt>T3-jury:</dt><dd>Staked arbitration.  The named Arbiter (a
+        panel of staked jurors, human or machine) rules on subjective
+        criteria; jurors on the losing side of the ruling are slashed.</dd>
+      </dl>
+      <t>Additional tiers can be registered through the registry
+      established in <xref target="iana"/>.</t>
+    </section>
+    <section anchor="bindings"><name>Settlement Bindings</name>
+      <t>A settlement binding maps VTC lifecycle events (lock, release,
+      slash, close) onto a payment system.  This document defines:</t>
+      <dl newline="false" spacing="normal">
+        <dt>pact-escrow:</dt><dd>An x402 payment scheme (in the
+        <xref target="X402"/> v2 sense: schemes define payment formation,
+        verification, and settlement semantics; extensions are non-payment
+        add-ons) in which a Facilitator holds funds under a
+        conditional-release predicate keyed to VTC events, evaluated at the
+        facilitator "/verify" and "/settle" interfaces with phase-dependent
+        amounts (following the precedent of the "upto" scheme) and CAIP-2
+        network identifiers.  The predicate <bcp14>MUST</bcp14> enforce the
+        challenge window.  This scheme is aligned with the
+        deferred-settlement direction in the x402 ecosystem (escrow
+        deposit, off-chain vouchers, batch redemption) and with the
+        community escrow-scheme proposal; it adds what neither provides:
+        release gated on verified work, bonds, and slashing.</dd>
+        <dt>ap2-mandate:</dt><dd>A binding in which release is additionally
+        gated on presentation of a valid AP2 Payment Mandate
+        <xref target="AP2"/>, for contracts whose buyer-side authority
+        originates from a human payment delegation.</dd>
+      </dl>
+      <t>Settlement bindings are rail-agnostic by design: bindings for
+      other machine-payment rails (for example, the Stripe/Tempo Machine
+      Payments Protocol <xref target="MPP"/>) or conventional payment
+      systems follow the same lifecycle mapping and are out of scope for
+      this document.</t>
+      <t>Escrowed funds <bcp14>SHOULD</bcp14> be held in an instrument (for
+      example, an on-chain contract) that the Facilitator cannot
+      unilaterally redirect, preserving the property that the Facilitator
+      executes the VTC's terms without discretionary control over
+      funds.</t>
+    </section>
+    <section anchor="trees"><name>Contract Trees and Liability</name>
+      <t>A VTC <bcp14>MAY</bcp14> name a "parent" contract, forming a
+      contract tree.  The following invariants apply:</t>
+      <ul spacing="normal">
+        <li>A child contract's deadline <bcp14>MUST NOT</bcp14> exceed its
+        parent's.</li>
+        <li>The seller of a parent contract is the buyer of its
+        children.</li>
+        <li>A successful fraud proof or arbitration loss at a child node
+        slashes the child seller's bond; if the resulting remedy is
+        insufficient to cure the parent's obligations, the parent seller's
+        bond is exposed in turn (cascade).</li>
+        <li>The Work Attestation of a parent contract <bcp14>MUST</bcp14>
+        include a Merkle commitment over the attestation hashes of all its
+        children, so that a single root attestation proves the delegation
+        tree.</li>
+      </ul>
+    </section>
+    <section anchor="attestations"><name>Work Attestations and
+    Reputation</name>
+      <t>A Work Attestation is a JSON object recording: the VTC id and
+      hash, the settlement outcome (settled, cured, slashed, arbitrated),
+      the amounts, timestamps, and the tree commitment of
+      <xref target="trees"/>, signed by both parties (JWS over JCS).</t>
+      <t>Reputation in PACT is defined as the set of an agent's Work
+      Attestations.  Because attestations are emitted only upon facilitated
+      settlement (<xref target="trust"/>), fabricating a favorable history
+      requires funding real, bonded, fee-bearing contracts, making Sybil
+      and wash-trading attacks economically bounded
+      (<xref target="security"/>).  Agents <bcp14>SHOULD</bcp14> support
+      selective-disclosure presentation of attestation aggregates (e.g.,
+      SD-JWT <xref target="RFC9901"/> or BBS-based proofs
+      <xref target="BBS"/>) so that track records can be proven without
+      revealing counterparties.  Attestations <bcp14>MAY</bcp14>
+      additionally be exported into portable passport formats such as ATEP
+      <xref target="ATEP"/> or anchored in on-chain registries such as
+      ERC-8004 <xref target="ERC8004"/>.</t>
+    </section>
+    <section anchor="channels"><name>Contract Channels</name>
+      <t>Two agents anticipating repeated dealings <bcp14>MAY</bcp14> open
+      a Contract Channel: a master VTC that locks an aggregate escrow and
+      fixes standing terms.  Individual micro-contracts within the channel
+      are formed and settled by exchanging signed channel states
+      off-ledger; either party <bcp14>MAY</bcp14> close the channel by
+      presenting the latest mutually signed state to the Facilitator, which
+      nets and settles the balance.  Channel state <bcp14>MUST</bcp14> be
+      strictly monotonic (sequence-numbered) and each state
+      <bcp14>MUST</bcp14> be signed by both parties.</t>
+      <t>Because a stale channel state can be presented while a party is
+      offline, a channel party <bcp14>MUST</bcp14> be able to delegate
+      challenge-window monitoring to a third party (a watchtower), and
+      challenge windows <bcp14>SHOULD</bcp14> be sized to tolerate expected
+      participant downtime.  The construction follows the generalized
+      state-channel literature <xref target="PERUN"/>.</t>
+    </section>
+    <section anchor="security"><name>Security Considerations</name>
+      <t>Adversarial negotiation.  Free-form inter-agent negotiation
+      exposes agents to persuasion and prompt-injection attacks by their
+      counterparties.  PACT's sealed-bid second-price award
+      (<xref target="propose"/>) removes the strategic value of such
+      manipulation for the award itself.  Task specifications
+      <bcp14>MUST</bcp14> be treated as untrusted data, never as
+      instructions.</t>
+      <t>Auction manipulation.  Second-price awards carry known attack
+      surfaces <xref target="LONELY"/>.  Loser collusion and bid rotation
+      raise clearing prices; bond costs and attestation-weighted bidder
+      eligibility raise the price of sustained cartels.  The Buyer Agent,
+      which conducts the award, <bcp14>MUST NOT</bcp14> be able to
+      introduce or alter a bid after observing others: the bid-commitment
+      requirement of <xref target="propose"/> exists to prevent shill
+      insertion of a price-setting second bid, and TEE-sealed bidding
+      <bcp14>MAY</bcp14> be used for stronger guarantees.  False-name
+      (Sybil) bidding yields no advantage in single-item second-price
+      awards <xref target="YOKOO"/>; it does in combinatorial awards, which
+      is why bundle auctions are out of scope for this version.</t>
+      <t>Sybil and wash trading.  Reputation derives only from settled,
+      bonded, fee-bearing contracts (<xref target="attestations"/>).
+      Facilitator and arbiter fees, bond opportunity cost, and
+      Merkle-committed counterparty diversity raise the cost of
+      manufactured histories.  Verifiers of reputation
+      <bcp14>SHOULD</bcp14> weight attestations by counterparty
+      distinctness and settled value.</t>
+      <t>Facilitator compromise.  The Facilitator executes but does not
+      adjudicate; it <bcp14>MUST NOT</bcp14> exercise discretion over award
+      or adjudication outcomes, and it <bcp14>MUST</bcp14> publish an
+      auditable log of locks, releases, and slashes.  Multi-facilitator
+      escrow (threshold release) is <bcp14>RECOMMENDED</bcp14> for
+      high-value contracts.</t>
+      <t>Verifier and oracle risk.  T1 inherits the trust model of the TEE
+      vendor; T2 inherits the soundness of the proof system; T3 inherits
+      the incentive design of the jury.  The VTC's tier choice is a
+      security parameter and <bcp14>MUST</bcp14> be explicit.</t>
+      <t>Griefing.  Every challenge <bcp14>MUST</bcp14> carry a challenger
+      stake, forfeited if the challenge fails; this bounds the cost that
+      frivolous challenges can impose on honest sellers.</t>
+      <t>Market-level failure.  Implementations <bcp14>SHOULD</bcp14>
+      support velocity caps and position limits per identity, and
+      <bcp14>SHOULD</bcp14> subscribe to revocation and risk events using
+      the OpenID Shared Signals Framework 1.0 and CAEP 1.0 (Final
+      Specifications) <xref target="SSF"/>, permitting mid-contract
+      suspension of a compromised counterparty.</t>
+    </section>
+    <section anchor="privacy"><name>Privacy Considerations</name>
+      <t>VTCs commit to task content by hash; the content itself need not
+      be disclosed to facilitators, arbiters (absent a dispute), or
+      registries.  Selective-disclosure attestation proofs
+      (<xref target="attestations"/>) permit reputation without
+      counterparty disclosure.  Channel micro-contracts are visible only to
+      the channel parties until close.</t>
+    </section>
+    <section anchor="iana"><name>IANA Considerations</name>
+      <t>This document requests registration of:</t>
+      <ul spacing="normal">
+        <li>The well-known URI "pact.json" in the "Well-Known URIs"
+        registry <xref target="RFC8615"/>.  URI suffix: "pact.json";
+        change controller: IETF; reference: <xref target="discovery"/> of
+        this document.</li>
+        <li>The media types "application/pact-contract+json" (the VTC,
+        <xref target="vtc"/>), "application/pact-attestation+json"
+        (<xref target="attestations"/>), "application/pact-cfb+json", and
+        "application/pact-bid+json" (<xref target="propose"/>), per the
+        procedures of <xref target="RFC6838"/>.</li>
+        <li>A new "PACT Verification Tiers" registry with initial entries
+        T0-reexec, T1-tee, T2-zkml, T3-jury (<xref target="tiers"/>);
+        registration policy Specification Required
+        <xref target="RFC8126"/>.</li>
+        <li>A new "PACT Settlement Bindings" registry with initial entries
+        pact-escrow and ap2-mandate (<xref target="bindings"/>);
+        registration policy Specification Required
+        <xref target="RFC8126"/>.</li>
+      </ul>
+    </section>
+  </middle>
+  <back>
+    <references><name>References</name>
+      <references anchor="normative"><name>Normative References</name>
+        <reference anchor="RFC2119" target="https://www.rfc-editor.org/info/rfc2119">
+          <front><title>Key words for use in RFCs to Indicate Requirement Levels</title>
+          <author initials="S." surname="Bradner"/><date year="1997"/></front>
+          <seriesInfo name="BCP" value="14"/><seriesInfo name="RFC" value="2119"/>
+        </reference>
+        <reference anchor="RFC8174" target="https://www.rfc-editor.org/info/rfc8174">
+          <front><title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+          <author initials="B." surname="Leiba"/><date year="2017"/></front>
+          <seriesInfo name="BCP" value="14"/><seriesInfo name="RFC" value="8174"/>
+        </reference>
+        <reference anchor="RFC7515" target="https://www.rfc-editor.org/info/rfc7515">
+          <front><title>JSON Web Signature (JWS)</title>
+          <author initials="M." surname="Jones"/><author initials="J." surname="Bradley"/>
+          <author initials="N." surname="Sakimura"/><date year="2015"/></front>
+          <seriesInfo name="RFC" value="7515"/>
+        </reference>
+        <reference anchor="RFC8615" target="https://www.rfc-editor.org/info/rfc8615">
+          <front><title>Well-Known Uniform Resource Identifiers (URIs)</title>
+          <author initials="M." surname="Nottingham"/><date year="2019"/></front>
+          <seriesInfo name="RFC" value="8615"/>
+        </reference>
+        <reference anchor="RFC8693" target="https://www.rfc-editor.org/info/rfc8693">
+          <front><title>OAuth 2.0 Token Exchange</title>
+          <author initials="M." surname="Jones"/><author initials="A." surname="Nadalin"/>
+          <author initials="B." surname="Campbell"/><author initials="J." surname="Bradley"/>
+          <author initials="C." surname="Mortimore"/><date year="2020"/></front>
+          <seriesInfo name="RFC" value="8693"/>
+        </reference>
+        <reference anchor="RFC8785" target="https://www.rfc-editor.org/info/rfc8785">
+          <front><title>JSON Canonicalization Scheme (JCS)</title>
+          <author initials="A." surname="Rundgren"/><author initials="B." surname="Jordan"/>
+          <author initials="S." surname="Erdtman"/><date year="2020"/></front>
+          <seriesInfo name="RFC" value="8785"/>
+        </reference>
+        <reference anchor="RFC9334" target="https://www.rfc-editor.org/info/rfc9334">
+          <front><title>Remote ATtestation procedureS (RATS) Architecture</title>
+          <author initials="H." surname="Birkholz"/><author initials="D." surname="Thaler"/>
+          <author initials="M." surname="Richardson"/><author initials="N." surname="Smith"/>
+          <author initials="W." surname="Pan"/><date year="2023"/></front>
+          <seriesInfo name="RFC" value="9334"/>
+        </reference>
+        <reference anchor="RFC9711" target="https://www.rfc-editor.org/info/rfc9711">
+          <front><title>The Entity Attestation Token (EAT)</title>
+          <author initials="L." surname="Lundblade"/><author initials="G." surname="Mandyam"/>
+          <author initials="J." surname="O'Donoghue"/><author initials="C." surname="Wallace"/>
+          <date year="2025"/></front>
+          <seriesInfo name="RFC" value="9711"/>
+        </reference>
+        <reference anchor="RFC6920" target="https://www.rfc-editor.org/info/rfc6920">
+          <front><title>Naming Things with Hashes</title>
+          <author initials="S." surname="Farrell"/><author initials="D." surname="Kutscher"/>
+          <author initials="C." surname="Dannewitz"/><author initials="B." surname="Ohlman"/>
+          <author initials="A." surname="Keranen"/><author initials="P." surname="Hallam-Baker"/>
+          <date year="2013"/></front>
+          <seriesInfo name="RFC" value="6920"/>
+        </reference>
+        <reference anchor="RFC6838" target="https://www.rfc-editor.org/info/rfc6838">
+          <front><title>Media Type Specifications and Registration Procedures</title>
+          <author initials="N." surname="Freed"/><author initials="J." surname="Klensin"/>
+          <author initials="T." surname="Hansen"/><date year="2013"/></front>
+          <seriesInfo name="BCP" value="13"/><seriesInfo name="RFC" value="6838"/>
+        </reference>
+        <reference anchor="RFC8126" target="https://www.rfc-editor.org/info/rfc8126">
+          <front><title>Guidelines for Writing an IANA Considerations Section in RFCs</title>
+          <author initials="M." surname="Cotton"/><author initials="B." surname="Leiba"/>
+          <author initials="T." surname="Narten"/><date year="2017"/></front>
+          <seriesInfo name="BCP" value="26"/><seriesInfo name="RFC" value="8126"/>
+        </reference>
+      </references>
+      <references anchor="informative"><name>Informative References</name>
+        <reference anchor="CNET">
+          <front><title>The Contract Net Protocol: High-Level Communication and Control in a Distributed Problem Solver</title>
+          <author initials="R.G." surname="Smith"/><date year="1980"/></front>
+          <refcontent>IEEE Transactions on Computers, vol. C-29, no. 12</refcontent>
+        </reference>
+        <reference anchor="A2A" target="https://a2a-protocol.org/latest/specification/">
+          <front><title>Agent2Agent (A2A) Protocol Specification, v1.0</title>
+          <author><organization>A2A Project</organization></author><date year="2026"/></front>
+        </reference>
+        <reference anchor="AP2" target="https://ap2-protocol.org/">
+          <front><title>Agent Payments Protocol (AP2)</title>
+          <author><organization>AP2 Project</organization></author><date year="2025"/></front>
+        </reference>
+        <reference anchor="X402" target="https://x402.org/">
+          <front><title>x402: An Open Protocol for Internet-Native Payments</title>
+          <author><organization>x402 Foundation</organization></author><date year="2026"/></front>
+        </reference>
+        <reference anchor="DID" target="https://www.w3.org/TR/did-core/">
+          <front><title>Decentralized Identifiers (DIDs) v1.0</title>
+          <author><organization>W3C</organization></author><date year="2022" month="July"/></front>
+          <refcontent>W3C Recommendation</refcontent>
+        </reference>
+        <reference anchor="RFC9901" target="https://www.rfc-editor.org/info/rfc9901">
+          <front><title>Selective Disclosure for JSON Web Tokens (SD-JWT)</title>
+          <author initials="D." surname="Fett"/><author initials="K." surname="Yasuda"/>
+          <author initials="B." surname="Campbell"/><date year="2025" month="November"/></front>
+          <seriesInfo name="RFC" value="9901"/>
+        </reference>
+        <reference anchor="BBS">
+          <front><title>The BBS Signature Scheme</title>
+          <author initials="T." surname="Looker"/><author initials="V." surname="Kalos"/>
+          <author initials="A." surname="Whitehead"/><author initials="M." surname="Lodder"/>
+          <date year="2026"/></front>
+          <seriesInfo name="Internet-Draft" value="draft-irtf-cfrg-bbs-signatures-10"/>
+          <refcontent>Work in Progress</refcontent>
+        </reference>
+        <reference anchor="SSF" target="https://openid.net/wg/sharedsignals/specifications/">
+          <front><title>OpenID Shared Signals Framework 1.0 and OpenID CAEP 1.0</title>
+          <author><organization>OpenID Foundation</organization></author>
+          <date year="2025" month="September"/></front>
+          <refcontent>Final Specifications</refcontent>
+        </reference>
+        <reference anchor="LUU15">
+          <front><title>Demystifying Incentives in the Consensus Computer</title>
+          <author initials="L." surname="Luu"/><author initials="J." surname="Teutsch"/>
+          <author initials="R." surname="Kulkarni"/><author initials="P." surname="Saxena"/>
+          <date year="2015"/></front>
+          <refcontent>ACM CCS 2015</refcontent>
+        </reference>
+        <reference anchor="TRUEBIT" target="https://arxiv.org/abs/1908.04756">
+          <front><title>A Scalable Verification Solution for Blockchains (TrueBit)</title>
+          <author initials="J." surname="Teutsch"/><author initials="C." surname="Reitwiessner"/>
+          <date year="2019"/></front>
+          <refcontent>arXiv:1908.04756</refcontent>
+        </reference>
+        <reference anchor="LONELY">
+          <front><title>The Lovely but Lonely Vickrey Auction</title>
+          <author initials="L." surname="Ausubel"/><author initials="P." surname="Milgrom"/>
+          <date year="2004"/></front>
+        </reference>
+        <reference anchor="YOKOO">
+          <front><title>False-Name Bids in Combinatorial Auctions</title>
+          <author initials="M." surname="Yokoo"/><date year="2007"/></front>
+          <refcontent>ACM SIGecom Exchanges 7(1)</refcontent>
+        </reference>
+        <reference anchor="PERUN">
+          <front><title>Perun: Virtual Payment Hubs over Cryptocurrencies</title>
+          <author initials="S." surname="Dziembowski"/><author initials="L." surname="Eckey"/>
+          <author initials="S." surname="Faust"/><author initials="D." surname="Malinowski"/>
+          <date year="2019"/></front>
+          <refcontent>IEEE Symposium on Security and Privacy 2019</refcontent>
+        </reference>
+        <reference anchor="LEVCOM">
+          <front><title>Leveled Commitment Contracts and Strategic Breach</title>
+          <author initials="T." surname="Sandholm"/><author initials="V." surname="Lesser"/>
+          <date year="2001"/></front>
+          <refcontent>Games and Economic Behavior 35</refcontent>
+        </reference>
+        <reference anchor="VACP" target="https://whitepaper.virtuals.io/about-virtuals/agent-commerce-protocol-acp">
+          <front><title>Agent Commerce Protocol (ACP)</title>
+          <author><organization>Virtuals Protocol</organization></author><date year="2026"/></front>
+          <refcontent>whitepaper</refcontent>
+        </reference>
+        <reference anchor="ERC8183">
+          <front><title>ERC-8183</title>
+          <author><organization>Ethereum community</organization></author><date year="2026"/></front>
+          <refcontent>Ethereum Request for Comments</refcontent>
+        </reference>
+        <reference anchor="RAILS" target="https://arxiv.org/abs/2606.08790">
+          <front><title>RAILS: Verification-Native Clearing for Agentic Commerce</title>
+          <author><organization>RAILS authors</organization></author><date year="2026"/></front>
+          <refcontent>arXiv:2606.08790</refcontent>
+        </reference>
+        <reference anchor="MPP" target="https://stripe.com/blog/machine-payments-protocol">
+          <front><title>Machine Payments Protocol</title>
+          <author><organization>Stripe and Tempo</organization></author>
+          <date year="2026" month="March"/></front>
+        </reference>
+        <reference anchor="VCAP" target="https://datatracker.ietf.org/doc/draft-stone-vcap/">
+          <front><title>VCAP: Verified Commerce for Agent Protocols</title>
+          <author initials="B." surname="Stone"/><date year="2026" month="March"/></front>
+          <seriesInfo name="Internet-Draft" value="draft-stone-vcap-01"/>
+          <refcontent>Work in Progress</refcontent>
+        </reference>
+        <reference anchor="AGTP" target="https://datatracker.ietf.org/doc/draft-hood-independent-agtp/">
+          <front><title>Agent Transfer Protocol (AGTP)</title>
+          <author><organization/></author><date year="2026"/></front>
+          <seriesInfo name="Internet-Draft" value="draft-hood-independent-agtp-09"/>
+          <refcontent>Work in Progress</refcontent>
+        </reference>
+        <reference anchor="ADP" target="https://datatracker.ietf.org/doc/draft-kotecha-agentic-dispute-protocol/">
+          <front><title>Agentic Dispute Protocol</title>
+          <author><organization/></author><date year="2026"/></front>
+          <seriesInfo name="Internet-Draft" value="draft-kotecha-agentic-dispute-protocol-00"/>
+          <refcontent>Work in Progress</refcontent>
+        </reference>
+        <reference anchor="TESSPAY" target="https://arxiv.org/abs/2602.00213">
+          <front><title>TessPay: Verify-then-Pay Infrastructure for Trusted Agentic Commerce</title>
+          <author><organization/></author><date year="2026"/></front>
+          <refcontent>arXiv:2602.00213</refcontent>
+        </reference>
+        <reference anchor="ATEP" target="https://datatracker.ietf.org/doc/draft-stone-atep/">
+          <front><title>ATEP: Agent Trust and Execution Passport</title>
+          <author initials="B." surname="Stone"/><date year="2026"/></front>
+          <seriesInfo name="Internet-Draft" value="draft-stone-atep-01"/>
+          <refcontent>Work in Progress</refcontent>
+        </reference>
+        <reference anchor="ERC8004">
+          <front><title>ERC-8004: Trustless Agents</title>
+          <author><organization>Ethereum community</organization></author><date year="2026"/></front>
+          <refcontent>Ethereum Request for Comments</refcontent>
+        </reference>
+        <reference anchor="VAE" target="https://arxiv.org/abs/2509.10147">
+          <front><title>Virtual Agent Economies</title>
+          <author><organization/></author><date year="2025" month="September"/></front>
+          <refcontent>arXiv:2509.10147</refcontent>
+        </reference>
+      </references>
+    </references>
+  </back>
+</rfc>

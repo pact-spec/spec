@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>PACT: A Contract Layer for Autonomous Agent Commerce</title>
+<meta content="Lax Sharma" name="author">
+<meta content="
+       Existing agent interoperability protocols move tasks (A2A) and money
+      (x402, AP2) but provide no mechanism that binds work to payment to
+      proof of completion.  This document specifies PACT (Propose, Agree,
+      Complete, Trust), an application-layer contract protocol for commerce
+      between autonomous agents.  PACT defines (1) a sealed-bid second-price
+      task-award procedure; (2) the Verifiable Task Contract (VTC), a signed
+      JSON object binding parties, scope, price, verification method, and
+      liability; (3) escrowed, optimistically released settlement with a
+      fraud-proof challenge window; (4) graded verification methods ranging
+      from deterministic re-execution to zero-knowledge proofs of inference
+      and staked arbitration; and (5) co-signed Work Attestations from which
+      agent reputation is derived as a byproduct of settlement.  PACT
+      composes existing primitives: Decentralized Identifiers, JSON Web
+      Signatures, OAuth token-exchange delegation chains, the x402 payment
+      protocol, and AP2 mandates. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="autonomous agents" name="keyword">
+<meta content="agent commerce" name="keyword">
+<meta content="escrow" name="keyword">
+<meta content="verification" name="keyword">
+<meta content="draft-laxsharma-pact-00" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.10.12
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.11.0
+    pycountry 26.2.16
+    pypdf 6.13.1
+    PyYAML 6.0.3
+    requests 2.34.2
+    wcwidth 0.8.2
+-->
+<link href="draft-laxsharma-pact-00.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">PACT</td>
+<td class="right">July 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Sharma</td>
+<td class="center">Expires 25 January 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-laxsharma-pact-00</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-07-24" class="published">24 July 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Experimental</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-01-25">25 January 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">L. Sharma</div>
+<div class="org">Independent</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">PACT: A Contract Layer for Autonomous Agent Commerce</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">Existing agent interoperability protocols move tasks (A2A) and money
+      (x402, AP2) but provide no mechanism that binds work to payment to
+      proof of completion.  This document specifies PACT (Propose, Agree,
+      Complete, Trust), an application-layer contract protocol for commerce
+      between autonomous agents.  PACT defines (1) a sealed-bid second-price
+      task-award procedure; (2) the Verifiable Task Contract (VTC), a signed
+      JSON object binding parties, scope, price, verification method, and
+      liability; (3) escrowed, optimistically released settlement with a
+      fraud-proof challenge window; (4) graded verification methods ranging
+      from deterministic re-execution to zero-knowledge proofs of inference
+      and staked arbitration; and (5) co-signed Work Attestations from which
+      agent reputation is derived as a byproduct of settlement.  PACT
+      composes existing primitives: Decentralized Identifiers, JSON Web
+      Signatures, OAuth token-exchange delegation chains, the x402 payment
+      protocol, and AP2 mandates.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 25 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-motivation" class="internal xref">Motivation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-relationship-to-existing-wo" class="internal xref">Relationship to Existing Work</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-protocol-overview" class="internal xref">Protocol Overview</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-phase-p-propose" class="internal xref">Phase P: Propose</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-phase-a-agree" class="internal xref">Phase A: Agree</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-phase-c-complete" class="internal xref">Phase C: Complete</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-phase-t-trust" class="internal xref">Phase T: Trust</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-the-verifiable-task-contrac" class="internal xref">The Verifiable Task Contract</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-hash-commitments-and-conten" class="internal xref">Hash Commitments and Content
+      Conveyance</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-the-task-specification" class="internal xref">The Task Specification</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-discovery-the-pactjson-well" class="internal xref">Discovery: the pact.json Well-Known
+    URI</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-verification-methods" class="internal xref">Verification Methods</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-settlement-bindings" class="internal xref">Settlement Bindings</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-contract-trees-and-liabilit" class="internal xref">Contract Trees and Liability</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-work-attestations-and-reput" class="internal xref">Work Attestations and
+    Reputation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-contract-channels" class="internal xref">Contract Channels</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#section-15" class="auto internal xref">15</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#section-15.1" class="auto internal xref">15.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#section-15.2" class="auto internal xref">15.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="intro">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<div id="motivation">
+<section id="section-1.1">
+        <h3 id="name-motivation">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-motivation" class="section-name selfRef">Motivation</a>
+        </h3>
+<p id="section-1.1-1">The 2024-2026 wave of agent interoperability protocols solved
+        discovery, messaging, identity, and payment execution.  It did not
+        solve commerce.  An agent engaging an unfamiliar counterpart agent
+        today has no standard way to (a) obtain a binding, priced commitment
+        to perform work; (b) condition payment on verified completion;
+        (c) bound its liability when the counterpart subcontracts; or
+        (d) accumulate portable, verifiable evidence of its own
+        reliability.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">The absence of these mechanisms confines agent-to-agent
+        delegation to prearranged, high-trust relationships, precluding open
+        markets for machine work.  PACT supplies the missing layer.<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="related">
+<section id="section-1.2">
+        <h3 id="name-relationship-to-existing-wo">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-relationship-to-existing-wo" class="section-name selfRef">Relationship to Existing Work</a>
+        </h3>
+<p id="section-1.2-1">PACT is a modern realization of the Contract Net Protocol
+        <span>[<a href="#CNET" class="cite xref">CNET</a>]</span> (announcement, bidding, award), which predated
+        the identity, payment, and verification substrate PACT builds upon.
+        PACT composes, and does not replace: A2A <span>[<a href="#A2A" class="cite xref">A2A</a>]</span> for
+        task transport; the x402 payment protocol <span>[<a href="#X402" class="cite xref">X402</a>]</span> for
+        settlement execution; AP2 <span>[<a href="#AP2" class="cite xref">AP2</a>]</span> mandates for human
+        payment authorization; OAuth 2.0 Token Exchange
+        <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> for delegation chains; JWS
+        <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> and JCS <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> for
+        signing; and Decentralized Identifiers <span>[<a href="#DID" class="cite xref">DID</a>]</span> for
+        party identity.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.2-2">Several contemporaneous individual drafts address adjacent parts
+        of this problem.  VCAP <span>[<a href="#VCAP" class="cite xref">VCAP</a>]</span> specifies
+        marketplace-mediated escrow with verify-then-release settlement and
+        free-form negotiation; PACT differs in requiring no marketplace
+        intermediary, replacing negotiation with a sealed-bid second-price
+        award (<a href="#propose" class="auto internal xref">Section 4.1</a>), settling optimistically against
+        bonds and fraud proofs (<a href="#complete" class="auto internal xref">Section 4.3</a>), and adding
+        recursive contract trees (<a href="#trees" class="auto internal xref">Section 9</a>) and
+        settlement-derived attestations (<a href="#attestations" class="auto internal xref">Section 10</a>).
+        AGTP <span>[<a href="#AGTP" class="cite xref">AGTP</a>]</span> defines an application-layer transport
+        with runtime endpoint negotiation, over which PACT exchanges can be
+        carried.  The Agentic Dispute Protocol <span>[<a href="#ADP" class="cite xref">ADP</a>]</span>
+        specifies dispute handling for agent interactions; an ADP-conformant
+        service is a candidate Arbiter for the T3-jury tier
+        (<a href="#tiers" class="auto internal xref">Section 7</a>).  Verify-then-pay architectures are also
+        explored in the literature <span>[<a href="#TESSPAY" class="cite xref">TESSPAY</a>]</span>; PACT's
+        optimistic model makes the opposite latency trade and compensates
+        with bonds and challenge windows.<a href="#section-1.2-2" class="pilcrow">¶</a></p>
+<p id="section-1.2-3">On reputation, ATEP <span>[<a href="#ATEP" class="cite xref">ATEP</a>]</span> defines a portable
+        credential format for an agent's cross-platform track record, and
+        ERC-8004 <span>[<a href="#ERC8004" class="cite xref">ERC8004</a>]</span> provides on-chain identity and
+        reputation registries.  PACT is complementary to both: its Work
+        Attestations are the settlement-native evidence (emitted only
+        through bonded, escrowed contracts) that such passports and
+        registries can carry or index.  The economic design agenda for
+        agent markets, including auction-based allocation and verifiable
+        reputation, is surveyed in <span>[<a href="#VAE" class="cite xref">VAE</a>]</span>; PACT is a concrete
+        wire-level realization of several of its recommendations.<a href="#section-1.2-3" class="pilcrow">¶</a></p>
+<p id="section-1.2-4">Further contemporaneous work: Virtuals' Agent Commerce Protocol
+        <span>[<a href="#VACP" class="cite xref">VACP</a>]</span> and ERC-8183 <span>[<a href="#ERC8183" class="cite xref">ERC8183</a>]</span> pair
+        on-chain escrow with evaluator agents; RAILS
+        <span>[<a href="#RAILS" class="cite xref">RAILS</a>]</span> develops verification-native clearing with
+        admissibility-graded verifier classes.  PACT differs in its open
+        sealed-bid award, bonded recursive contract trees, rail-agnostic
+        settlement bindings (<a href="#bindings" class="auto internal xref">Section 8</a>), and
+        settlement-derived attestations.  PACT Bonds generalize
+        leveled-commitment breach penalties <span>[<a href="#LEVCOM" class="cite xref">LEVCOM</a>]</span> from
+        the automated-contracting literature, which also documents the
+        over-commitment ("eager bidder") failure mode PACT's bonds price
+        in.<a href="#section-1.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>",
+      "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>",
+      "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>",
+      "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>",
+      "<span class="bcp14">NOT RECOMMENDED</span>", "<span class="bcp14">MAY</span>", and
+      "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+      described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span>
+      when, and only when, they appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="terminology">
+<section id="section-3">
+      <h2 id="name-terminology">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<span class="break"></span><dl class="dlParallel" id="section-3-1">
+        <dt id="section-3-1.1">Buyer Agent:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.2">An agent procuring work.<a href="#section-3-1.2" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.3">Seller Agent:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.4">An agent offering to perform work.<a href="#section-3-1.4" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.5">Call-for-Bids:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.6">A signed solicitation broadcast by a
+        Buyer Agent; abbreviated CFB.<a href="#section-3-1.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.7">VTC:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.8">Verifiable Task Contract; the signed contract
+        object defined in <a href="#vtc" class="auto internal xref">Section 5</a>.<a href="#section-3-1.8" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.9">TaskSpec:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.10">The structured task specification committed to
+        by "spec_hash" (<a href="#taskspec" class="auto internal xref">Section 5.2</a>).<a href="#section-3-1.10" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.11">Bond:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.12">Value staked by a Seller Agent, slashable upon a
+        successful fraud proof or arbitration loss.<a href="#section-3-1.12" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.13">Challenger:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.14">Any party submitting a fraud proof during a
+        challenge window.<a href="#section-3-1.14" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.15">Facilitator:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.16">A service that executes escrow locks,
+        releases, and slashes strictly according to the VTC's terms, with no
+        discretionary control over outcomes (see
+        <a href="#bindings" class="auto internal xref">Section 8</a>).<a href="#section-3-1.16" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.17">Verification Tier:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.18">The method by which work product is
+        judged (<a href="#tiers" class="auto internal xref">Section 7</a>).<a href="#section-3-1.18" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.19">Arbiter:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.20">The party or panel resolving disputes for tiers
+        that require judgment.<a href="#section-3-1.20" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.21">Work Attestation:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.22">The co-signed record of a settled
+        contract (<a href="#attestations" class="auto internal xref">Section 10</a>).<a href="#section-3-1.22" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.23">Contract Channel:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.24">A session within which multiple VTCs
+        are formed and settled off-ledger with net settlement on close
+        (<a href="#channels" class="auto internal xref">Section 11</a>).<a href="#section-3-1.24" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-3-1.25">Watchtower:</dt>
+        <dd style="margin-left: 1.5em" id="section-3-1.26">A delegate that monitors channels and
+        challenge windows on behalf of a party that may be offline
+        (<a href="#channels" class="auto internal xref">Section 11</a>).<a href="#section-3-1.26" class="pilcrow">¶</a>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="overview">
+<section id="section-4">
+      <h2 id="name-protocol-overview">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-protocol-overview" class="section-name selfRef">Protocol Overview</a>
+      </h2>
+<p id="section-4-1">PACT proceeds in four phases: Propose, Agree, Complete, Trust.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<div id="propose">
+<section id="section-4.1">
+        <h3 id="name-phase-p-propose">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-phase-p-propose" class="section-name selfRef">Phase P: Propose</a>
+        </h3>
+<p id="section-4.1-1">The Buyer Agent broadcasts a Call-for-Bids (CFB) containing at
+        minimum: a task specification or its hash, a deadline, a maximum
+        price, the required Verification Tier, and a bid deadline.  The CFB
+        <span class="bcp14">MUST</span> be signed by the Buyer Agent.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">Seller Agents respond with sealed bids committing to a price, a
+        bond amount, and acceptance of the Verification Tier.  Bids
+        <span class="bcp14">MUST</span> be submitted as cryptographic commitments
+        (commit-reveal or recipient-key encryption) such that no bidder can
+        observe another's bid before the bid deadline.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">Unless the CFB states a different ranking basis, bids are ranked
+        by price alone.  The Buyer Agent <span class="bcp14">MUST</span> award to the
+        best-ranked bid at the price of the second-best-ranked bid (Vickrey
+        award).  Rationale: second-price sealed-bid awards make truthful
+        bidding a dominant strategy, removing the incentive for adversarial
+        inter-agent negotiation (see <a href="#security" class="auto internal xref">Section 12</a>).  Free-form
+        negotiation between agents is <span class="bcp14">NOT RECOMMENDED</span> for
+        unattended operation.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">A CFB awards a single task.  Combinatorial awards over bundles of
+        tasks are out of scope for this version; see
+        <a href="#security" class="auto internal xref">Section 12</a> for the false-name-bidding rationale.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">A CFB is a JSON object with members: "pact", "type"
+        ("CallForBids"), "id", "buyer", "task" (containing "spec_hash",
+        "deadline", and the specification itself inline as "spec" or by
+        reference as "spec_uri"; see <a href="#hashes" class="auto internal xref">Section 5.1</a> and
+        <a href="#taskspec" class="auto internal xref">Section 5.2</a>), "max_price", "verification" ("tier",
+        "criteria_hash"), "bid_deadline", "challenge" defaults for the
+        resulting VTC, and "signatures".  Bids received after
+        "bid_deadline" <span class="bcp14">MUST</span> be rejected.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+<p id="section-4.1-6">A Bid is a JSON object with members: "pact", "type" ("Bid"),
+        "cfb_id", "bidder", "commitment" (a hash over price, bond amount,
+        and a bidder-chosen nonce), and "signatures".  After
+        "bid_deadline", bidders reveal price, bond, and nonce; the Buyer
+        Agent <span class="bcp14">MUST</span> verify each revelation against its
+        commitment before ranking.  Media types for both messages are
+        registered in <a href="#iana" class="auto internal xref">Section 14</a>.  Note that these protocol
+        messages are distinct from the static capability document of
+        <a href="#discovery" class="auto internal xref">Section 6</a>.<a href="#section-4.1-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="agree">
+<section id="section-4.2">
+        <h3 id="name-phase-a-agree">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-phase-a-agree" class="section-name selfRef">Phase A: Agree</a>
+        </h3>
+<p id="section-4.2-1">The Buyer Agent and the awarded Seller Agent construct a VTC
+        (<a href="#vtc" class="auto internal xref">Section 5</a>).  Both parties <span class="bcp14">MUST</span> sign the
+        JCS-canonicalized <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> VTC using JWS
+        <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span>.  The Buyer Agent then locks the contract
+        price with a Facilitator using a conditional-settlement binding
+        (<a href="#bindings" class="auto internal xref">Section 8</a>), and the Seller Agent posts its Bond.
+        Where the Buyer Agent acts on behalf of a human or organization,
+        its authority <span class="bcp14">SHOULD</span> be represented by an OAuth
+        token containing an "act" delegation chain
+        <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, and payment authorization
+        <span class="bcp14">MAY</span> additionally be represented by an AP2 Intent or
+        Cart Mandate <span>[<a href="#AP2" class="cite xref">AP2</a>]</span>.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="complete">
+<section id="section-4.3">
+        <h3 id="name-phase-c-complete">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-phase-c-complete" class="section-name selfRef">Phase C: Complete</a>
+        </h3>
+<p id="section-4.3-1">The Seller Agent delivers work either atomically or as a
+        sequence of hash-committed checkpoints.  Settlement is optimistic:
+        upon delivery of each checkpoint or the final work product, the
+        Facilitator <span class="bcp14">SHOULD</span> release the corresponding payment
+        immediately, subject to a challenge window whose duration is fixed
+        in the VTC.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.3-2">During the challenge window, any party <span class="bcp14">MAY</span> submit
+        a fraud proof appropriate to the contract's Verification Tier.  A
+        valid fraud proof <span class="bcp14">MUST</span> cause the Facilitator to
+        revert unspent releases, slash the Seller Agent's Bond, and record
+        the outcome in the parties' Work Attestations.  Disputes in
+        judgment-based tiers are resolved by the named Arbiter.<a href="#section-4.3-2" class="pilcrow">¶</a></p>
+<p id="section-4.3-3">From the slashed Bond, the Facilitator <span class="bcp14">MUST</span>
+        reimburse a successful challenger's documented verification and
+        submission costs and <span class="bcp14">MUST</span> pay the challenger a
+        bounty capped at a small fraction of the Bond; any remainder
+        <span class="bcp14">MUST</span> be directed to a neutral sink rather than to
+        any party to the dispute.  Rationale: with slashing alone, rational
+        verifiers stop checking (the verifier's dilemma
+        <span>[<a href="#LUU15" class="cite xref">LUU15</a>]</span> <span>[<a href="#TRUEBIT" class="cite xref">TRUEBIT</a>]</span>); deployed
+        optimistic systems pay bounded defender bounties, capped to avoid
+        first-claimant races and self-challenge griefing.  Total dispute
+        duration <span class="bcp14">MUST</span> be bounded by the VTC's "challenge"
+        parameters.<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust">
+<section id="section-4.4">
+        <h3 id="name-phase-t-trust">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-phase-t-trust" class="section-name selfRef">Phase T: Trust</a>
+        </h3>
+<p id="section-4.4-1">Upon expiry of the final challenge window, the Facilitator
+        closes escrow and both parties exchange co-signed Work Attestations
+        (<a href="#attestations" class="auto internal xref">Section 10</a>).  An implementation
+        <span class="bcp14">MUST NOT</span> emit a Work Attestation for a contract that
+        did not reach settlement through a Facilitator.<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="vtc">
+<section id="section-5">
+      <h2 id="name-the-verifiable-task-contrac">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-the-verifiable-task-contrac" class="section-name selfRef">The Verifiable Task Contract</a>
+      </h2>
+<p id="section-5-1">A VTC is a JSON object with the following top-level members:<a href="#section-5-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5-2">
+        <dt id="section-5-2.1">pact:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.2">
+          <span class="bcp14">REQUIRED</span>.  Protocol version
+        string.<a href="#section-5-2.2" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.3">type:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.4">
+          <span class="bcp14">REQUIRED</span>.
+        "VerifiableTaskContract".<a href="#section-5-2.4" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.5">id:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.6">
+          <span class="bcp14">REQUIRED</span>.  Unique contract
+        identifier.<a href="#section-5-2.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.7">parties:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.8">
+          <span class="bcp14">REQUIRED</span>.  Object: "buyer" and
+        "seller" identifiers, which <span class="bcp14">SHOULD</span> be DIDs
+        resolvable to verification keys.<a href="#section-5-2.8" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.9">task:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.10">
+          <span class="bcp14">REQUIRED</span>.  Object: "spec_hash"
+        (hash of the TaskSpec, <a href="#taskspec" class="auto internal xref">Section 5.2</a>) and
+        "deadline".<a href="#section-5-2.10" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.11">price:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.12">
+          <span class="bcp14">REQUIRED</span>.  Object: "amount",
+        "currency", "settlement" (binding identifier,
+        <a href="#bindings" class="auto internal xref">Section 8</a>), and <span class="bcp14">OPTIONAL</span>
+        "channel".<a href="#section-5-2.12" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.13">verification:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.14">
+          <span class="bcp14">REQUIRED</span>.  Object: "tier"
+        (<a href="#tiers" class="auto internal xref">Section 7</a>), "criteria_hash", and
+        <span class="bcp14">OPTIONAL</span> "arbiter".<a href="#section-5-2.14" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.15">liability:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.16">
+          <span class="bcp14">REQUIRED</span>.  Object:
+        "seller_bond", <span class="bcp14">OPTIONAL</span> "parent"
+        (<a href="#trees" class="auto internal xref">Section 9</a>), <span class="bcp14">OPTIONAL</span>
+        "insurance".<a href="#section-5-2.16" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.17">challenge:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.18">
+          <span class="bcp14">REQUIRED</span>.  Object:
+        "window_seconds" and <span class="bcp14">OPTIONAL</span>
+        "max_dispute_seconds" bounding total dispute duration.<a href="#section-5-2.18" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.19">signatures:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.20">
+          <span class="bcp14">REQUIRED</span>.  Array of JWS
+        signatures over the JCS-canonical form of the VTC excluding the
+        "signatures" member.  <span class="bcp14">MUST</span> contain at least one
+        signature from each party.<a href="#section-5-2.20" class="pilcrow">¶</a>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-5-3">A VTC is valid only if all <span class="bcp14">REQUIRED</span> members are
+      present and all signatures verify against keys bound to the party
+      identifiers.  The "task" member <span class="bcp14">MAY</span> additionally carry
+      "spec_uri".<a href="#section-5-3" class="pilcrow">¶</a></p>
+<div id="hashes">
+<section id="section-5.1">
+        <h3 id="name-hash-commitments-and-conten">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-hash-commitments-and-conten" class="section-name selfRef">Hash Commitments and Content
+      Conveyance</a>
+        </h3>
+<p id="section-5.1-1">Hash-valued members ("spec_hash", "criteria_hash") are
+        commitments, not retrieval keys.  The committed content
+        <span class="bcp14">MUST</span> be conveyed to every party required to act on
+        it (inline, or by a companion URI member such as "spec_uri") before
+        that party signs.  A recipient <span class="bcp14">MUST</span> verify that the
+        conveyed content matches the hash before signing, and each party
+        <span class="bcp14">MUST</span> retain the preimage at least until the later of
+        contract finality and the end of any audit period agreed in the
+        VTC.  In a dispute, presenting content that matches a co-signed
+        hash constitutes proof of the agreed content.  Hash values are
+        algorithm-prefixed (e.g., "sha256:..."); the "ni" URI scheme
+        <span>[<a href="#RFC6920" class="cite xref">RFC6920</a>]</span> <span class="bcp14">MAY</span> be used for
+        interoperable hash naming.  Content dereferenced from "spec_uri" is
+        integrity-protected by the hash, not by its transport.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="taskspec">
+<section id="section-5.2">
+        <h3 id="name-the-task-specification">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-the-task-specification" class="section-name selfRef">The Task Specification</a>
+        </h3>
+<p id="section-5.2-1">The content committed by "spec_hash" is a TaskSpec: a JSON
+        object, canonicalized with JCS <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> before
+        hashing, with the following members:<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.2-2">
+          <dt id="section-5.2-2.1">description:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-2.2">
+            <span class="bcp14">REQUIRED</span>.
+          Natural-language statement of the work, written for machine
+          comprehension.<a href="#section-5.2-2.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-2.3">skill:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-2.4">
+            <span class="bcp14">OPTIONAL</span>.  Identifier of a
+          published skill the task targets (e.g., an A2A AgentSkill
+          "id").<a href="#section-5.2-2.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-2.5">inputs:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-2.6">
+            <span class="bcp14">OPTIONAL</span>.  Object: input
+          "schema_uri", a hash-committed representative "sample_uri", and
+          a "size_hint".<a href="#section-5.2-2.6" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-2.7">deliverable:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-2.8">
+            <span class="bcp14">REQUIRED</span>.  Object:
+          output format and "schema_uri".<a href="#section-5.2-2.8" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-2.9">acceptance:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-2.10">
+            <span class="bcp14">REQUIRED</span>.  Object
+          conveying the verification instrument for the contract's tier: a
+          test "harness_uri" for T0-reexec, model and enclave policy for
+          T1-tee, a proof statement for T2-zkml, or a rubric for T3-jury,
+          plus machine-readable "thresholds".  The instrument is the
+          content committed by the CFB's "verification.criteria_hash"; the
+          two <span class="bcp14">MUST</span> match, and the conveyance and retention
+          rules of <a href="#hashes" class="auto internal xref">Section 5.1</a> apply.<a href="#section-5.2-2.10" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.2-2.11">constraints:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.2-2.12">
+            <span class="bcp14">OPTIONAL</span>.  Object: tool
+          prohibitions, confidentiality, and compliance conditions.  The
+          task deadline is carried in the "task" member of the CFB and
+          VTC, not here.<a href="#section-5.2-2.12" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.2-3">Where the natural-language "description" and the acceptance
+        instrument conflict, the acceptance instrument governs.  PACT
+        settlement is gated on verification, so the operative definition of
+        completion is the one the verifier applies; the description conveys
+        intent, and sellers are expected to price bids from the acceptance
+        instrument and sample inputs rather than from prose alone.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.2-4">Confidential tasks <span class="bcp14">MAY</span> publish a CFB that omits
+        the inline "spec" and gates "spec_uri" behind authentication
+        (mirroring the authenticated extended card pattern of
+        <span>[<a href="#A2A" class="cite xref">A2A</a>]</span>); the hash commitment prevents substitution of
+        the specification after disclosure.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="discovery">
+<section id="section-6">
+      <h2 id="name-discovery-the-pactjson-well">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-discovery-the-pactjson-well" class="section-name selfRef">Discovery: the pact.json Well-Known
+    URI</a>
+      </h2>
+<p id="section-6-1">An origin advertising PACT capability publishes a JSON document at
+      the well-known URI <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span> path
+      "/.well-known/pact.json" containing at minimum:<a href="#section-6-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6-2">
+        <dt id="section-6-2.1">pactVersion:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.2">
+          <span class="bcp14">REQUIRED</span>.  Supported
+        protocol version(s).<a href="#section-6-2.2" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-2.3">roles:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.4">
+          <span class="bcp14">REQUIRED</span>.  Array: "buyer",
+        "seller", or both.<a href="#section-6-2.4" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-2.5">verification_tiers:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.6">
+          <span class="bcp14">REQUIRED</span>.  Supported
+        tiers (<a href="#tiers" class="auto internal xref">Section 7</a>).<a href="#section-6-2.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-2.7">settlement:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.8">
+          <span class="bcp14">REQUIRED</span>.  Supported
+        settlement bindings.<a href="#section-6-2.8" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-2.9">channels:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.10">
+          <span class="bcp14">OPTIONAL</span>.  Boolean; Contract
+        Channel support.<a href="#section-6-2.10" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-2.11">min_bond_pct:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.12">
+          <span class="bcp14">OPTIONAL</span>.  Minimum bond as
+        percent of price.<a href="#section-6-2.12" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-2.13">attestation_jwks:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.14">
+          <span class="bcp14">OPTIONAL</span>.  URI of the
+        key set used to sign Work Attestations.<a href="#section-6-2.14" class="pilcrow">¶</a>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-6-3">Naming note: the well-known name "pact.json" is unrelated to the
+      artifact files of the Pact consumer-contract-testing framework and to
+      the Pact smart-contract language, neither of which occupies a
+      well-known URI; no registry conflict exists.<a href="#section-6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="tiers">
+<section id="section-7">
+      <h2 id="name-verification-methods">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-verification-methods" class="section-name selfRef">Verification Methods</a>
+      </h2>
+<p id="section-7-1">This document defines four initial Verification Tiers.  The tier
+      governs what constitutes a valid fraud proof
+      (<a href="#complete" class="auto internal xref">Section 4.3</a>).<a href="#section-7-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-7-2">
+        <dt id="section-7-2.1">T0-reexec:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-2.2">Deterministic re-execution.  The work
+        product is recomputable; a fraud proof is a failing re-execution
+        transcript.  Suitable for code, data transformation, and other
+        reproducible tasks.<a href="#section-7-2.2" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-2.3">T1-tee:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-2.4">Attested execution.  The Seller Agent executes
+        within a trusted execution environment; delivery includes a
+        remote-attestation quote binding program, input, and output.
+        Attestation Evidence and Attestation Results <span class="bcp14">MUST</span> be
+        conveyed as Entity Attestation Tokens <span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>
+        under the RATS architecture <span>[<a href="#RFC9334" class="cite xref">RFC9334</a>]</span>, with the
+        Facilitator or Arbiter acting as RATS Relying Party.  A fraud proof
+        is an invalid or mismatched attestation.<a href="#section-7-2.4" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-2.5">T2-zkml:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-2.6">Zero-knowledge proof of inference.  Delivery
+        includes a succinct proof that a committed model produced the
+        output from the committed input.  A fraud proof is a failed proof
+        verification.  At the time of this writing, proof generation is
+        practical for models up to roughly the 1B-parameter class;
+        layerwise and sampled partial verification <span class="bcp14">MAY</span> be
+        used to extend coverage.<a href="#section-7-2.6" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-7-2.7">T3-jury:</dt>
+        <dd style="margin-left: 1.5em" id="section-7-2.8">Staked arbitration.  The named Arbiter (a
+        panel of staked jurors, human or machine) rules on subjective
+        criteria; jurors on the losing side of the ruling are slashed.<a href="#section-7-2.8" class="pilcrow">¶</a>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-7-3">Additional tiers can be registered through the registry
+      established in <a href="#iana" class="auto internal xref">Section 14</a>.<a href="#section-7-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="bindings">
+<section id="section-8">
+      <h2 id="name-settlement-bindings">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-settlement-bindings" class="section-name selfRef">Settlement Bindings</a>
+      </h2>
+<p id="section-8-1">A settlement binding maps VTC lifecycle events (lock, release,
+      slash, close) onto a payment system.  This document defines:<a href="#section-8-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-8-2">
+        <dt id="section-8-2.1">pact-escrow:</dt>
+        <dd style="margin-left: 1.5em" id="section-8-2.2">An x402 payment scheme (in the
+        <span>[<a href="#X402" class="cite xref">X402</a>]</span> v2 sense: schemes define payment formation,
+        verification, and settlement semantics; extensions are non-payment
+        add-ons) in which a Facilitator holds funds under a
+        conditional-release predicate keyed to VTC events, evaluated at the
+        facilitator "/verify" and "/settle" interfaces with phase-dependent
+        amounts (following the precedent of the "upto" scheme) and CAIP-2
+        network identifiers.  The predicate <span class="bcp14">MUST</span> enforce the
+        challenge window.  This scheme is aligned with the
+        deferred-settlement direction in the x402 ecosystem (escrow
+        deposit, off-chain vouchers, batch redemption) and with the
+        community escrow-scheme proposal; it adds what neither provides:
+        release gated on verified work, bonds, and slashing.<a href="#section-8-2.2" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-8-2.3">ap2-mandate:</dt>
+        <dd style="margin-left: 1.5em" id="section-8-2.4">A binding in which release is additionally
+        gated on presentation of a valid AP2 Payment Mandate
+        <span>[<a href="#AP2" class="cite xref">AP2</a>]</span>, for contracts whose buyer-side authority
+        originates from a human payment delegation.<a href="#section-8-2.4" class="pilcrow">¶</a>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-8-3">Settlement bindings are rail-agnostic by design: bindings for
+      other machine-payment rails (for example, the Stripe/Tempo Machine
+      Payments Protocol <span>[<a href="#MPP" class="cite xref">MPP</a>]</span>) or conventional payment
+      systems follow the same lifecycle mapping and are out of scope for
+      this document.<a href="#section-8-3" class="pilcrow">¶</a></p>
+<p id="section-8-4">Escrowed funds <span class="bcp14">SHOULD</span> be held in an instrument (for
+      example, an on-chain contract) that the Facilitator cannot
+      unilaterally redirect, preserving the property that the Facilitator
+      executes the VTC's terms without discretionary control over
+      funds.<a href="#section-8-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trees">
+<section id="section-9">
+      <h2 id="name-contract-trees-and-liabilit">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-contract-trees-and-liabilit" class="section-name selfRef">Contract Trees and Liability</a>
+      </h2>
+<p id="section-9-1">A VTC <span class="bcp14">MAY</span> name a "parent" contract, forming a
+      contract tree.  The following invariants apply:<a href="#section-9-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9-2.1">A child contract's deadline <span class="bcp14">MUST NOT</span> exceed its
+        parent's.<a href="#section-9-2.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-2.2">The seller of a parent contract is the buyer of its
+        children.<a href="#section-9-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-2.3">A successful fraud proof or arbitration loss at a child node
+        slashes the child seller's bond; if the resulting remedy is
+        insufficient to cure the parent's obligations, the parent seller's
+        bond is exposed in turn (cascade).<a href="#section-9-2.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-2.4">The Work Attestation of a parent contract <span class="bcp14">MUST</span>
+        include a Merkle commitment over the attestation hashes of all its
+        children, so that a single root attestation proves the delegation
+        tree.<a href="#section-9-2.4" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="attestations">
+<section id="section-10">
+      <h2 id="name-work-attestations-and-reput">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-work-attestations-and-reput" class="section-name selfRef">Work Attestations and
+    Reputation</a>
+      </h2>
+<p id="section-10-1">A Work Attestation is a JSON object recording: the VTC id and
+      hash, the settlement outcome (settled, cured, slashed, arbitrated),
+      the amounts, timestamps, and the tree commitment of
+      <a href="#trees" class="auto internal xref">Section 9</a>, signed by both parties (JWS over JCS).<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">Reputation in PACT is defined as the set of an agent's Work
+      Attestations.  Because attestations are emitted only upon facilitated
+      settlement (<a href="#trust" class="auto internal xref">Section 4.4</a>), fabricating a favorable history
+      requires funding real, bonded, fee-bearing contracts, making Sybil
+      and wash-trading attacks economically bounded
+      (<a href="#security" class="auto internal xref">Section 12</a>).  Agents <span class="bcp14">SHOULD</span> support
+      selective-disclosure presentation of attestation aggregates (e.g.,
+      SD-JWT <span>[<a href="#RFC9901" class="cite xref">RFC9901</a>]</span> or BBS-based proofs
+      <span>[<a href="#BBS" class="cite xref">BBS</a>]</span>) so that track records can be proven without
+      revealing counterparties.  Attestations <span class="bcp14">MAY</span>
+      additionally be exported into portable passport formats such as ATEP
+      <span>[<a href="#ATEP" class="cite xref">ATEP</a>]</span> or anchored in on-chain registries such as
+      ERC-8004 <span>[<a href="#ERC8004" class="cite xref">ERC8004</a>]</span>.<a href="#section-10-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="channels">
+<section id="section-11">
+      <h2 id="name-contract-channels">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-contract-channels" class="section-name selfRef">Contract Channels</a>
+      </h2>
+<p id="section-11-1">Two agents anticipating repeated dealings <span class="bcp14">MAY</span> open
+      a Contract Channel: a master VTC that locks an aggregate escrow and
+      fixes standing terms.  Individual micro-contracts within the channel
+      are formed and settled by exchanging signed channel states
+      off-ledger; either party <span class="bcp14">MAY</span> close the channel by
+      presenting the latest mutually signed state to the Facilitator, which
+      nets and settles the balance.  Channel state <span class="bcp14">MUST</span> be
+      strictly monotonic (sequence-numbered) and each state
+      <span class="bcp14">MUST</span> be signed by both parties.<a href="#section-11-1" class="pilcrow">¶</a></p>
+<p id="section-11-2">Because a stale channel state can be presented while a party is
+      offline, a channel party <span class="bcp14">MUST</span> be able to delegate
+      challenge-window monitoring to a third party (a watchtower), and
+      challenge windows <span class="bcp14">SHOULD</span> be sized to tolerate expected
+      participant downtime.  The construction follows the generalized
+      state-channel literature <span>[<a href="#PERUN" class="cite xref">PERUN</a>]</span>.<a href="#section-11-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security">
+<section id="section-12">
+      <h2 id="name-security-considerations">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-12-1">Adversarial negotiation.  Free-form inter-agent negotiation
+      exposes agents to persuasion and prompt-injection attacks by their
+      counterparties.  PACT's sealed-bid second-price award
+      (<a href="#propose" class="auto internal xref">Section 4.1</a>) removes the strategic value of such
+      manipulation for the award itself.  Task specifications
+      <span class="bcp14">MUST</span> be treated as untrusted data, never as
+      instructions.<a href="#section-12-1" class="pilcrow">¶</a></p>
+<p id="section-12-2">Auction manipulation.  Second-price awards carry known attack
+      surfaces <span>[<a href="#LONELY" class="cite xref">LONELY</a>]</span>.  Loser collusion and bid rotation
+      raise clearing prices; bond costs and attestation-weighted bidder
+      eligibility raise the price of sustained cartels.  The Buyer Agent,
+      which conducts the award, <span class="bcp14">MUST NOT</span> be able to
+      introduce or alter a bid after observing others: the bid-commitment
+      requirement of <a href="#propose" class="auto internal xref">Section 4.1</a> exists to prevent shill
+      insertion of a price-setting second bid, and TEE-sealed bidding
+      <span class="bcp14">MAY</span> be used for stronger guarantees.  False-name
+      (Sybil) bidding yields no advantage in single-item second-price
+      awards <span>[<a href="#YOKOO" class="cite xref">YOKOO</a>]</span>; it does in combinatorial awards, which
+      is why bundle auctions are out of scope for this version.<a href="#section-12-2" class="pilcrow">¶</a></p>
+<p id="section-12-3">Sybil and wash trading.  Reputation derives only from settled,
+      bonded, fee-bearing contracts (<a href="#attestations" class="auto internal xref">Section 10</a>).
+      Facilitator and arbiter fees, bond opportunity cost, and
+      Merkle-committed counterparty diversity raise the cost of
+      manufactured histories.  Verifiers of reputation
+      <span class="bcp14">SHOULD</span> weight attestations by counterparty
+      distinctness and settled value.<a href="#section-12-3" class="pilcrow">¶</a></p>
+<p id="section-12-4">Facilitator compromise.  The Facilitator executes but does not
+      adjudicate; it <span class="bcp14">MUST NOT</span> exercise discretion over award
+      or adjudication outcomes, and it <span class="bcp14">MUST</span> publish an
+      auditable log of locks, releases, and slashes.  Multi-facilitator
+      escrow (threshold release) is <span class="bcp14">RECOMMENDED</span> for
+      high-value contracts.<a href="#section-12-4" class="pilcrow">¶</a></p>
+<p id="section-12-5">Verifier and oracle risk.  T1 inherits the trust model of the TEE
+      vendor; T2 inherits the soundness of the proof system; T3 inherits
+      the incentive design of the jury.  The VTC's tier choice is a
+      security parameter and <span class="bcp14">MUST</span> be explicit.<a href="#section-12-5" class="pilcrow">¶</a></p>
+<p id="section-12-6">Griefing.  Every challenge <span class="bcp14">MUST</span> carry a challenger
+      stake, forfeited if the challenge fails; this bounds the cost that
+      frivolous challenges can impose on honest sellers.<a href="#section-12-6" class="pilcrow">¶</a></p>
+<p id="section-12-7">Market-level failure.  Implementations <span class="bcp14">SHOULD</span>
+      support velocity caps and position limits per identity, and
+      <span class="bcp14">SHOULD</span> subscribe to revocation and risk events using
+      the OpenID Shared Signals Framework 1.0 and CAEP 1.0 (Final
+      Specifications) <span>[<a href="#SSF" class="cite xref">SSF</a>]</span>, permitting mid-contract
+      suspension of a compromised counterparty.<a href="#section-12-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="privacy">
+<section id="section-13">
+      <h2 id="name-privacy-considerations">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-13-1">VTCs commit to task content by hash; the content itself need not
+      be disclosed to facilitators, arbiters (absent a dispute), or
+      registries.  Selective-disclosure attestation proofs
+      (<a href="#attestations" class="auto internal xref">Section 10</a>) permit reputation without
+      counterparty disclosure.  Channel micro-contracts are visible only to
+      the channel parties until close.<a href="#section-13-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana">
+<section id="section-14">
+      <h2 id="name-iana-considerations">
+<a href="#section-14" class="section-number selfRef">14. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-14-1">This document requests registration of:<a href="#section-14-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14-2.1">The well-known URI "pact.json" in the "Well-Known URIs"
+        registry <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span>.  URI suffix: "pact.json";
+        change controller: IETF; reference: <a href="#discovery" class="auto internal xref">Section 6</a> of
+        this document.<a href="#section-14-2.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-14-2.2">The media types "application/pact-contract+json" (the VTC,
+        <a href="#vtc" class="auto internal xref">Section 5</a>), "application/pact-attestation+json"
+        (<a href="#attestations" class="auto internal xref">Section 10</a>), "application/pact-cfb+json", and
+        "application/pact-bid+json" (<a href="#propose" class="auto internal xref">Section 4.1</a>), per the
+        procedures of <span>[<a href="#RFC6838" class="cite xref">RFC6838</a>]</span>.<a href="#section-14-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-14-2.3">A new "PACT Verification Tiers" registry with initial entries
+        T0-reexec, T1-tee, T2-zkml, T3-jury (<a href="#tiers" class="auto internal xref">Section 7</a>);
+        registration policy Specification Required
+        <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]</span>.<a href="#section-14-2.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-14-2.4">A new "PACT Settlement Bindings" registry with initial entries
+        pact-escrow and ap2-mandate (<a href="#bindings" class="auto internal xref">Section 8</a>);
+        registration policy Specification Required
+        <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]</span>.<a href="#section-14-2.4" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<section id="section-15">
+      <h2 id="name-references">
+<a href="#section-15" class="section-number selfRef">15. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="normative">
+<section id="section-15.1">
+        <h3 id="name-normative-references">
+<a href="#section-15.1" class="section-number selfRef">15.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <time datetime="1997" class="refDate">1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <time datetime="2017" class="refDate">2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <time datetime="2015" class="refDate">2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7515">https://www.rfc-editor.org/info/rfc7515</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8615">[RFC8615]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refTitle">"Well-Known Uniform Resource Identifiers (URIs)"</span>, <span class="seriesInfo">RFC 8615</span>, <time datetime="2019" class="refDate">2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8615">https://www.rfc-editor.org/info/rfc8615</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8693">[RFC8693]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Nadalin, A.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"OAuth 2.0 Token Exchange"</span>, <span class="seriesInfo">RFC 8693</span>, <time datetime="2020" class="refDate">2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8693">https://www.rfc-editor.org/info/rfc8693</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8785">[RFC8785]</dt>
+        <dd>
+<span class="refAuthor">Rundgren, A.</span>, <span class="refAuthor">Jordan, B.</span>, and <span class="refAuthor">S. Erdtman</span>, <span class="refTitle">"JSON Canonicalization Scheme (JCS)"</span>, <span class="seriesInfo">RFC 8785</span>, <time datetime="2020" class="refDate">2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8785">https://www.rfc-editor.org/info/rfc8785</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9334">[RFC9334]</dt>
+        <dd>
+<span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Thaler, D.</span>, <span class="refAuthor">Richardson, M.</span>, <span class="refAuthor">Smith, N.</span>, and <span class="refAuthor">W. Pan</span>, <span class="refTitle">"Remote ATtestation procedureS (RATS) Architecture"</span>, <span class="seriesInfo">RFC 9334</span>, <time datetime="2023" class="refDate">2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9334">https://www.rfc-editor.org/info/rfc9334</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9711">[RFC9711]</dt>
+        <dd>
+<span class="refAuthor">Lundblade, L.</span>, <span class="refAuthor">Mandyam, G.</span>, <span class="refAuthor">O'Donoghue, J.</span>, and <span class="refAuthor">C. Wallace</span>, <span class="refTitle">"The Entity Attestation Token (EAT)"</span>, <span class="seriesInfo">RFC 9711</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9711">https://www.rfc-editor.org/info/rfc9711</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6920">[RFC6920]</dt>
+        <dd>
+<span class="refAuthor">Farrell, S.</span>, <span class="refAuthor">Kutscher, D.</span>, <span class="refAuthor">Dannewitz, C.</span>, <span class="refAuthor">Ohlman, B.</span>, <span class="refAuthor">Keranen, A.</span>, and <span class="refAuthor">P. Hallam-Baker</span>, <span class="refTitle">"Naming Things with Hashes"</span>, <span class="seriesInfo">RFC 6920</span>, <time datetime="2013" class="refDate">2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6920">https://www.rfc-editor.org/info/rfc6920</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6838">[RFC6838]</dt>
+        <dd>
+<span class="refAuthor">Freed, N.</span>, <span class="refAuthor">Klensin, J.</span>, and <span class="refAuthor">T. Hansen</span>, <span class="refTitle">"Media Type Specifications and Registration Procedures"</span>, <span class="seriesInfo">BCP 13</span>, <span class="seriesInfo">RFC 6838</span>, <time datetime="2013" class="refDate">2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6838">https://www.rfc-editor.org/info/rfc6838</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8126">[RFC8126]</dt>
+      <dd>
+<span class="refAuthor">Cotton, M.</span>, <span class="refAuthor">Leiba, B.</span>, and <span class="refAuthor">T. Narten</span>, <span class="refTitle">"Guidelines for Writing an IANA Considerations Section in RFCs"</span>, <span class="seriesInfo">BCP 26</span>, <span class="seriesInfo">RFC 8126</span>, <time datetime="2017" class="refDate">2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8126">https://www.rfc-editor.org/info/rfc8126</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="informative">
+<section id="section-15.2">
+        <h3 id="name-informative-references">
+<a href="#section-15.2" class="section-number selfRef">15.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="CNET">[CNET]</dt>
+        <dd>
+<span class="refAuthor">Smith, R.G.</span>, <span class="refTitle">"The Contract Net Protocol: High-Level Communication and Control in a Distributed Problem Solver"</span>, <span class="refContent">IEEE Transactions on Computers, vol. C-29, no. 12</span>, <time datetime="1980" class="refDate">1980</time>. </dd>
+<dd class="break"></dd>
+<dt id="A2A">[A2A]</dt>
+        <dd>
+<span class="refAuthor">A2A Project</span>, <span class="refTitle">"Agent2Agent (A2A) Protocol Specification, v1.0"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://a2a-protocol.org/latest/specification/">https://a2a-protocol.org/latest/specification/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AP2">[AP2]</dt>
+        <dd>
+<span class="refAuthor">AP2 Project</span>, <span class="refTitle">"Agent Payments Protocol (AP2)"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://ap2-protocol.org/">https://ap2-protocol.org/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="X402">[X402]</dt>
+        <dd>
+<span class="refAuthor">x402 Foundation</span>, <span class="refTitle">"x402: An Open Protocol for Internet-Native Payments"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://x402.org/">https://x402.org/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="DID">[DID]</dt>
+        <dd>
+<span class="refAuthor">W3C</span>, <span class="refTitle">"Decentralized Identifiers (DIDs) v1.0"</span>, <span class="refContent">W3C Recommendation</span>, <time datetime="2022-07" class="refDate">July 2022</time>, <span>&lt;<a href="https://www.w3.org/TR/did-core/">https://www.w3.org/TR/did-core/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9901">[RFC9901]</dt>
+        <dd>
+<span class="refAuthor">Fett, D.</span>, <span class="refAuthor">Yasuda, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Selective Disclosure for JSON Web Tokens (SD-JWT)"</span>, <span class="seriesInfo">RFC 9901</span>, <time datetime="2025-11" class="refDate">November 2025</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9901">https://www.rfc-editor.org/info/rfc9901</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="BBS">[BBS]</dt>
+        <dd>
+<span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Kalos, V.</span>, <span class="refAuthor">Whitehead, A.</span>, and <span class="refAuthor">M. Lodder</span>, <span class="refTitle">"The BBS Signature Scheme"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-irtf-cfrg-bbs-signatures-10</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bbs-signatures-10">https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bbs-signatures-10</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SSF">[SSF]</dt>
+        <dd>
+<span class="refAuthor">OpenID Foundation</span>, <span class="refTitle">"OpenID Shared Signals Framework 1.0 and OpenID CAEP 1.0"</span>, <span class="refContent">Final Specifications</span>, <time datetime="2025-09" class="refDate">September 2025</time>, <span>&lt;<a href="https://openid.net/wg/sharedsignals/specifications/">https://openid.net/wg/sharedsignals/specifications/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="LUU15">[LUU15]</dt>
+        <dd>
+<span class="refAuthor">Luu, L.</span>, <span class="refAuthor">Teutsch, J.</span>, <span class="refAuthor">Kulkarni, R.</span>, and <span class="refAuthor">P. Saxena</span>, <span class="refTitle">"Demystifying Incentives in the Consensus Computer"</span>, <span class="refContent">ACM CCS 2015</span>, <time datetime="2015" class="refDate">2015</time>. </dd>
+<dd class="break"></dd>
+<dt id="TRUEBIT">[TRUEBIT]</dt>
+        <dd>
+<span class="refAuthor">Teutsch, J.</span> and <span class="refAuthor">C. Reitwiessner</span>, <span class="refTitle">"A Scalable Verification Solution for Blockchains (TrueBit)"</span>, <span class="refContent">arXiv:1908.04756</span>, <time datetime="2019" class="refDate">2019</time>, <span>&lt;<a href="https://arxiv.org/abs/1908.04756">https://arxiv.org/abs/1908.04756</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="LONELY">[LONELY]</dt>
+        <dd>
+<span class="refAuthor">Ausubel, L.</span> and <span class="refAuthor">P. Milgrom</span>, <span class="refTitle">"The Lovely but Lonely Vickrey Auction"</span>, <time datetime="2004" class="refDate">2004</time>. </dd>
+<dd class="break"></dd>
+<dt id="YOKOO">[YOKOO]</dt>
+        <dd>
+<span class="refAuthor">Yokoo, M.</span>, <span class="refTitle">"False-Name Bids in Combinatorial Auctions"</span>, <span class="refContent">ACM SIGecom Exchanges 7(1)</span>, <time datetime="2007" class="refDate">2007</time>. </dd>
+<dd class="break"></dd>
+<dt id="PERUN">[PERUN]</dt>
+        <dd>
+<span class="refAuthor">Dziembowski, S.</span>, <span class="refAuthor">Eckey, L.</span>, <span class="refAuthor">Faust, S.</span>, and <span class="refAuthor">D. Malinowski</span>, <span class="refTitle">"Perun: Virtual Payment Hubs over Cryptocurrencies"</span>, <span class="refContent">IEEE Symposium on Security and Privacy 2019</span>, <time datetime="2019" class="refDate">2019</time>. </dd>
+<dd class="break"></dd>
+<dt id="LEVCOM">[LEVCOM]</dt>
+        <dd>
+<span class="refAuthor">Sandholm, T.</span> and <span class="refAuthor">V. Lesser</span>, <span class="refTitle">"Leveled Commitment Contracts and Strategic Breach"</span>, <span class="refContent">Games and Economic Behavior 35</span>, <time datetime="2001" class="refDate">2001</time>. </dd>
+<dd class="break"></dd>
+<dt id="VACP">[VACP]</dt>
+        <dd>
+<span class="refAuthor">Virtuals Protocol</span>, <span class="refTitle">"Agent Commerce Protocol (ACP)"</span>, <span class="refContent">whitepaper</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://whitepaper.virtuals.io/about-virtuals/agent-commerce-protocol-acp">https://whitepaper.virtuals.io/about-virtuals/agent-commerce-protocol-acp</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ERC8183">[ERC8183]</dt>
+        <dd>
+<span class="refAuthor">Ethereum community</span>, <span class="refTitle">"ERC-8183"</span>, <span class="refContent">Ethereum Request for Comments</span>, <time datetime="2026" class="refDate">2026</time>. </dd>
+<dd class="break"></dd>
+<dt id="RAILS">[RAILS]</dt>
+        <dd>
+<span class="refAuthor">RAILS authors</span>, <span class="refTitle">"RAILS: Verification-Native Clearing for Agentic Commerce"</span>, <span class="refContent">arXiv:2606.08790</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://arxiv.org/abs/2606.08790">https://arxiv.org/abs/2606.08790</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MPP">[MPP]</dt>
+        <dd>
+<span class="refAuthor">Stripe and Tempo</span>, <span class="refTitle">"Machine Payments Protocol"</span>, <time datetime="2026-03" class="refDate">March 2026</time>, <span>&lt;<a href="https://stripe.com/blog/machine-payments-protocol">https://stripe.com/blog/machine-payments-protocol</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="VCAP">[VCAP]</dt>
+        <dd>
+<span class="refAuthor">Stone, B.</span>, <span class="refTitle">"VCAP: Verified Commerce for Agent Protocols"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-stone-vcap-01</span>, <time datetime="2026-03" class="refDate">March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-stone-vcap/">https://datatracker.ietf.org/doc/draft-stone-vcap/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AGTP">[AGTP]</dt>
+        <dd>
+<span class="refTitle">"Agent Transfer Protocol (AGTP)"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-hood-independent-agtp-09</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-hood-independent-agtp/">https://datatracker.ietf.org/doc/draft-hood-independent-agtp/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ADP">[ADP]</dt>
+        <dd>
+<span class="refTitle">"Agentic Dispute Protocol"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-kotecha-agentic-dispute-protocol-00</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-kotecha-agentic-dispute-protocol/">https://datatracker.ietf.org/doc/draft-kotecha-agentic-dispute-protocol/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="TESSPAY">[TESSPAY]</dt>
+        <dd>
+<span class="refTitle">"TessPay: Verify-then-Pay Infrastructure for Trusted Agentic Commerce"</span>, <span class="refContent">arXiv:2602.00213</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://arxiv.org/abs/2602.00213">https://arxiv.org/abs/2602.00213</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ATEP">[ATEP]</dt>
+        <dd>
+<span class="refAuthor">Stone, B.</span>, <span class="refTitle">"ATEP: Agent Trust and Execution Passport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-stone-atep-01</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-stone-atep/">https://datatracker.ietf.org/doc/draft-stone-atep/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ERC8004">[ERC8004]</dt>
+        <dd>
+<span class="refAuthor">Ethereum community</span>, <span class="refTitle">"ERC-8004: Trustless Agents"</span>, <span class="refContent">Ethereum Request for Comments</span>, <time datetime="2026" class="refDate">2026</time>. </dd>
+<dd class="break"></dd>
+<dt id="VAE">[VAE]</dt>
+      <dd>
+<span class="refTitle">"Virtual Agent Economies"</span>, <span class="refContent">arXiv:2509.10147</span>, <time datetime="2025-09" class="refDate">September 2025</time>, <span>&lt;<a href="https://arxiv.org/abs/2509.10147">https://arxiv.org/abs/2509.10147</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+<div id="authors-addresses">
+<section id="appendix-A">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Lax Sharma</span></div>
+<div dir="auto" class="left"><span class="org">Independent</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:laxsharma79@gmail.com" class="email">laxsharma79@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

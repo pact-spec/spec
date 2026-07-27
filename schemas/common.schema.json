@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pact-spec.github.io/spec/schemas/common.schema.json",
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "did": { "type": "string", "pattern": "^did:" },
+    "money": { "type": "string", "pattern": "^[0-9]+\\.[0-9]{2}$" },
+    "signature": {
+      "type": "object",
+      "required": ["kid", "protected", "signature"],
+      "properties": {
+        "kid": { "type": "string" },
+        "protected": { "type": "string" },
+        "signature": { "type": "string" }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "required": ["window_seconds"],
+      "properties": {
+        "window_seconds": { "type": "integer", "minimum": 0 },
+        "max_dispute_seconds": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pact-spec.github.io/spec/schemas/taskspec.schema.json",
+  "title": "PACT TaskSpec",
+  "type": "object",
+  "required": ["description", "deliverable", "acceptance"],
+  "properties": {
+    "description": { "type": "string", "minLength": 1 },
+    "skill": { "type": "string" },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "schema_uri": { "type": "string", "format": "uri" },
+        "sample_uri": { "type": "string", "format": "uri" },
+        "size_hint": { "type": "object" }
+      }
+    },
+    "deliverable": {
+      "type": "object",
+      "required": ["format"],
+      "properties": {
+        "format": { "type": "string" },
+        "schema_uri": { "type": "string", "format": "uri" }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "properties": {
+        "harness_uri": { "type": "string", "format": "uri" },
+        "rubric_uri": { "type": "string", "format": "uri" },
+        "thresholds": { "type": "object" }
+      }
+    },
+    "constraints": { "type": "object" }
+  }
+}

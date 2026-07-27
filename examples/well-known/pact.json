@@ -1,0 +1,9 @@
+{
+  "pactVersion": "0.1",
+  "roles": ["seller"],
+  "verification_tiers": ["T0-reexec", "T1-tee"],
+  "settlement": ["pact-escrow"],
+  "channels": true,
+  "min_bond_pct": 10,
+  "attestation_jwks": "https://dataforge.example/.well-known/jwks.json"
+}

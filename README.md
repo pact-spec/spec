@@ -25,7 +25,7 @@ closes that gap:
 ## Status
 
 - **Submitted to the IETF** (27 July 2026):
-  [draft-laxsharma-pact-00](https://datatracker.ietf.org/doc/draft-laxsharma-pact-00/)
+  [draft-laxsharma-pact-00](https://datatracker.ietf.org/doc/draft-laxsharma-pact/)
   is live on the Datatracker.
 - Read it: [rendered HTML](https://pact-spec.github.io/spec/draft/draft-laxsharma-pact-00.html)
   · [plain text](draft/draft-laxsharma-pact-00.txt)

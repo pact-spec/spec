@@ -24,11 +24,18 @@ closes that gap:
 
 ## Status
 
-- Internet-Draft: **draft-laxsharma-pact-00** — see
-  [`draft/draft-laxsharma-pact-00.txt`](draft/draft-laxsharma-pact-00.txt)
-  (XML source and HTML rendering alongside).
-- Status: **-00 strawman, submitted for demolition.** Issues and PRs
-  welcome — especially "here is where this breaks."
+- **Submitted to the IETF** (27 July 2026):
+  [draft-laxsharma-pact-00](https://datatracker.ietf.org/doc/draft-laxsharma-pact-00/)
+  is live on the Datatracker.
+- Read it: [rendered HTML](https://pact-spec.github.io/spec/draft/draft-laxsharma-pact-00.html)
+  · [plain text](draft/draft-laxsharma-pact-00.txt)
+  · [XML source](draft/draft-laxsharma-pact-00.xml)
+- This is a **-00 strawman, published for demolition.** Issues and PRs
+  welcome — especially "here is where this breaks." Feedback is collected
+  for the next revision in the
+  [-01 changelog issue](https://github.com/pact-spec/spec/issues).
+- Not endorsed by the IETF; an individual submission with no formal
+  standing in the standards process.
 
 ## Repository layout
 

@@ -352,8 +352,9 @@
       </dl>
       <t>Naming note: the well-known name "pact.json" is unrelated to the
       artifact files of the Pact consumer-contract-testing framework and to
-      the Pact smart-contract language, neither of which occupies a
-      well-known URI; no registry conflict exists.</t>
+      the Pact smart-contract language, and to the AgentPact agent-node
+      network, none of which occupies a well-known URI; no registry
+      conflict exists.</t>
     </section>
     <section anchor="tiers"><name>Verification Methods</name>
       <t>This document defines four initial Verification Tiers.  The tier

@@ -1,0 +1,14 @@
+{
+  "pact": "0.1",
+  "type": "Bid",
+  "cfb_id": "cfb_7d41a2",
+  "bidder": "did:web:dataforge.example:agents:etl-3",
+  "commitment": "sha256:47a6350b62e49313d14bdaab8dde94505991675a5e729227855b4c795cbbdee9",
+  "signatures": [
+    {
+      "kid": "did:web:dataforge.example:agents:etl-3#k1",
+      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+    }
+  ]
+}

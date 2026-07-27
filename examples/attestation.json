@@ -1,0 +1,24 @@
+{
+  "pact": "0.1",
+  "type": "WorkAttestation",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:2a145c996a34a43661d93e9bf2fca24c02a9d1376493e4a165aee2688be3564f",
+  "outcome": "settled",
+  "amount_settled": "180.00",
+  "currency": "USDC",
+  "opened_at": "2026-07-25T12:04:11Z",
+  "settled_at": "2026-07-26T13:05:02Z",
+  "children_merkle_root": null,
+  "signatures": [
+    {
+      "kid": "did:web:buyer.example:agents:procure-1#k1",
+      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+    },
+    {
+      "kid": "did:web:dataforge.example:agents:etl-3#k1",
+      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+    }
+  ]
+}

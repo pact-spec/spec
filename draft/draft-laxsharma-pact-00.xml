@@ -351,7 +351,7 @@
         key set used to sign Work Attestations.</dd>
       </dl>
       <t>Naming note: the well-known name "pact.json" is unrelated to the
-      artifact files of the Pact consumer-contract-testing framework and to
+      artifact files of the Pact consumer-contract-testing framework, to
       the Pact smart-contract language, and to the AgentPact agent-node
       network, none of which occupies a well-known URI; no registry
       conflict exists.</t>

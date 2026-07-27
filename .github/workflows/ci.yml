@@ -1,0 +1,19 @@
+name: validate
+on: [push, pull_request]
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install jsonschema referencing
+      - run: python3 tools/validate.py
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install xml2rfc
+      - run: xml2rfc --text draft/draft-laxsharma-pact-00.xml

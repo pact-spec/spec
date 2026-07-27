@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pact-spec.github.io/spec/schemas/cfb.schema.json",
+  "title": "PACT Call-for-Bids",
+  "type": "object",
+  "required": ["pact", "type", "id", "buyer", "task", "max_price",
+               "verification", "bid_deadline", "signatures"],
+  "properties": {
+    "pact": { "type": "string" },
+    "type": { "const": "CallForBids" },
+    "id": { "type": "string" },
+    "buyer": { "$ref": "common.schema.json#/$defs/did" },
+    "task": {
+      "type": "object",
+      "required": ["spec_hash", "deadline"],
+      "properties": {
+        "spec_hash": { "$ref": "common.schema.json#/$defs/hash" },
+        "spec": { "$ref": "taskspec.schema.json" },
+        "spec_uri": { "type": "string", "format": "uri" },
+        "deadline": { "type": "string", "format": "date-time" }
+      }
+    },
+    "max_price": {
+      "type": "object",
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": { "$ref": "common.schema.json#/$defs/money" },
+        "currency": { "type": "string" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["tier", "criteria_hash"],
+      "properties": {
+        "tier": { "enum": ["T0-reexec", "T1-tee", "T2-zkml", "T3-jury"] },
+        "criteria_hash": { "$ref": "common.schema.json#/$defs/hash" }
+      }
+    },
+    "bid_deadline": { "type": "string", "format": "date-time" },
+    "challenge": { "$ref": "common.schema.json#/$defs/challenge" },
+    "signatures": { "type": "array", "minItems": 1,
+      "items": { "$ref": "common.schema.json#/$defs/signature" } }
+  }
+}

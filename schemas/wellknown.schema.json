@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pact-spec.github.io/spec/schemas/wellknown.schema.json",
+  "title": "PACT well-known capability document",
+  "type": "object",
+  "required": ["pactVersion", "roles", "verification_tiers", "settlement"],
+  "properties": {
+    "pactVersion": { "type": "string" },
+    "roles": { "type": "array",
+      "items": { "enum": ["buyer", "seller"] }, "minItems": 1 },
+    "verification_tiers": { "type": "array",
+      "items": { "enum": ["T0-reexec", "T1-tee", "T2-zkml", "T3-jury"] } },
+    "settlement": { "type": "array", "items": { "type": "string" } },
+    "channels": { "type": "boolean" },
+    "min_bond_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "attestation_jwks": { "type": "string", "format": "uri" }
+  }
+}

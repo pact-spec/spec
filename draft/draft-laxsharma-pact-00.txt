@@ -4,8 +4,8 @@
 
 Network Working Group                                          L. Sharma
 Internet-Draft                                               Independent
-Intended status: Experimental                               24 July 2026
-Expires: 25 January 2027
+Intended status: Experimental                               27 July 2026
+Expires: 28 January 2027
 
 
           PACT: A Contract Layer for Autonomous Agent Commerce
@@ -44,7 +44,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 25 January 2027.
+   This Internet-Draft will expire on 28 January 2027.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Sharma                   Expires 25 January 2027                [Page 1]
+Sharma                   Expires 28 January 2027                [Page 1]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Sharma                   Expires 25 January 2027                [Page 2]
+Sharma                   Expires 28 January 2027                [Page 2]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -165,7 +165,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 3]
+Sharma                   Expires 28 January 2027                [Page 3]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -221,7 +221,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 4]
+Sharma                   Expires 28 January 2027                [Page 4]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -277,7 +277,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 5]
+Sharma                   Expires 28 January 2027                [Page 5]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -333,7 +333,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 6]
+Sharma                   Expires 28 January 2027                [Page 6]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -389,7 +389,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 7]
+Sharma                   Expires 28 January 2027                [Page 7]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -445,7 +445,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 8]
+Sharma                   Expires 28 January 2027                [Page 8]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -501,7 +501,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027                [Page 9]
+Sharma                   Expires 28 January 2027                [Page 9]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -557,7 +557,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 10]
+Sharma                   Expires 28 January 2027               [Page 10]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -613,7 +613,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 11]
+Sharma                   Expires 28 January 2027               [Page 11]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -669,7 +669,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 12]
+Sharma                   Expires 28 January 2027               [Page 12]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -725,7 +725,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 13]
+Sharma                   Expires 28 January 2027               [Page 13]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -781,7 +781,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 14]
+Sharma                   Expires 28 January 2027               [Page 14]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -837,7 +837,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 15]
+Sharma                   Expires 28 January 2027               [Page 15]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -893,7 +893,7 @@ Internet-Draft                    PACT                         July 2026
 
 
 
-Sharma                   Expires 25 January 2027               [Page 16]
+Sharma                   Expires 28 January 2027               [Page 16]
 
 Internet-Draft                    PACT                         July 2026
 
@@ -949,4 +949,4 @@ Author's Address
 
 
 
-Sharma                   Expires 25 January 2027               [Page 17]
+Sharma                   Expires 28 January 2027               [Page 17]

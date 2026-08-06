@@ -6,8 +6,7 @@
   "commitment": "sha256:47a6350b62e49313d14bdaab8dde94505991675a5e729227855b4c795cbbdee9",
   "signatures": [
     {
-      "kid": "did:web:dataforge.example:agents:etl-3#k1",
-      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1iaWQranNvbiJ9",
       "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
     }
   ]

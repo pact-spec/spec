@@ -32,7 +32,7 @@
       "type": "object",
       "required": ["tier", "criteria_hash"],
       "properties": {
-        "tier": { "enum": ["T0-reexec", "T1-tee", "T2-zkml", "T3-jury"] },
+        "tier": { "$ref": "common.schema.json#/$defs/tier" },
         "criteria_hash": { "$ref": "common.schema.json#/$defs/hash" }
       }
     },

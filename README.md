@@ -13,10 +13,12 @@ closes that gap:
 - **Agree** — a co-signed **Verifiable Task Contract (VTC)** binds parties
   (DIDs), scope (hash-committed TaskSpec), price, verification method, and
   liability; funds lock in escrow.
-- **Complete** — optimistic settlement: pay at delivery, with a fraud-proof
-  challenge window; valid challengers are paid from the slashed bond.
+- **Complete** — settlement gated on verification, with a fraud-proof
+  challenge window and challengers paid from the slashed bond.
   Verification is graded: re-execution → TEE attestation (RATS/EAT) →
-  zkML proof → staked jury.
+  zkML proof → staked jury. (The -00 makes release optimistic by default.
+  Two audit rounds found that this does not close economically, and -01
+  changes the default. See Status below.)
 - **Trust** — settlement emits co-signed **Work Attestations**: reputation
   as the exhaust of settlement — unforgeable without funding real, bonded
   contracts. Contracts compose into **Merkle contract trees** with
@@ -31,9 +33,33 @@ closes that gap:
   · [plain text](draft/draft-laxsharma-pact-00.txt)
   · [XML source](draft/draft-laxsharma-pact-00.xml)
 - This is a **-00 strawman, published for demolition.** Issues and PRs
-  welcome — especially "here is where this breaks." Feedback is collected
+  welcome, especially "here is where this breaks." Feedback is collected
   for the next revision in the
-  [-01 changelog issue](https://github.com/pact-spec/spec/issues).
+  [-01 changelog issue](https://github.com/pact-spec/spec/issues/1).
+
+### Known defects in -00, and what -01 changes
+
+External review and two adversarial audit rounds found that the -00's
+settlement economics do not close. Everything is logged in
+[issue #1](https://github.com/pact-spec/spec/issues/1), with dispositions.
+The three that matter most if you are reading the draft today:
+
+1. **A defrauded buyer recovers nothing from the bond.** Section 4.3
+   directs the slashed bond to the challenger and then to a neutral sink
+   "rather than to any party to the dispute", and the buyer is a party to
+   the dispute. The bond is a fine, not collateral.
+2. **Optimistic release exceeds the bond, so defection dominates.**
+   Honest performance requires roughly `q * ((P - E) + B) >= C`. On the
+   worked example's own numbers a 10 percent bond needs a 91 percent
+   detection rate, which nothing in -00 supplies.
+3. **Challenger reimbursement is capped by the bond** while re-execution
+   verification costs about what execution costs, so the reimbursement
+   requirement in 4.3 is unsatisfiable in the common case.
+
+-01 is targeted for mid-September 2026 and reworks the settlement core,
+adds a Delivery object and a Verifier role, and corrects the x402, A2A
+and AP2 bindings. The repository is being corrected ahead of it where a
+fix does not depend on those design decisions.
 - Not endorsed by the IETF; an individual submission with no formal
   standing in the standards process.
 
@@ -53,19 +79,31 @@ closes that gap:
 
 - `cfb.json` / `vtc.json` `spec_hash` = SHA-256 over the
   JCS-canonicalized (RFC 8785) `taskspec.json`
-- `criteria_hash` = SHA-256 over `acceptance-tests.txt`
+- `criteria_hash`, and `taskspec.acceptance.harness_hash`, = SHA-256 over
+  the JCS-canonicalized manifest of `examples/acceptance-harness/`, which
+  maps each file's relative path to the SHA-256 of its bytes
 - `bid.json` `commitment` = SHA-256 over the JCS-canonicalized reveal in
   `bid-reveal.json`
 - `attestation.json` `vtc_hash` = SHA-256 over the VTC minus its
   `signatures` member
+
+The validator also checks the rules JSON Schema cannot express (parties
+are distinct, one signature per named party, protected headers carry
+`alg`/`kid`/`typ` with an allowed algorithm) and runs negative vectors
+that must be rejected.
 
 ```
 pip install jsonschema referencing
 python3 tools/validate.py
 ```
 
-(Signature values are illustrative placeholders; producing real JWS
-signatures requires party keys.)
+Two honest caveats. Signature values are illustrative placeholders, since
+producing real JWS signatures requires party keys. And `jcs()` in
+`tools/validate.py` is a restricted RFC 8785 implementation that is
+correct for the value types these examples use but is not a conforming
+general one, so a green run evidences self-consistency of these examples
+rather than canonicalization interoperability with another
+implementation.
 
 ## Building the draft
 
@@ -76,9 +114,10 @@ xml2rfc --text --html draft/draft-laxsharma-pact-00.xml
 
 ## Relationship to other work
 
-PACT composes A2A, x402 (as a proposed `pact-escrow` payment scheme),
-AP2, OAuth token exchange (RFC 8693), RATS/EAT (RFC 9334/9711), and JCS
-(RFC 8785). It differs from marketplace-mediated escrow (VCAP), transport
+PACT composes A2A, x402 (as a proposed `pact-escrow` release-policy
+profile over the merged `auth-capture` scheme, which the -00 text
+inaccurately calls a payment scheme), AP2, OAuth token exchange
+(RFC 8693), RATS/EAT (RFC 9334/9711), and JCS (RFC 8785). It differs from marketplace-mediated escrow (VCAP), transport
 negotiation (AGTP), and passport formats (ATEP, ERC-8004) — and cites and
 positions against each in Section 1.2 of the draft. Lineage: the Contract
 Net Protocol (Smith, 1980), finally runnable among untrusting parties.

@@ -9,10 +9,11 @@
     "roles": { "type": "array",
       "items": { "enum": ["buyer", "seller"] }, "minItems": 1 },
     "verification_tiers": { "type": "array",
-      "items": { "enum": ["T0-reexec", "T1-tee", "T2-zkml", "T3-jury"] } },
+      "items": { "$ref": "common.schema.json#/$defs/tier" } },
     "settlement": { "type": "array", "items": { "type": "string" } },
     "channels": { "type": "boolean" },
-    "min_bond_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "min_bond_pct": { "type": "number", "minimum": 0,
+      "$comment": "The 100 percent ceiling was removed. Bond sizing is driven by expected harm and by the assurance constraint, not by price, and both routinely require a bond above the contract price; the ceiling forbade the only sound parameterizations. See https://github.com/pact-spec/spec/issues/1 entries 9 and 10." },
     "attestation_jwks": { "type": "string", "format": "uri" }
   }
 }

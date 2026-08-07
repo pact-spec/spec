@@ -11,25 +11,42 @@
       "type": "object",
       "properties": {
         "schema_uri": { "type": "string", "format": "uri" },
+        "schema_hash": { "$ref": "common.schema.json#/$defs/hash" },
         "sample_uri": { "type": "string", "format": "uri" },
+        "sample_hash": { "$ref": "common.schema.json#/$defs/hash" },
         "size_hint": { "type": "object" }
-      }
+      },
+      "$comment": "A hash commitment covers only the octets hashed. spec_hash covers this URI string, not the bytes it dereferences to, so every URI whose content is consumed during bidding, execution, or verification needs a sibling hash. sample_hash and schema_hash are OPTIONAL in -00 and become REQUIRED alongside their URIs in -01; see https://github.com/pact-spec/spec/issues/1 entry 6."
     },
     "deliverable": {
       "type": "object",
       "required": ["format"],
       "properties": {
         "format": { "type": "string" },
-        "schema_uri": { "type": "string", "format": "uri" }
+        "schema_uri": { "type": "string", "format": "uri" },
+        "schema_hash": { "$ref": "common.schema.json#/$defs/hash" }
       }
     },
     "acceptance": {
       "type": "object",
+      "minProperties": 1,
+      "required": ["thresholds"],
+      "anyOf": [
+        { "required": ["harness_uri"] },
+        { "required": ["rubric_uri"] }
+      ],
+      "dependentRequired": {
+        "harness_uri": ["harness_hash"],
+        "rubric_uri": ["rubric_hash"]
+      },
       "properties": {
         "harness_uri": { "type": "string", "format": "uri" },
+        "harness_hash": { "$ref": "common.schema.json#/$defs/hash" },
         "rubric_uri": { "type": "string", "format": "uri" },
-        "thresholds": { "type": "object" }
-      }
+        "rubric_hash": { "$ref": "common.schema.json#/$defs/hash" },
+        "thresholds": { "type": "object", "minProperties": 1 }
+      },
+      "$comment": "An empty acceptance object validated in -00, which made every fraud proof impossible while leaving optimistic release unconditional. An instrument and thresholds are now both required, and an instrument URI must carry the hash of its bytes."
     },
     "constraints": { "type": "object" }
   }

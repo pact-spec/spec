@@ -4,17 +4,27 @@
   "id": "cfb_7d41a2",
   "buyer": "did:web:buyer.example:agents:procure-1",
   "task": {
-    "spec_hash": "sha256:20304805d7f4698ccda0b61bd59a3d0db5fd348c01587c7e4e748dd5d7a7949c",
+    "spec_hash": "sha256:bb0e87ce522479b7c2f7bcfa26df7ecd7ff67aeb8b415bbd70c22d97c47adf35",
     "spec_uri": "https://buyer.example/specs/taskspec.json",
     "deadline": "2026-08-01T00:00:00Z"
   },
-  "max_price": { "amount": "220.00", "currency": "USDC" },
-  "verification": { "tier": "T0-reexec", "criteria_hash": "sha256:5446fc206aaee6a0c94199cee62df8ef5cb607d2ec043a8cb3f84d7a329fddd6" },
+  "max_price": {
+    "amount": "220.00",
+    "currency": "USDC"
+  },
+  "verification": {
+    "tier": "T0-reexec",
+    "criteria_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7"
+  },
   "bid_deadline": "2026-07-25T12:00:00Z",
-  "challenge": { "window_seconds": 3600, "max_dispute_seconds": 86400 },
+  "challenge": {
+    "window_seconds": 3600,
+    "max_dispute_seconds": 86400
+  },
   "signatures": [
-    { "kid": "did:web:buyer.example:agents:procure-1#k1",
-      "protected": "eyJhbGciOiJFUzI1NiJ9",
-      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" }
+    {
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jZmIranNvbiJ9",
+      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+    }
   ]
 }

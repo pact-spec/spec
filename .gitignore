@@ -1,4 +1,4 @@
-# Private working notes — never publish
+# Private working notes. Never publish.
 PRIVATE-*
 *.private.md
 notes/
@@ -8,3 +8,8 @@ scratch/
 *.pyc
 __pycache__/
 .DS_Store
+
+# Local-only Claude Code context. Never publish.
+CLAUDE.md
+CLAUDE.local.md
+.claude/

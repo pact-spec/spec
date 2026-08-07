@@ -1,1 +1,0 @@
-acceptance-tests v1: run pytest suite; thresholds per taskspec.acceptance.thresholds

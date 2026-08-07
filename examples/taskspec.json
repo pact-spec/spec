@@ -4,7 +4,10 @@
   "inputs": {
     "schema_uri": "https://buyer.example/specs/customers.schema.json",
     "sample_uri": "https://buyer.example/specs/sample-10k.csv",
-    "size_hint": { "rows": 2100000, "bytes": 480000000 }
+    "size_hint": {
+      "rows": 2100000,
+      "bytes": 480000000
+    }
   },
   "deliverable": {
     "format": "csv",
@@ -12,10 +15,16 @@
   },
   "acceptance": {
     "harness_uri": "https://buyer.example/specs/acceptance-tests.tar",
-    "thresholds": { "dup_rate_max": 0.001, "schema_valid_rate": 1.0 }
+    "thresholds": {
+      "dup_rate_max": 0.001,
+      "schema_valid_rate": 1.0
+    },
+    "harness_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7"
   },
   "constraints": {
-    "tools_prohibited": ["external-APIs"],
+    "tools_prohibited": [
+      "external-APIs"
+    ],
     "confidential": false
   }
 }

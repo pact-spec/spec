@@ -2,7 +2,7 @@
   "pact": "0.1",
   "type": "WorkAttestation",
   "vtc_id": "vtc_9f2c11",
-  "vtc_hash": "sha256:2a145c996a34a43661d93e9bf2fca24c02a9d1376493e4a165aee2688be3564f",
+  "vtc_hash": "sha256:3184cbd50cb56304a36a7b3f247148fab5bbeea0e4ff091b48becd1dc8e1b705",
   "outcome": "settled",
   "amount_settled": "180.00",
   "currency": "USDC",
@@ -11,13 +11,11 @@
   "children_merkle_root": null,
   "signatures": [
     {
-      "kid": "did:web:buyer.example:agents:procure-1#k1",
-      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1hdHRlc3RhdGlvbitqc29uIn0",
       "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
     },
     {
-      "kid": "did:web:dataforge.example:agents:etl-3#k1",
-      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1hdHRlc3RhdGlvbitqc29uIn0",
       "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
     }
   ]

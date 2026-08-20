@@ -16,16 +16,29 @@ Checks performed:
   7. Rules the schemas cannot express: parties are distinct, one
      signature per named party, and every JOSE protected header carries
      alg, kid and typ with an allowed algorithm.
-  8. Negative vectors: mutations that MUST be rejected actually are.
+  8. Canonicalization: jcs() orders object keys the way RFC 8785
+     requires, which is not the way json.dumps(sort_keys=True) does.
+  9. Negative vectors: mutations that MUST be rejected actually are.
 
 Caveat on canonicalization: jcs() below is a restricted implementation of
 RFC 8785, correct for the value types these examples use (strings,
 integers, floats with exact short decimal representations, booleans,
-nulls, and nested objects and arrays of those). It is not a conforming
-general RFC 8785 implementation, and in particular it does not implement
-the ECMAScript number serialization rules for the full float range. A
-passing run therefore evidences self-consistency of these examples, not
-canonicalization interoperability with another implementation.
+nulls, and nested objects and arrays of those).
+
+Object keys are sorted by UTF-16 code unit, as RFC 8785 section 3.2.3
+requires. This is worth stating because the obvious shortcut is wrong:
+json.dumps(sort_keys=True) sorts by Unicode code point, and code point
+order agrees with UTF-16 order throughout the Basic Multilingual Plane
+and diverges above it, where UTF-16 encodes a key as a surrogate pair
+beginning U+D800 and therefore sorts it below keys in U+E000..U+FFFF.
+An implementation carrying that shortcut passes an ASCII or BMP vector by
+accident and fails on a supplementary-plane key. Check 8 pins the case.
+
+It remains a restricted implementation and not a conforming general RFC
+8785 one: in particular it does not implement the ECMAScript number
+serialization rules for the full float range. A passing run therefore
+evidences self-consistency of these examples, not canonicalization
+interoperability with another implementation.
 """
 import json, hashlib, sys, pathlib, base64
 from jsonschema import Draft202012Validator
@@ -37,9 +50,26 @@ fails = []
 ALLOWED_ALGS = {"ES256", "ES384", "EdDSA"}
 
 
+def _utf16_key_order(obj):
+    """Recursively reorder object keys by UTF-16 code unit (RFC 8785 3.2.3).
+
+    Comparing UTF-16 big-endian encodings bytewise is equivalent to
+    comparing sequences of UTF-16 code units, which is what the RFC
+    specifies. json.dumps preserves dict insertion order, so building the
+    dict in the right order is enough; sort_keys must NOT also be set,
+    since that would re-sort by code point.
+    """
+    if isinstance(obj, dict):
+        return {k: _utf16_key_order(obj[k])
+                for k in sorted(obj, key=lambda s: s.encode("utf-16-be"))}
+    if isinstance(obj, list):
+        return [_utf16_key_order(v) for v in obj]
+    return obj
+
+
 def jcs(obj) -> bytes:
     # Restricted JCS (RFC 8785); see the caveat in the module docstring.
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"),
+    return json.dumps(_utf16_key_order(obj), separators=(",", ":"),
                       ensure_ascii=False).encode()
 
 
@@ -115,6 +145,26 @@ check("bid matches schema",         validate(bid, "bid.schema.json"))
 check("vtc matches schema",         validate(vtc, "vtc.schema.json"))
 check("attestation matches schema", validate(att, "attestation.schema.json"))
 check("well-known matches schema",  validate(wk,  "wellknown.schema.json"))
+
+print()
+print("== canonicalization ==")
+
+# RFC 8785 section 3.2.3 orders object keys by UTF-16 code unit. U+E000
+# is below U+10000 by code point, and above it by UTF-16 code unit, since
+# U+10000 encodes as the surrogate pair D800 DC00. A canonicalizer built
+# on json.dumps(sort_keys=True) gets this backwards and no ASCII vector
+# will reveal it.
+_supp = {"\ue000": 1, "\U00010000": 2}
+_want = ('{"' + "\U00010000" + '":2,"' + "\ue000" + '":1}').encode()
+check("JCS orders keys by UTF-16 code unit, not code point",
+      jcs(_supp) == _want, f"got {jcs(_supp)!r}, want {_want!r}")
+
+# The same rule has to hold at every depth, not just at the root.
+_nested = {"z": [{"\ue000": 1, "\U00010000": 2}]}
+_want_nested = ('{"z":[{"' + "\U00010000" + '":2,"' + "\ue000" + '":1}]}').encode()
+check("JCS key order applies inside nested objects and arrays",
+      jcs(_nested) == _want_nested,
+      f"got {jcs(_nested)!r}, want {_want_nested!r}")
 
 print()
 print("== hash commitments ==")

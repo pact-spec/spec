@@ -89,8 +89,8 @@ fix does not depend on those design decisions.
 
 The validator also checks the rules JSON Schema cannot express (parties
 are distinct, one signature per named party, protected headers carry
-`alg`/`kid`/`typ` with an allowed algorithm) and runs negative vectors
-that must be rejected.
+`alg`/`kid`/`typ` with an allowed algorithm), pins the canonical key
+order described below, and runs negative vectors that must be rejected.
 
 ```
 pip install jsonschema referencing
@@ -103,7 +103,12 @@ producing real JWS signatures requires party keys. And `jcs()` in
 correct for the value types these examples use but is not a conforming
 general one, so a green run evidences self-consistency of these examples
 rather than canonicalization interoperability with another
-implementation.
+implementation. What it does get right, and pins with a vector, is the
+key order: RFC 8785 section 3.2.3 sorts object keys by UTF-16 code unit,
+which `json.dumps(sort_keys=True)` does not, the two agreeing throughout
+the Basic Multilingual Plane and diverging above it. What remains
+unimplemented is the ECMAScript number serialization rules over the full
+float range.
 
 ## Building the draft
 

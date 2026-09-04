@@ -17,3 +17,4 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install xml2rfc
       - run: xml2rfc --text draft/draft-laxsharma-pact-00.xml
+      - run: xml2rfc --text draft/draft-laxsharma-pact-01.xml

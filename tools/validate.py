@@ -18,7 +18,10 @@ Checks performed:
      alg, kid and typ with an allowed algorithm.
   8. Canonicalization: jcs() orders object keys the way RFC 8785
      requires, which is not the way json.dumps(sort_keys=True) does.
-  9. Negative vectors: mutations that MUST be rejected actually are.
+  9. The assurance constraint of -01 Section 7.2, on the worked figures
+     carried in -01 Section 16.
+ 10. Negative vectors, including the Section 13.3 conformance vectors
+     that JSON Schema cannot express.
 
 Caveat on canonicalization: jcs() below is a restricted implementation of
 RFC 8785, correct for the value types these examples use (strings,
@@ -130,21 +133,20 @@ def validate(example, schema_file, quiet=False):
 
 
 ts   = load("examples/taskspec.json")
-cfb  = load("examples/cfb.json")
-bid  = load("examples/bid.json")
-rev  = load("examples/bid-reveal.json")
 vtc  = load("examples/vtc.json")
+dlv  = load("examples/delivery.json")
+vdt  = load("examples/verdict.json")
 att  = load("examples/attestation.json")
-wk   = load("examples/well-known/pact.json")
+fac  = load("examples/well-known/pact-facilitator.json")
 harness_digest = instrument_digest(ROOT / "examples/acceptance-harness")
 
 print("== schema conformance ==")
 check("taskspec matches schema",    validate(ts,  "taskspec.schema.json"))
-check("cfb matches schema",         validate(cfb, "cfb.schema.json"))
-check("bid matches schema",         validate(bid, "bid.schema.json"))
 check("vtc matches schema",         validate(vtc, "vtc.schema.json"))
+check("delivery matches schema",    validate(dlv, "delivery.schema.json"))
+check("verdict matches schema",     validate(vdt, "verdict.schema.json"))
 check("attestation matches schema", validate(att, "attestation.schema.json"))
-check("well-known matches schema",  validate(wk,  "wellknown.schema.json"))
+check("facilitator matches schema", validate(fac, "facilitator.schema.json"))
 
 print()
 print("== canonicalization ==")
@@ -168,21 +170,29 @@ check("JCS key order applies inside nested objects and arrays",
 
 print()
 print("== hash commitments ==")
-check("cfb.spec_hash == sha256(JCS(taskspec))",
-      cfb["task"]["spec_hash"] == h(jcs(ts)))
 check("vtc.spec_hash == sha256(JCS(taskspec))",
       vtc["task"]["spec_hash"] == h(jcs(ts)))
-check("cfb.criteria_hash == instrument digest",
-      cfb["verification"]["criteria_hash"] == harness_digest)
 check("vtc.criteria_hash == instrument digest",
       vtc["verification"]["criteria_hash"] == harness_digest)
 check("taskspec.acceptance.harness_hash == instrument digest",
       ts["acceptance"]["harness_hash"] == harness_digest)
-check("bid.commitment == sha256(JCS(reveal))",
-      bid["commitment"] == h(jcs(rev["reveal"])))
-core = {k: v for k, v in vtc.items() if k != "signatures"}
-check("attestation.vtc_hash == sha256(JCS(vtc-sans-signatures))",
-      att["vtc_hash"] == h(jcs(core)))
+
+# -01 Section 6: vtc_hash covers the contract INCLUDING its signature set,
+# so the commitment proves who agreed and not merely what was written.
+# The -00 excluded signatures, which let entries be appended or stripped
+# without invalidating the commitment.
+vtc_hash = h(jcs(vtc))
+check("delivery.vtc_hash == sha256(JCS(vtc, signatures included))",
+      dlv["vtc_hash"] == vtc_hash)
+check("attestation.vtc_hash == sha256(JCS(vtc, signatures included))",
+      att["vtc_hash"] == vtc_hash)
+check("verdict.delivery_hash == sha256(JCS(delivery-sans-signature))",
+      vdt["delivery_hash"] == h(jcs({k: v for k, v in dlv.items()
+                                     if k != "signature"})))
+check("delivery.evidence.instrument_hash == vtc.criteria_hash",
+      dlv["evidence"]["instrument_hash"] == vtc["verification"]["criteria_hash"])
+check("verdict.instrument_hash == vtc.criteria_hash",
+      vdt["instrument_hash"] == vtc["verification"]["criteria_hash"])
 
 print()
 print("== rules the schemas cannot express ==")
@@ -222,14 +232,77 @@ def headers_well_formed(obj, typ):
             return False
     return True
 
-check("cfb protected headers carry alg/kid/typ",
-      headers_well_formed(cfb, "application/pact-cfb+json"))
-check("bid protected headers carry alg/kid/typ",
-      headers_well_formed(bid, "application/pact-bid+json"))
 check("vtc protected headers carry alg/kid/typ",
       headers_well_formed(vtc, "application/pact-contract+json"))
+check("delivery protected header carries alg/kid/typ",
+      headers_well_formed({"signatures": [dlv["signature"]]},
+                          "application/pact-delivery+json"))
+check("verdict protected header carries alg/kid/typ",
+      headers_well_formed({"signatures": [vdt["signature"]]},
+                          "application/pact-verdict+json"))
 check("attestation protected headers carry alg/kid/typ",
       headers_well_formed(att, "application/pact-attestation+json"))
+check("facilitator protected header carries alg/kid/typ",
+      headers_well_formed({"signatures": [fac["signature"]]},
+                          "application/pact-facilitator+json"))
+
+# Section 9.1: identifiers are normalized before comparison, and the
+# normalization folds toward "same party". A trailing separator, a case
+# variant, or surrounding whitespace must not make one party look like two.
+def norm(identifier):
+    return identifier.strip().rstrip("/.#").lower()
+
+
+check("party comparison normalizes trailing separators and case",
+      norm("did:web:X.example/") == norm("did:web:x.example"))
+check("normalized parties in the example are still distinct",
+      norm(vtc["parties"]["buyer"]) != norm(vtc["parties"]["seller"]))
+
+print()
+print("== the assurance constraint (Section 7.2) ==")
+
+
+def required_bond(price, q, released=0.0):
+    """B >= P(1-q)/q + E.  The facilitator-checkable sufficient form."""
+    return price * (1.0 - q) / q + released
+
+
+def assurance_holds(contract, released=0.0):
+    P = float(contract["price"]["amount"])
+    B = float(contract["liability"]["seller_bond"])
+    q = float(contract["assurance"]["q_min"])
+    return B + 1e-9 >= required_bond(P, q, released)
+
+
+check("example contract satisfies the assurance constraint",
+      assurance_holds(vtc))
+
+# Worked figures from Section 16. P = 180.00, B = 18.00, E = 0.
+check("q_min 1.00 requires no bond at P=180",
+      abs(required_bond(180.0, 1.00)) < 1e-9)
+check("q_min 0.9091 requires B ~= 18.00 at P=180",
+      abs(required_bond(180.0, 180.0 / 198.0) - 18.0) < 1e-6)
+check("q_min 0.90 requires B = 20.00 at P=180, so 18.00 fails",
+      abs(required_bond(180.0, 0.90) - 20.0) < 1e-9)
+check("q_min 0.50 requires B = 180.00 at P=180",
+      abs(required_bond(180.0, 0.50) - 180.0) < 1e-9)
+
+# Section 7.2: open assurance may not be the sole declared source.
+check("'open' is not the example's sole source of assurance",
+      vtc["assurance"]["mode"] != "open")
+
+# Section 11: a null children_merkle_root is indistinguishable from a
+# withheld subtree, so it must be omitted rather than nulled.
+check("attestation omits children_merkle_root rather than nulling it",
+      att.get("children_merkle_root", "absent") != None)
+
+# Section 11: the facilitator signature is what makes the record evidence.
+fac_kid = att["parties"]["facilitator"]
+check("attestation carries a facilitator signature",
+      any(fac_kid in b64url_decode(sg["protected"]).get("kid", "")
+          for sg in att["signatures"]))
+check("attestation subject appears in parties",
+      att["subject"] in att["parties"].values())
 
 print()
 print("== negative vectors (these MUST be rejected) ==")
@@ -276,6 +349,79 @@ self_dealt["parties"]["seller"] = self_dealt["parties"]["buyer"]
 check("self-dealt contract passes schema but fails the code check",
       validate(self_dealt, "vtc.schema.json", quiet=True)
       and self_dealt["parties"]["buyer"] == self_dealt["parties"]["seller"])
+
+# --- Section 13.3 vectors that need code, not schema ---
+
+
+_none = json.loads(json.dumps(vtc))
+_none["signatures"][0]["protected"] = "eyJhbGciOiJub25lIiwia2lkIjoiZGlkOndlYjpidXllci5leGFtcGxlOmFnZW50czpwcm9jdXJlLTEjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi9wYWN0LWNvbnRyYWN0K2pzb24ifQ"
+check("V-02 alg 'none' is rejected",
+      not headers_well_formed(_none, "application/pact-contract+json"))
+
+_hs = json.loads(json.dumps(vtc))
+_hs["signatures"][0]["protected"] = "eyJhbGciOiJIUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0"
+check("V-03 symmetric alg HS256 is rejected",
+      not headers_well_formed(_hs, "application/pact-contract+json"))
+
+_typ = json.loads(json.dumps(vtc))
+_typ["signatures"][0]["protected"] = "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1kZWxpdmVyeStqc29uIn0"
+check("V-05 signature typed for another object is rejected",
+      not headers_well_formed(_typ, "application/pact-contract+json"))
+
+_alias = json.loads(json.dumps(vtc))
+_alias["parties"]["seller"] = _alias["parties"]["buyer"].upper() + "/"
+check("V-07 parties differing only by case and trailing '/' are rejected",
+      norm(_alias["parties"]["buyer"]) == norm(_alias["parties"]["seller"]))
+
+_q = json.loads(json.dumps(vtc))
+_q["assurance"] = {"mode": "committed-sample", "q_min": 0.90}
+check("V-12 B=18.00 at P=180.00 with q_min 0.90 fails the constraint",
+      not assurance_holds(_q))
+
+_q2 = json.loads(json.dumps(vtc))
+_q2["assurance"] = {"mode": "certain", "q_min": 1.00}
+check("V-13 B=18.00 at P=180.00 with q_min 1.00 satisfies it",
+      assurance_holds(_q2))
+
+_noev = {k: v for k, v in dlv.items() if k != "evidence"}
+check("V-14 delivery without evidence is rejected",
+      not validate(_noev, "delivery.schema.json", quiet=True))
+
+_selfv = json.loads(json.dumps(vdt))
+_selfv["signature"]["protected"] = "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC12ZXJkaWN0K2pzb24ifQ"
+_signer = b64url_decode(_selfv["signature"]["protected"])["kid"]
+check("V-17 verdict signed by the seller is not independent",
+      norm(_signer.split("#")[0]) == norm(vtc["parties"]["seller"]))
+
+
+# Section 10.3: a child must be able to finalise inside its parent.
+def finality_ok(child, parent):
+    from datetime import datetime
+    f = "%Y-%m-%dT%H:%M:%SZ"
+    c_end = (datetime.strptime(child["task"]["deadline"], f).timestamp()
+             + child["challenge"]["window_seconds"]
+             + child["challenge"]["max_dispute_seconds"])
+    p_end = (datetime.strptime(parent["task"]["deadline"], f).timestamp()
+             + parent["challenge"]["window_seconds"])
+    return c_end < p_end
+
+
+_child_bad = json.loads(json.dumps(vtc))
+check("V-16 child finalising after the parent's window closes is rejected",
+      not finality_ok(_child_bad, vtc))
+
+_child_ok = json.loads(json.dumps(vtc))
+_child_ok["task"]["deadline"] = "2026-07-25T00:00:00Z"
+_child_ok["challenge"] = {"window_seconds": 600, "max_dispute_seconds": 3600}
+check("a child that finalises inside the parent's window is accepted",
+      finality_ok(_child_ok, vtc))
+
+_child_parent = json.loads(json.dumps(vtc))
+_child_parent["liability"]["parent"] = {"vtc_id": vtc["id"],
+                                        "vtc_hash": vtc_hash}
+check("V-15 child whose buyer is not the parent's seller is rejected",
+      norm(_child_parent["parties"]["buyer"]) != norm(vtc["parties"]["seller"]))
+
 
 print()
 if fails:

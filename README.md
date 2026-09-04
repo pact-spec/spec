@@ -88,9 +88,11 @@ fix does not depend on those design decisions.
   `signatures` member
 
 The validator also checks the rules JSON Schema cannot express (parties
-are distinct, one signature per named party, protected headers carry
-`alg`/`kid`/`typ` with an allowed algorithm), pins the canonical key
-order described below, and runs negative vectors that must be rejected.
+are distinct after normalization, one signature per named party, protected
+headers carry `alg`/`kid`/`typ` with an allowed algorithm), evaluates the
+assurance constraint of -01 Section 7.2 against the worked figures in -01
+Section 16, pins the canonical key order described below, and runs the
+Section 13.3 conformance vectors.
 
 ```
 pip install jsonschema referencing
@@ -132,3 +134,28 @@ Net Protocol (Smith, 1980), finally runnable among untrusting parties.
 Code and schemas: Apache-2.0 (see `LICENSE`). The Internet-Draft is
 subject to the IETF Trust Legal Provisions (BCP 78/79); see
 `CONTRIBUTING.md`.
+
+
+## -01
+
+`draft/draft-laxsharma-pact-01.xml` is the current revision. It narrows the
+document to liability, delivery, settlement and subcontract trees, and removes
+the sealed-bid award procedure and contract channels (-01 Section 1.2).
+
+Three things changed that affect anyone checking digests against this
+repository:
+
+- **`vtc_hash` now covers the contract including its signature set** (-01
+  Section 6). The -00 excluded signatures, so its commitment proved what was
+  written and not who agreed to it. Values computed under the two definitions
+  differ.
+- **`liability` gained required members**: `verification_fund`, `cap` and
+  `restitution_basis`, and the contract gained required `assurance` and
+  `release` members. An -00 contract does not validate against the -01 schema,
+  which is intended.
+- **The CFB, Bid and agent capability examples moved to `examples/legacy-00/`**,
+  since -01 does not define those objects. They are kept so the published -00
+  stays checkable and are not part of the conformance surface.
+
+New objects with schemas and examples: Delivery, Verdict, and the facilitator
+capability document served at `/.well-known/pact-facilitator`.

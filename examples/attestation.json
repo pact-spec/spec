@@ -2,20 +2,27 @@
   "pact": "0.1",
   "type": "WorkAttestation",
   "vtc_id": "vtc_9f2c11",
-  "vtc_hash": "sha256:3184cbd50cb56304a36a7b3f247148fab5bbeea0e4ff091b48becd1dc8e1b705",
-  "outcome": "settled",
-  "amount_settled": "180.00",
-  "currency": "USDC",
+  "vtc_hash": "sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249d7eaa8baff3de553870b",
+  "parties": {
+    "buyer": "did:web:buyer.example:agents:procure-1",
+    "seller": "did:web:dataforge.example:agents:etl-3",
+    "facilitator": "did:web:settle.example"
+  },
+  "subject": "did:web:dataforge.example:agents:etl-3",
+  "role": "seller",
+  "outcome": "performed",
+  "work_hash": "sha256:9c1f2ab4e7d0355f1b8c6e4a92d70f3ab5c81e46d92f0a7b3c5e18d4f60a2b79",
+  "amounts": {
+    "settled": "180.00",
+    "restituted": "0.00",
+    "slashed": "0.00",
+    "currency": "USDC"
+  },
   "opened_at": "2026-07-25T12:04:11Z",
-  "settled_at": "2026-07-26T13:05:02Z",
-  "children_merkle_root": null,
+  "settled_at": "2026-07-31T20:03:47Z",
   "signatures": [
     {
-      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1hdHRlc3RhdGlvbitqc29uIn0",
-      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
-    },
-    {
-      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1hdHRlc3RhdGlvbitqc29uIn0",
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi9wYWN0LWF0dGVzdGF0aW9uK2pzb24ifQ",
       "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
     }
   ]

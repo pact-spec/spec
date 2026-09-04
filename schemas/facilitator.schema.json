@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "facilitator.schema.json",
+  "title": "PACT Facilitator Capability Document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pact",
+    "facilitator",
+    "settlement_bindings",
+    "release_modes",
+    "verification_profiles",
+    "assurance_modes",
+    "endpoints",
+    "signature"
+  ],
+  "properties": {
+    "pact": {
+      "type": "string"
+    },
+    "facilitator": {
+      "$ref": "common.schema.json#/$defs/did"
+    },
+    "settlement_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "release_modes": {
+      "type": "array",
+      "minItems": 1,
+      "contains": {
+        "const": "on-verification"
+      },
+      "items": {
+        "$ref": "common.schema.json#/$defs/release_mode"
+      },
+      "$comment": "Section 7.3: on-verification is REQUIRED to implement."
+    },
+    "verification_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assurance_modes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "certain",
+          "committed-sample",
+          "open"
+        ]
+      }
+    },
+    "max_contract_value": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "currency": {
+          "type": "string"
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "required": [
+        "contract",
+        "delivery",
+        "verdict",
+        "challenge",
+        "attestation"
+      ],
+      "additionalProperties": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "signature": {
+      "$ref": "common.schema.json#/$defs/signature"
+    }
+  }
+}

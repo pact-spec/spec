@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "verdict.schema.json",
+  "title": "PACT Verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pact",
+    "type",
+    "vtc_id",
+    "delivery_hash",
+    "outcome",
+    "profile",
+    "instrument_hash",
+    "evaluated_at",
+    "signature"
+  ],
+  "properties": {
+    "pact": {
+      "type": "string"
+    },
+    "type": {
+      "const": "Verdict"
+    },
+    "vtc_id": {
+      "type": "string"
+    },
+    "delivery_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "outcome": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "profile": {
+      "type": "string"
+    },
+    "instrument_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "results_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signature": {
+      "$ref": "common.schema.json#/$defs/signature"
+    }
+  }
+}

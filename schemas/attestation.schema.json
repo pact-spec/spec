@@ -1,23 +1,114 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://pact-spec.github.io/spec/schemas/attestation.schema.json",
+  "$id": "attestation.schema.json",
   "title": "PACT Work Attestation",
   "type": "object",
-  "required": ["pact", "type", "vtc_id", "vtc_hash", "outcome",
-               "amount_settled", "currency", "settled_at", "signatures"],
+  "additionalProperties": false,
+  "required": [
+    "pact",
+    "type",
+    "vtc_id",
+    "vtc_hash",
+    "parties",
+    "subject",
+    "role",
+    "outcome",
+    "amounts",
+    "signatures"
+  ],
   "properties": {
-    "pact": { "type": "string" },
-    "type": { "const": "WorkAttestation" },
-    "vtc_id": { "type": "string" },
-    "vtc_hash": { "$ref": "common.schema.json#/$defs/hash" },
-    "outcome": { "enum": ["settled", "cured", "slashed", "arbitrated"] },
-    "amount_settled": { "$ref": "common.schema.json#/$defs/money" },
-    "currency": { "type": "string" },
-    "opened_at": { "type": "string", "format": "date-time" },
-    "settled_at": { "type": "string", "format": "date-time" },
+    "pact": {
+      "type": "string"
+    },
+    "type": {
+      "const": "WorkAttestation"
+    },
+    "vtc_id": {
+      "type": "string"
+    },
+    "vtc_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "parties": {
+      "type": "object",
+      "required": [
+        "buyer",
+        "seller",
+        "facilitator"
+      ],
+      "properties": {
+        "buyer": {
+          "$ref": "common.schema.json#/$defs/did"
+        },
+        "seller": {
+          "$ref": "common.schema.json#/$defs/did"
+        },
+        "facilitator": {
+          "$ref": "common.schema.json#/$defs/did"
+        }
+      }
+    },
+    "subject": {
+      "$ref": "common.schema.json#/$defs/did"
+    },
+    "role": {
+      "enum": [
+        "buyer",
+        "seller"
+      ]
+    },
+    "outcome": {
+      "enum": [
+        "performed",
+        "cured",
+        "slashed",
+        "abandoned"
+      ]
+    },
+    "work_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "amounts": {
+      "type": "object",
+      "required": [
+        "settled",
+        "restituted",
+        "slashed",
+        "currency"
+      ],
+      "properties": {
+        "settled": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "restituted": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "slashed": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "currency": {
+          "type": "string"
+        }
+      }
+    },
     "children_merkle_root": {
-      "oneOf": [ { "$ref": "common.schema.json#/$defs/hash" }, { "type": "null" } ] },
-    "signatures": { "type": "array", "minItems": 2,
-      "items": { "$ref": "common.schema.json#/$defs/signature" } }
+      "$ref": "common.schema.json#/$defs/hash",
+      "$comment": "Section 11.1: omitted where there are no children. MUST NOT be null."
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "settled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/signature"
+      }
+    }
   }
 }

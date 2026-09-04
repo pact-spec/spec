@@ -45,6 +45,7 @@
     natsort 8.4.0
     platformdirs 4.11.7
     pycountry 26.2.16
+    pypdf 6.16.2
     PyYAML 6.0.3
     requests 2.34.2
     wcwidth 0.8.3
@@ -1242,7 +1243,7 @@ li > p:last-of-type:only-child {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Sharma</td>
-<td class="center">Expires 6 April 2027</td>
+<td class="center">Expires 23 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1255,12 +1256,12 @@ li > p:last-of-type:only-child {
 <dd class="internet-draft">draft-laxsharma-pact-01</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10" class="published">October 2026</time>
+<time datetime="2026-10-20" class="published">20 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Experimental</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-06">6 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-23">23 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1312,7 +1313,7 @@ li > p:last-of-type:only-child {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 4 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 23 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1400,7 +1401,10 @@ li > p:last-of-type:only-child {
                 <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-challenge-and-remedy" class="internal xref">Challenge and Remedy</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5">
-                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-bond-release" class="internal xref">Bond Release</a></p>
+                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-the-challenge-object" class="internal xref">The Challenge Object</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.6">
+                <p id="section-toc.1-1.7.2.6.1"><a href="#section-7.6" class="auto internal xref">7.6</a>.  <a href="#name-bond-release" class="internal xref">Bond Release</a></p>
 </li>
             </ul>
 </li>
@@ -1620,8 +1624,9 @@ li > p:last-of-type:only-child {
 <p id="section-1.3-1">PACT's agree, perform, verify, settle loop is an instance of
         optimistic fair exchange <span>[<a href="#ASOKAN98" class="cite xref">ASOKAN98</a>]</span>, in which a third
         party is contacted only when the exchange fails. The revocable-item
-        case of that work, in which value moves and is later reversed on a
-        third party's affidavit, is optimistic release in substance. What that
+        case, developed in <span>[<a href="#ASOKAN98THESIS" class="cite xref">ASOKAN98THESIS</a>]</span>, in which value
+        moves and is later reversed on a third party's affidavit, is
+        optimistic release in substance. What that
         literature establishes is what a third party must be able to do for an
         exchange to be fair. What it does not address, and what
         <a href="#assurance" class="auto internal xref">Section 7.2</a> addresses, is who pays to produce the
@@ -1630,16 +1635,30 @@ li > p:last-of-type:only-child {
         deterrence bound. It is stated for public enforcement generally in
         <span>[<a href="#POLINSKY99" class="cite xref">POLINSKY99</a>]</span>, which traces it to Bentham, and for
         outsourced computation specifically in <span>[<a href="#BELENKIY08" class="cite xref">BELENKIY08</a>]</span>,
-        whose Theorem 1 sets a fine-to-reward ratio of (1-p)/p for detection
-        probability p, with the fine posted in advance as a deposit. It is
+        whose Theorem 1 sets a fine-to-reward ratio of (1-p)/p, where p is the
+        probability that an incorrect result is checked, with the fine posted
+        in advance as a deposit. It is
         stated for rollup validators in <span>[<a href="#MAMAGEISHVILI23" class="cite xref">MAMAGEISHVILI23</a>]</span>. This
         document adds one term to it, for value released before verification
         concludes, and claims nothing further.<a href="#section-1.3-2" class="pilcrow">¶</a></p>
-<p id="section-1.3-3">Verification evidence formats are specified in
-        <span>[<a href="#RFC9334" class="cite xref">RFC9334</a>]</span> and <span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>. Action receipts
-        and their chaining, agent accountability composition, delegation
-        chains, and contestability bindings are each the subject of separate
-        work, and PACT consumes rather than restates them.<a href="#section-1.3-3" class="pilcrow">¶</a></p>
+<p id="section-1.3-3">Two adjacent Internet-Drafts address agent commerce settlement
+        directly. <span>[<a href="#I-D.hood-agtp-commerce" class="cite xref">I-D.hood-agtp-commerce</a>]</span> carries Work
+        Completion Records and an audit-verified settlement timing;
+        <span>[<a href="#I-D.stone-vcap-ap2-binding" class="cite xref">I-D.stone-vcap-ap2-binding</a>]</span> binds verified commerce
+        settlement to the Agent Payments Protocol. Neither allocates
+        liability between the parties, and PACT is designed to be usable
+        alongside either.<a href="#section-1.3-3" class="pilcrow">¶</a></p>
+<p id="section-1.3-4">Verification evidence formats are specified in
+        <span>[<a href="#RFC9334" class="cite xref">RFC9334</a>]</span> and <span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>. Signed,
+        hash-chained action receipts
+        <span>[<a href="#I-D.sahu-agent-action-receipts" class="cite xref">I-D.sahu-agent-action-receipts</a>]</span>, composition of
+        accountability records
+        <span>[<a href="#I-D.mih-sato-agent-accountability-composition" class="cite xref">I-D.mih-sato-agent-accountability-composition</a>]</span>,
+        delegation chains
+        <span>[<a href="#I-D.asor-wimse-agent-delegation-chain" class="cite xref">I-D.asor-wimse-agent-delegation-chain</a>]</span>, and
+        contestability bindings
+        <span>[<a href="#I-D.pinto-agent-authz-contestability" class="cite xref">I-D.pinto-agent-authz-contestability</a>]</span> are each
+        specified elsewhere, and PACT consumes rather than restates them.<a href="#section-1.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="changes">
@@ -1734,8 +1753,11 @@ li > p:last-of-type:only-child {
         <dd class="break"></dd>
 <dt id="section-3-1.5">Facilitator:</dt>
         <dd style="margin-left: 1.5em" id="section-3-1.6">A service that holds value and executes the
-        contract's settlement terms without discretion over its outcome. A
-        Facilitator MUST NOT adjudicate a dispute it settles.<a href="#section-3-1.6" class="pilcrow">¶</a>
+        contract's settlement terms without discretion over its outcome. It
+        checks that objects conform and applies rules fixed in advance. It
+        MUST NOT decide whether delivered work was acceptable; that is the
+        Verifier's role, and a Facilitator MUST NOT act as Verifier for a
+        contract it settles.<a href="#section-3-1.6" class="pilcrow">¶</a>
 </dd>
         <dd class="break"></dd>
 <dt id="section-3-1.7">Verifier:</dt>
@@ -1802,6 +1824,7 @@ li > p:last-of-type:only-child {
    |                   |&lt;-- Verdict (signed) ------------|
    |                   |                 |               |
    |                   |-- release(P) --&gt;|               |
+   |                   |  [ window ] [ children final ]  |
    |                   |-- return(B,F) -&gt;|               |
    |                   |                 |               |
    |&lt;-- Attestation ---|-- Attestation -&gt;|               |
@@ -1853,8 +1876,8 @@ li > p:last-of-type:only-child {
 <a href="#name-contract-states" class="selfRef">Contract states</a>
         </figcaption></figure>
 </div>
-<p id="section-4-5">ABANDONED and SETTLED are terminal and both produce a Work
-      Attestation. The -00 had no path to either: expiry of
+<p id="section-4-5">FINAL, SETTLED and ABANDONED are terminal, and each produces a
+      Work Attestation. The -00 had no path to either: expiry of
       <code>task.deadline</code> had no stated consequence, so escrow could lock
       permanently, and a negative outcome required the signature of the party
       it convicted.<a href="#section-4-5" class="pilcrow">¶</a></p>
@@ -1868,8 +1891,11 @@ li > p:last-of-type:only-child {
 <p id="section-5-1">A VTC is a JSON object, media type
       <code>application/pact-contract+json</code>, carrying the members below. A
       VTC is valid only if every REQUIRED member is present, the parties are
-      distinct, and each named party has contributed at least one signature
-      that verifies against a key bound to its identifier.<a href="#section-5-1" class="pilcrow">¶</a></p>
+      distinct, and both the Buyer and the Seller have contributed at least
+      one signature that verifies against a key bound to its identifier. The
+      Facilitator and any Verifier do not sign the VTC; their assent is
+      expressed by acting on it, and a Facilitator that will not act on a
+      contract refuses it at <a href="#ep-propose" class="auto internal xref">Section 12.1</a>.<a href="#section-5-1" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-5-2">
         <dt id="section-5-2.1">
 <code>pact</code>:</dt>
@@ -1878,7 +1904,8 @@ li > p:last-of-type:only-child {
         <dd class="break"></dd>
 <dt id="section-5-2.3">
 <code>type</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-5-2.4">REQUIRED. The string <code>vtc</code>.<a href="#section-5-2.4" class="pilcrow">¶</a>
+        <dd style="margin-left: 1.5em" id="section-5-2.4">REQUIRED. The string
+        <code>VerifiableTaskContract</code>.<a href="#section-5-2.4" class="pilcrow">¶</a>
 </dd>
         <dd class="break"></dd>
 <dt id="section-5-2.5">
@@ -1905,7 +1932,8 @@ li > p:last-of-type:only-child {
 <dt id="section-5-2.11">
 <code>price</code>:</dt>
         <dd style="margin-left: 1.5em" id="section-5-2.12">REQUIRED. Object with <code>amount</code>,
-        <code>currency</code> and <code>settlement</code> binding identifier.<a href="#section-5-2.12" class="pilcrow">¶</a>
+        <code>currency</code>, <code>settlement</code> binding identifier, and
+        <code>network</code>.<a href="#section-5-2.12" class="pilcrow">¶</a>
 </dd>
         <dd class="break"></dd>
 <dt id="section-5-2.13">
@@ -1959,7 +1987,7 @@ li > p:last-of-type:only-child {
 <pre>
 {
   "pact": "0.1",
-  "type": "vtc",
+  "type": "VerifiableTaskContract",
   "id": "vtc_7f3a91",
   "parties": {
     "buyer":       "did:web:acme.example",
@@ -1975,7 +2003,8 @@ li > p:last-of-type:only-child {
   "price": {
     "amount":     "180.00",
     "currency":   "USDC",
-    "settlement": "pact-escrow"
+    "settlement": "pact-escrow",
+    "network":    "eip155:8453"
   },
   "verification": {
     "tier":          "T0-reexec",
@@ -2132,9 +2161,19 @@ li > p:last-of-type:only-child {
 <dt id="section-5.3-2.9">
 <code>parent</code>:</dt>
           <dd style="margin-left: 1.5em" id="section-5.3-2.10">OPTIONAL. Present only in a subcontract.
-        Object with the parent's <code>vtc_id</code>, <code>vtc_hash</code>, and a
-        <code>countersignature</code> from the parent's Seller
-        (<a href="#trees" class="auto internal xref">Section 10</a>).<a href="#section-5.3-2.10" class="pilcrow">¶</a>
+        Object with the parent's <code>vtc_id</code> and <code>vtc_hash</code>
+        (<a href="#tree-binding" class="auto internal xref">Section 10.1</a>).<a href="#section-5.3-2.10" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.3-2.11">
+<code>remainder_to</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-5.3-2.12">OPTIONAL. Where slashed value
+        remaining after rank 4 of <a href="#waterfall" class="auto internal xref">Section 7.4</a> is directed:
+        <code>buyer</code> or <code>sink</code>. Absent, <code>sink</code>. A sink is a
+        Facilitator-designated destination that is not a party to the
+        contract. <code>buyer</code> is permitted but rewards a Buyer beyond its
+        loss, which is an incentive to manufacture challenges; the default
+        exists for that reason.<a href="#section-5.3-2.12" class="pilcrow">¶</a>
 </dd>
         <dd class="break"></dd>
 </dl>
@@ -2144,9 +2183,11 @@ li > p:last-of-type:only-child {
       and any obligation arising outside this contract, are out of band. A
       specification that implied otherwise would be claiming to settle
       questions it has no standing to settle.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
-<p id="section-5.3-4">A <code>parent</code> member MUST carry the parent's countersignature.
-      Without it any party could name a competitor's contract as parent, fail
-      a trivial child, and cause the competitor's Bond to be slashed.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">A <code>parent</code> member is authenticated not by a separate
+      countersignature but by the rule in <a href="#tree-binding" class="auto internal xref">Section 10.1</a>: the
+      child's Buyer must be the parent's Seller. Since <code>liability</code> is
+      inside the bytes the Buyer signs, the Buyer's signature on the child is
+      itself the authorisation to attach it.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2168,7 +2209,7 @@ li > p:last-of-type:only-child {
         <dt id="section-6-3.1">
 <code>pact</code>, <code>type</code>:</dt>
         <dd style="margin-left: 1.5em" id="section-6-3.2">REQUIRED. Version, and the
-        string <code>delivery</code>.<a href="#section-6-3.2" class="pilcrow">¶</a>
+        string <code>Delivery</code>.<a href="#section-6-3.2" class="pilcrow">¶</a>
 </dd>
         <dd class="break"></dd>
 <dt id="section-6-3.3">
@@ -2218,8 +2259,10 @@ li > p:last-of-type:only-child {
 </dl>
 <p id="section-6-4">A Facilitator MUST reject a Delivery whose <code>evidence</code> is
       absent or does not conform to the profile named in the VTC, and MUST
-      treat such a rejection as a FAIL Verdict for
-      <a href="#waterfall" class="auto internal xref">Section 7.4</a>. This is the rule that makes silence
+      apply <a href="#waterfall" class="auto internal xref">Section 7.4</a> as though a FAIL Verdict had been
+      recorded. This is a conformance rejection, not a judgement on the work:
+      the Facilitator has checked shape, not substance, which is why it does
+      not breach the separation in <a href="#terminology" class="auto internal xref">Section 3</a>. This is the rule that makes silence
       expensive: under the -00 the cheapest attack was to deliver
       nothing verifiable and be paid anyway.<a href="#section-6-4" class="pilcrow">¶</a></p>
 <p id="section-6-5">Where <code>task.deadline</code> passes with no conformant Delivery
@@ -2233,10 +2276,10 @@ li > p:last-of-type:only-child {
 <pre>
 {
   "pact": "0.1",
-  "type": "delivery",
+  "type": "Delivery",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:3184cbd50cb56304a36a7b3f247148fab5bbeea0e4ff
-               091b48becd1dc8e1b705",
+  "vtc_hash": "sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249
+               d7eaa8baff3de553870b",
   "work_hash":  "sha256:9c1f...",
   "work_uri":   "https://cdn.dataforge.example/o/9c1f",
   "input_hash": "sha256:41ab...",
@@ -2346,8 +2389,8 @@ li > p:last-of-type:only-child {
           <dd class="break"></dd>
 <dt id="section-7.2-9.3">
 <code>committed-sample</code>:</dt>
-          <dd style="margin-left: 1.5em" id="section-7.2-9.4">A declared fraction is
-          verified. The draw MUST derive from a Buyer seed committed before
+          <dd style="margin-left: 1.5em" id="section-7.2-9.4">A declared fraction,
+          <code>sample_rate</code>, is verified. The draw MUST derive from a Buyer seed committed before
           the Delivery is submitted, combined with the Delivery commitment, so
           that neither party can bias which contracts are checked.<a href="#section-7.2-9.4" class="pilcrow">¶</a>
 </dd>
@@ -2431,8 +2474,7 @@ li > p:last-of-type:only-child {
 </li>
           <li id="section-7.4-2.4">Pay the Challenger bounty from the remaining Bond.<a href="#section-7.4-2.4" class="pilcrow">¶</a>
 </li>
-          <li id="section-7.4-2.5">Direct any remainder to the destination named in the
-          contract.<a href="#section-7.4-2.5" class="pilcrow">¶</a>
+          <li id="section-7.4-2.5">Direct any remainder per <code>liability.remainder_to</code>.<a href="#section-7.4-2.5" class="pilcrow">¶</a>
 </li>
         </ol>
 <p id="section-7.4-3">Ranks 2 and 3 are the correction of the -00, whose waterfall paid
@@ -2449,8 +2491,11 @@ li > p:last-of-type:only-child {
         judgment. Wherever the bounty is less than X there exists a private
         payment leaving both strictly better off than reporting, so silence
         dominates the designed mechanism. <span>[<a href="#BELENKIY08" class="cite xref">BELENKIY08</a>]</span> Theorem
-        6 gives the corresponding lower bound in its own setting, a reward of
-        at least r/(1-q), which is no less than the reward itself.<a href="#section-7.4-4" class="pilcrow">¶</a></p>
+        6 gives the corresponding lower bound in its own setting: a bounty of
+        at least r/(1-a), where r is the reward and a is the accuracy a
+        cheating contractor can reach by cheaper means, so never less than
+        the reward itself. The symbol a is used here to avoid a collision
+        with this document's q.<a href="#section-7.4-4" class="pilcrow">¶</a></p>
 <p id="section-7.4-5">Raising the bounty to X is not the answer either, since that leaves
         nothing for rank 3 and maximises the incentive to manufacture
         challenges. Two mitigations are specified instead. The reward MUST be
@@ -2462,19 +2507,62 @@ li > p:last-of-type:only-child {
         forgoes, which places a floor under any bribe a Seller must pay.<a href="#section-7.4-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="bondrelease">
+<div id="challenge-object">
 <section id="section-7.5">
-        <h3 id="name-bond-release">
-<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-bond-release" class="section-name selfRef">Bond Release</a>
+        <h3 id="name-the-challenge-object">
+<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-the-challenge-object" class="section-name selfRef">The Challenge Object</a>
         </h3>
-<p id="section-7.5-1">The Bond enters the -00 in its Phase A and never leaves it: no
+<p id="section-7.5-1">A Challenge is a JSON object, media type
+        <code>application/pact-challenge+json</code>, by which any party submits a
+        fraud proof within the window. Members: <code>pact</code>, <code>type</code>
+        (the string <code>Challenge</code>), <code>vtc_id</code>,
+        <code>delivery_hash</code>, a <code>proof</code> object whose members are
+        profiled by <code>verification.profile</code>, and the Challenger's
+        <code>signature</code>. A Facilitator MUST reject a Challenge received
+        outside the window, one whose <code>proof</code> does not conform to the
+        profile, or one whose <code>delivery_hash</code> does not match the
+        recorded Delivery. A Challenge that is accepted is evaluated by a
+        party satisfying <a href="#independence" class="auto internal xref">Section 9.1</a>, whose finding is a
+        Verdict; the Challenger's own assertion is not.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
+<span id="name-a-challenge-under-the-accep"></span><div id="fig-challenge">
+<figure id="figure-5">
+          <div class="lang-json sourcecode" id="section-7.5-2.1">
+<pre>
+{
+  "pact": "0.1",
+  "type": "Challenge",
+  "vtc_id":        "vtc_7f3a91",
+  "delivery_hash": "sha256:5d7c...",
+  "proof": {
+    "profile":         "acceptance",
+    "instrument_hash": "sha256:d9205d4f...",
+    "results_hash":    "sha256:a91e...",
+    "results_uri":     "https://watch.example/o/a91e",
+    "failing_checks":  ["schema_valid_rate", "row_count_min"]
+  },
+  "signature": { "protected": "...", "signature": "..." }
+}
+</pre>
+</div>
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-a-challenge-under-the-accep" class="selfRef">A Challenge under the acceptance profile</a>
+          </figcaption></figure>
+</div>
+</section>
+</div>
+<div id="bondrelease">
+<section id="section-7.6">
+        <h3 id="name-bond-release">
+<a href="#section-7.6" class="section-number selfRef">7.6. </a><a href="#name-bond-release" class="section-name selfRef">Bond Release</a>
+        </h3>
+<p id="section-7.6-1">The Bond enters the -00 in its Phase A and never leaves it: no
         rule anywhere returns it. A Facilitator MUST return the Bond, less any
         amount applied under <a href="#waterfall" class="auto internal xref">Section 7.4</a>, when the contract
         reaches FINAL or SETTLED, and MUST record the return. It MUST NOT
         return the Bond while any descendant contract remains non-final
         (<a href="#trees" class="auto internal xref">Section 10</a>), because cascading liability requires the
         parent's collateral to remain exposed until the subtree has
-        settled.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
+        settled.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2540,7 +2628,7 @@ li > p:last-of-type:only-child {
 <dt id="section-8-4.13">
 <code>endpoints</code>:</dt>
         <dd style="margin-left: 1.5em" id="section-8-4.14">REQUIRED. Object mapping each
-        operation in <a href="#endpoints" class="auto internal xref">Section 12</a> to an absolute URI.<a href="#section-8-4.14" class="pilcrow">¶</a>
+        endpoint name in <a href="#endpoints" class="auto internal xref">Section 12</a> to an absolute URI.<a href="#section-8-4.14" class="pilcrow">¶</a>
 </dd>
         <dd class="break"></dd>
 <dt id="section-8-4.15">
@@ -2551,7 +2639,7 @@ li > p:last-of-type:only-child {
       <dd class="break"></dd>
 </dl>
 <span id="name-https-settleexample-well-kn"></span><div id="fig-wellknown">
-<figure id="figure-5">
+<figure id="figure-6">
         <div class="lang-json sourcecode" id="section-8-5.1">
 <pre>
 {
@@ -2578,7 +2666,7 @@ li > p:last-of-type:only-child {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
 <a href="#name-https-settleexample-well-kn" class="selfRef">https://settle.example/.well-known/pact-facilitator</a>
         </figcaption></figure>
 </div>
@@ -2595,7 +2683,12 @@ li > p:last-of-type:only-child {
       </h2>
 <p id="section-9-1">A contract names both a <code>tier</code>, which says what class of
       evidence is produced, and a <code>profile</code>, which says what is
-      actually done to check it. The distinction matters because the tier name
+      actually done to check it. Four tier labels are used in this document:
+      <code>T0-reexec</code>, deterministic re-execution; <code>T1-tee</code>,
+      hardware attestation per <span>[<a href="#RFC9334" class="cite xref">RFC9334</a>]</span>; <code>T2-zkml</code>, a
+      proof of inference; and <code>T3-jury</code>, staked arbitration. Tiers are
+      a vocabulary, not a registry; profiles are the registered quantity
+      (<a href="#iana-profiles" class="auto internal xref">Section 17.3</a>). The distinction matters because the tier name
       does not determine the security of the contract and the profile
       largely does.<a href="#section-9-1" class="pilcrow">¶</a></p>
 <p id="section-9-2">Consider one task, a bulk data transformation, under two profiles at
@@ -2655,7 +2748,14 @@ li > p:last-of-type:only-child {
         parties to the contract. It MUST be derived by the evaluator and MUST
         NOT be satisfied by a field in which a record declares itself
         independent. Party identifiers MUST be normalized before comparison,
-        and the normalization MUST fold toward identifying the same party.
+        and the normalization MUST fold toward identifying the same party:
+        strip leading and trailing whitespace; lower-case the scheme and, for
+        <code>did:web</code> and <code>https</code> identifiers, the host; remove any
+        fragment (a "#" and everything after it) and any trailing "/" or
+        ".". Percent-encoding
+        MUST NOT be decoded, since an open-ended decoder is its own attack
+        surface. An identifier that does not parse after normalization is not
+        evaluable and MUST NOT be treated as outside the parties.
         An independence claim reaches exactly as far as the record's own
         commitments; a settlement-scoped attestation carries no delivery or
         acceptance evidence. These rules are stated for evaluation after the
@@ -2676,7 +2776,7 @@ li > p:last-of-type:only-child {
       Seller. What this section adds is the binding between the two, so that a
       failure below is recoverable above and cannot be hidden.<a href="#section-10-1" class="pilcrow">¶</a></p>
 <span id="name-a-contract-tree-b-is-seller"></span><div id="fig-tree">
-<figure id="figure-6">
+<figure id="figure-7">
         <div class="alignLeft art-ascii-art art-text artwork" id="section-10-2.1">
 <pre>
                     A (Buyer)
@@ -2692,7 +2792,7 @@ li > p:last-of-type:only-child {
       C (Seller)                  D (Seller)
 </pre>
 </div>
-<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
 <a href="#name-a-contract-tree-b-is-seller" class="selfRef">A contract tree. B is Seller above and Buyer below.</a>
         </figcaption></figure>
 </div>
@@ -2773,7 +2873,7 @@ li > p:last-of-type:only-child {
         on its own requirement: commit to an attestation that does not yet
         exist, or violate the MUST.<a href="#section-10.3-2" class="pilcrow">¶</a></p>
 <span id="name-the-ordering-the-00-permitt"></span><div id="fig-finality">
-<figure id="figure-7">
+<figure id="figure-8">
           <div class="alignLeft art-ascii-art art-text artwork" id="section-10.3-3.1">
 <pre>
   PERMITTED BY -00 (deadlock):
@@ -2792,7 +2892,7 @@ li > p:last-of-type:only-child {
                                     ^ child final, in time
 </pre>
 </div>
-<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
 <a href="#name-the-ordering-the-00-permitt" class="selfRef">The ordering the -00 permitted, and the rule that forbids it</a>
           </figcaption></figure>
 </div>
@@ -2810,7 +2910,7 @@ li > p:last-of-type:only-child {
 </pre><a href="#section-10.3-5" class="pilcrow">¶</a>
 </div>
 <p id="section-10.3-6">A Facilitator MUST NOT move a contract to FINAL, and MUST NOT
-        return a Bond under <a href="#bondrelease" class="auto internal xref">Section 7.5</a>, while any descendant
+        return a Bond under <a href="#bondrelease" class="auto internal xref">Section 7.6</a>, while any descendant
         remains non-final. Cascading recovery requires the parent's collateral
         to remain exposed until the subtree has settled; releasing it earlier
         would make the cascade a rule about value that no longer exists.<a href="#section-10.3-6" class="pilcrow">¶</a></p>
@@ -2909,14 +3009,14 @@ li > p:last-of-type:only-child {
       simply declined to co-sign its own conviction, which made the reputation
       layer structurally incapable of recording a negative outcome.<a href="#section-11-5" class="pilcrow">¶</a></p>
 <span id="name-a-work-attestation-for-a-sl"></span><div id="fig-attestation">
-<figure id="figure-8">
+<figure id="figure-9">
         <div class="lang-json sourcecode" id="section-11-6.1">
 <pre>
 {
   "pact": "0.1",
-  "type": "attestation",
+  "type": "WorkAttestation",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:3184cbd5...",
+  "vtc_hash": "sha256:b2cccae0...",
   "parties": {
     "buyer":       "did:web:acme.example",
     "seller":      "did:web:dataforge.example",
@@ -2938,7 +3038,7 @@ li > p:last-of-type:only-child {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
+<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
 <a href="#name-a-work-attestation-for-a-sl" class="selfRef">A Work Attestation for a slashed contract</a>
         </figcaption></figure>
 </div>
@@ -2950,12 +3050,15 @@ li > p:last-of-type:only-child {
         <h3 id="name-the-children-merkle-root">
 <a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-the-children-merkle-root" class="section-name selfRef">The Children Merkle Root</a>
         </h3>
-<p id="section-11.1-1">Leaves are the SHA-256 digests of each immediate child's
-        attestation in JCS-canonical form, sorted lexicographically by
-        digest. The tree is computed as in <span>[<a href="#RFC6962" class="cite xref">RFC6962</a>]</span>
-        Section 2.1, with leaf hashes domain-separated by a <code>0x00</code>
-        prefix and interior hashes by <code>0x01</code>. An odd node at any level
-        is promoted unchanged to the next.<a href="#section-11.1-1" class="pilcrow">¶</a></p>
+<p id="section-11.1-1">Let D be the list of 32-byte SHA-256 digests of each immediate
+        child's Work Attestation in JCS-canonical form, sorted ascending as
+        byte strings. <code>children_merkle_root</code> is MTH(D) exactly as
+        defined in <span>[<a href="#RFC6962" class="cite xref">RFC6962</a>]</span> Section 2.1: a leaf is
+        SHA-256(0x00 || d), an interior node is SHA-256(0x01 || left ||
+        right), and for n greater than one the list is split at k, the
+        largest power of two smaller than n. The shape is therefore fixed by
+        n alone, and two implementations that agree on D agree on the
+        root.<a href="#section-11.1-1" class="pilcrow">¶</a></p>
 <p id="section-11.1-2">The domain separation is not optional. Without distinct prefixes an
         attacker can present an interior node as though it were a leaf, and so
         claim an inclusion proof for a subtree that never existed.<a href="#section-11.1-2" class="pilcrow">¶</a></p>
@@ -3053,7 +3156,8 @@ POST /pact/v1/contracts HTTP/1.1
 Host: settle.example
 Content-Type: application/pact-contract+json
 
-{ "pact": "0.1", "type": "vtc", "id": "vtc_7f3a91", ... }
+{ "pact": "0.1", "type": "VerifiableTaskContract",
+  "id": "vtc_7f3a91", ... }
 </pre><a href="#section-12.1-2" class="pilcrow">¶</a>
 </div>
 <div class="lang-http-message sourcecode" id="section-12.1-3">
@@ -3062,8 +3166,8 @@ HTTP/1.1 201 Created
 Location: /pact/v1/contracts/vtc_7f3a91
 Content-Type: application/pact-contract+json
 
-{ "pact": "0.1", "type": "vtc", "id": "vtc_7f3a91",
-  "state": "PROPOSED", ... }
+{ "pact": "0.1", "type": "VerifiableTaskContract",
+  "id": "vtc_7f3a91", "state": "PROPOSED", ... }
 </pre><a href="#section-12.1-3" class="pilcrow">¶</a>
 </div>
 </section>
@@ -3129,12 +3233,12 @@ Content-Type: application/problem+json
         <a href="#independence" class="auto internal xref">Section 9.1</a> for the contract named, and MUST NOT
         accept a Verdict for a contract that has no recorded Delivery.<a href="#section-12.4-1" class="pilcrow">¶</a></p>
 <span id="name-a-verdict"></span><div id="fig-verdict">
-<figure id="figure-9">
+<figure id="figure-10">
           <div class="lang-json sourcecode" id="section-12.4-2.1">
 <pre>
 {
   "pact": "0.1",
-  "type": "verdict",
+  "type": "Verdict",
   "vtc_id":        "vtc_7f3a91",
   "delivery_hash": "sha256:5d7c...",
   "outcome":       "PASS",
@@ -3146,16 +3250,19 @@ Content-Type: application/problem+json
 }
 </pre>
 </div>
-<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
 <a href="#name-a-verdict" class="selfRef">A Verdict</a>
           </figcaption></figure>
 </div>
-<p id="section-12.4-3">A Verdict commits to the instrument it ran and to the results it
+<p id="section-12.4-3">The Verifier is the party identified by the <code>kid</code> of the
+        Verdict's signature, and a Facilitator evaluates
+        <a href="#independence" class="auto internal xref">Section 9.1</a> against that identifier.<a href="#section-12.4-3" class="pilcrow">¶</a></p>
+<p id="section-12.4-4">A Verdict commits to the instrument it ran and to the results it
         produced. Without <code>instrument_hash</code> a Verifier could run
         something other than the committed instrument and the contract would
         have no way to tell; that is the substitution attack described in
         <a href="#hashes" class="auto internal xref">Section 5.1</a>, arriving from the verification side rather
-        than the acceptance side.<a href="#section-12.4-3" class="pilcrow">¶</a></p>
+        than the acceptance side.<a href="#section-12.4-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="ep-flow">
@@ -3164,7 +3271,7 @@ Content-Type: application/problem+json
 <a href="#section-12.5" class="section-number selfRef">12.5. </a><a href="#name-exchange" class="section-name selfRef">Exchange</a>
         </h3>
 <span id="name-http-exchange-for-the-flow-"></span><div id="fig-http">
-<figure id="figure-10">
+<figure id="figure-11">
           <div class="alignLeft art-ascii-art art-text artwork" id="section-12.5-1.1">
 <pre>
  Buyer/Seller            Facilitator             Verifier
@@ -3178,21 +3285,21 @@ Content-Type: application/problem+json
       |                       |-- GET work_uri -----&gt;|
       |                       |&lt;-- POST {verdict} ---|
       |                       |                      |
-      |&lt;-- 200 released ------|                      |
+      |&lt;-- 200 OK ------------|                      |
       |                       |                      |
       |-- GET {attestation} -&gt;|                      |
       |&lt;-- 200 Attestation ---|                      |
 </pre>
 </div>
-<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
 <a href="#name-http-exchange-for-the-flow-" class="selfRef">HTTP exchange for the flow in Figure 1</a>
           </figcaption></figure>
 </div>
 <p id="section-12.5-2">A Delivery is answered <code>202 (Accepted)</code> rather than
         <code>201</code> because acceptance of the bytes is not acceptance of the
         work. The contract moves to DELIVERED; whether it moves on to
-        RELEASING depends on a Verdict the Facilitator does not itself
-        produce.<a href="#section-12.5-2" class="pilcrow">¶</a></p>
+        RELEASING depends on a substantive Verdict, which the Facilitator
+        does not itself produce.<a href="#section-12.5-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3213,8 +3320,8 @@ Content-Type: application/problem+json
         <h3 id="name-signatures">
 <a href="#section-13.1" class="section-number selfRef">13.1. </a><a href="#name-signatures" class="section-name selfRef">Signatures</a>
         </h3>
-<p id="section-13.1-1">Every signature object carried by a VTC, Delivery, Verdict, Work
-        Attestation, or capability document MUST be a JWS
+<p id="section-13.1-1">Every signature object carried by a VTC, Delivery, Verdict,
+        Challenge, Work Attestation, or capability document MUST be a JWS
         <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> with the following constraints.<a href="#section-13.1-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13.1-2.1">The protected header MUST carry <code>alg</code>, <code>kid</code> and
@@ -3253,10 +3360,9 @@ Content-Type: application/problem+json
           distinct after the normalization in
           <a href="#independence" class="auto internal xref">Section 9.1</a>.<a href="#section-13.2-1.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-13.2-1.2">Each party named in <code>parties</code> that is required to sign
-          MUST contribute at least one verifying signature. A count of
-          signatures is not sufficient: two signatures from one party MUST be
-          rejected.<a href="#section-13.2-1.2" class="pilcrow">¶</a>
+          <li class="normal" id="section-13.2-1.2">Both the Buyer and the Seller MUST contribute at least one
+          verifying signature. A count of signatures is not sufficient: two
+          signatures from one party MUST be rejected.<a href="#section-13.2-1.2" class="pilcrow">¶</a>
 </li>
           <li class="normal" id="section-13.2-1.3">
             <code>challenge.window_seconds</code> MUST be greater than
@@ -3429,9 +3535,11 @@ Content-Type: application/problem+json
 <p id="section-14-1">The -00 carried no numeric example and no digest anywhere in its
       text. Every concrete value lived in a separate repository with no link
       from the document to it, so the specification made no verifiable claim
-      about its own reference implementation. This section fixes that. Every
-      figure below is taken from the reference examples, and the digests are
-      the ones those examples carry.<a href="#section-14-1" class="pilcrow">¶</a></p>
+      about its own reference implementation. This section fixes that. The
+      tables and digests below are the reference repository's. The object
+      figures in earlier sections use short illustrative identifiers for page
+      width; the repository examples carry the full ones, and the digests
+      here are computed over those.<a href="#section-14-1" class="pilcrow">¶</a></p>
 <p id="section-14-2">A buyer commissions a data transformation. The agreed price is
       180.00 USDC and the seller posts a bond of 18.00, ten percent, which is
       the conventional figure.<a href="#section-14-2" class="pilcrow">¶</a></p>
@@ -3545,14 +3653,20 @@ Content-Type: application/problem+json
       same value appears as <code>acceptance.harness_hash</code> inside the
       TaskSpec, so the instrument is committed both by the contract and from
       within the specification it belongs to.<a href="#section-14-10" class="pilcrow">¶</a></p>
-<p id="section-14-11">One consistency note, stated rather than hidden. This document
-      defines <code>vtc_hash</code> over the contract <em>including</em> its
-      signature set (<a href="#delivery" class="auto internal xref">Section 6</a>), whereas the reference
-      examples were generated against the -00, which excluded it. The two
-      values therefore differ, and the reference examples must be regenerated
-      before an implementation can check itself against this section. The
-      <code>spec_hash</code> and <code>criteria_hash</code> values above are
-      unaffected, since neither construction changed.<a href="#section-14-11" class="pilcrow">¶</a></p>
+<p id="section-14-11">And the contract's own commitment, computed over the signed
+      contract per <a href="#delivery" class="auto internal xref">Section 6</a>:<a href="#section-14-11" class="pilcrow">¶</a></p>
+<div class="alignLeft art-ascii-art art-text artwork" id="section-14-12">
+<pre>
+ vtc_hash
+   sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249d7eaa8baff3d
+          e553870b
+</pre><a href="#section-14-12" class="pilcrow">¶</a>
+</div>
+<p id="section-14-13">This value differs from the one the -00 examples carried, and the
+      difference is semantic rather than incidental: the -00 excluded the
+      signature set from the commitment, so its digest proved what was
+      written and not who agreed to it. <code>spec_hash</code> and
+      <code>criteria_hash</code> are unchanged in construction.<a href="#section-14-13" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security">
@@ -3810,7 +3924,7 @@ Content-Type: application/problem+json
       <h2 id="name-iana-considerations">
 <a href="#section-17" class="section-number selfRef">17. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-17-1">This document asks IANA to register five media types, one
+<p id="section-17-1">This document asks IANA to register six media types, one
       well-known URI, and three registries.<a href="#section-17-1" class="pilcrow">¶</a></p>
 <div id="iana-media">
 <section id="section-17.1">
@@ -3819,7 +3933,7 @@ Content-Type: application/problem+json
         </h3>
 <p id="section-17.1-1">IANA is requested to register the following in the "Media Types"
         registry, per <span>[<a href="#RFC6838" class="cite xref">RFC6838</a>]</span>. The template below is given
-        once in full; the five registrations differ only in the subtype name
+        once in full; the six registrations differ only in the subtype name
         and the object they carry.<a href="#section-17.1-1" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-17.1-2">
           <dt id="section-17.1-2.1">Type name:</dt>
@@ -3936,6 +4050,13 @@ Content-Type: application/problem+json
               <td class="text-left" rowspan="1" colspan="1">Verdict</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <a href="#ep-verdict" class="auto internal xref">12.4</a>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">pact-challenge+json</td>
+              <td class="text-left" rowspan="1" colspan="1">Challenge</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <a href="#challenge-object" class="auto internal xref">7.5</a>
 </td>
             </tr>
             <tr>
@@ -4094,7 +4215,8 @@ Content-Type: application/problem+json
         <span>[<a href="#RFC9457" class="cite xref">RFC9457</a>]</span> problem type identifiers used by
         <a href="#ep-errors" class="auto internal xref">Section 12.3</a>. Each entry carries the identifier, the
         HTTP status it accompanies, and the section of a specification
-        stating the rule it reports.<a href="#section-17.5-1" class="pilcrow">¶</a></p>
+        stating the rule it reports. A problem <code>type</code> is the identifier
+        appended to the prefix <code>https://pact-spec.github.io/problem/</code>.<a href="#section-17.5-1" class="pilcrow">¶</a></p>
 <span id="name-initial-contents-3"></span><div id="tab-problems">
 <table class="center" id="table-8">
           <caption>
@@ -4235,6 +4357,36 @@ Content-Type: application/problem+json
 <dt id="ASOKAN98">[ASOKAN98]</dt>
       <dd>
 <span class="refAuthor">Asokan, N.</span>, <span class="refAuthor">Shoup, V.</span>, and <span class="refAuthor">M. Waidner</span>, <span class="refTitle">"Asynchronous Protocols for Optimistic Fair Exchange"</span>, <span class="refContent">Proceedings of the IEEE Symposium on Security and Privacy</span>, <time datetime="1998" class="refDate">1998</time>, <span>&lt;<a href="https://doi.org/10.1109/secpri.1998.674826">https://doi.org/10.1109/secpri.1998.674826</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.hood-agtp-commerce">[I-D.hood-agtp-commerce]</dt>
+      <dd>
+<span class="refAuthor">Hood, C.</span>, <span class="refTitle">"AGTP-Commerce: Open Commerce Specification for Agent-to-Agent Transactions"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-hood-agtp-commerce-00</span>, <time datetime="2026-06-28" class="refDate">28 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-hood-agtp-commerce-00">https://datatracker.ietf.org/doc/html/draft-hood-agtp-commerce-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.stone-vcap-ap2-binding">[I-D.stone-vcap-ap2-binding]</dt>
+      <dd>
+<span class="refAuthor">Stone, B.</span>, <span class="refTitle">"VCAP-AP2 Binding: Verified Commerce Settlement for the Agent Payments Protocol"</span>, <span class="refContent">Work in Progress, Internet-Draft, draft-stone-vcap-ap2-binding-00</span>, <time datetime="2026-03-17" class="refDate">17 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-stone-vcap-ap2-binding-00">https://datatracker.ietf.org/doc/html/draft-stone-vcap-ap2-binding-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.sahu-agent-action-receipts">[I-D.sahu-agent-action-receipts]</dt>
+      <dd>
+<span class="refAuthor">Sahu, N.</span>, <span class="refTitle">"Signed, Hash-Chained Action Receipts for AI Agents"</span>, <span class="refContent">Work in Progress, Internet-Draft, draft-sahu-agent-action-receipts-00</span>, <time datetime="2026-08-16" class="refDate">16 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-sahu-agent-action-receipts-00">https://datatracker.ietf.org/doc/html/draft-sahu-agent-action-receipts-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.mih-sato-agent-accountability-composition">[I-D.mih-sato-agent-accountability-composition]</dt>
+      <dd>
+<span class="refAuthor">Mih, S.</span>, <span class="refAuthor">Sato, T.</span>, <span class="refAuthor">Schrock, I.</span>, <span class="refAuthor">Bu, S.</span>, and <span class="refAuthor">A. Sokolov</span>, <span class="refTitle">"Agent Accountability: Composition and Conformance"</span>, <span class="refContent">Work in Progress, Internet-Draft, draft-mih-sato-agent-accountability-composition-01</span>, <time datetime="2026-08-16" class="refDate">16 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mih-sato-agent-accountability-composition-01">https://datatracker.ietf.org/doc/html/draft-mih-sato-agent-accountability-composition-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.asor-wimse-agent-delegation-chain">[I-D.asor-wimse-agent-delegation-chain]</dt>
+      <dd>
+<span class="refAuthor">Asor, R.</span>, <span class="refTitle">"Verifiable Attenuated Delegation for AI Agent Chains"</span>, <span class="refContent">Work in Progress, Internet-Draft, draft-asor-wimse-agent-delegation-chain-01</span>, <time datetime="2026-09-03" class="refDate">3 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-asor-wimse-agent-delegation-chain-01">https://datatracker.ietf.org/doc/html/draft-asor-wimse-agent-delegation-chain-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.pinto-agent-authz-contestability">[I-D.pinto-agent-authz-contestability]</dt>
+      <dd>
+<span class="refAuthor">Pinto, T.</span>, <span class="refTitle">"Contestability Bindings for Authorized Agent Actions"</span>, <span class="refContent">Work in Progress, Internet-Draft, draft-pinto-agent-authz-contestability-00</span>, <time datetime="2026-08-29" class="refDate">29 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-pinto-agent-authz-contestability-00">https://datatracker.ietf.org/doc/html/draft-pinto-agent-authz-contestability-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ASOKAN98THESIS">[ASOKAN98THESIS]</dt>
+      <dd>
+<span class="refAuthor">Asokan, N.</span>, <span class="refTitle">"Fairness in Electronic Commerce"</span>, <span class="refContent">PhD thesis, University of Waterloo. Chapter 2 defines
+        generatable and revocable items and the affidavit token by which a
+        third party reverses a completed transfer</span>, <time datetime="1998" class="refDate">1998</time>, <span>&lt;<a href="https://uwspace.uwaterloo.ca/">https://uwspace.uwaterloo.ca/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="BELENKIY08">[BELENKIY08]</dt>
       <dd>

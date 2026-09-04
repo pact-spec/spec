@@ -4,8 +4,8 @@
 
 Network Working Group                                          L. Sharma
 Internet-Draft                                               Independent
-Intended status: Experimental                               October 2026
-Expires: 6 April 2027
+Intended status: Experimental                            20 October 2026
+Expires: 23 April 2027
 
 
      PACT: Liability and Settlement for Autonomous Agent Contracts
@@ -53,12 +53,12 @@ Status of This Memo
 
 
 
-Sharma                    Expires 6 April 2027                  [Page 1]
+Sharma                    Expires 23 April 2027                 [Page 1]
 
 Internet-Draft                    PACT                      October 2026
 
 
-   This Internet-Draft will expire on 4 April 2027.
+   This Internet-Draft will expire on 23 April 2027.
 
 Copyright Notice
 
@@ -84,69 +84,70 @@ Table of Contents
    2.  Conventions and Definitions . . . . . . . . . . . . . . . . .   6
    3.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   6
    4.  Protocol Overview . . . . . . . . . . . . . . . . . . . . . .   7
-   5.  The Verifiable Task Contract  . . . . . . . . . . . . . . . .   8
-     5.1.  Hash Commitments and Content Conveyance . . . . . . . . .  11
-     5.2.  The Task Specification  . . . . . . . . . . . . . . . . .  11
-     5.3.  Liability . . . . . . . . . . . . . . . . . . . . . . . .  12
-   6.  The Delivery Object . . . . . . . . . . . . . . . . . . . . .  13
-   7.  Settlement  . . . . . . . . . . . . . . . . . . . . . . . . .  14
-     7.1.  Value Pools . . . . . . . . . . . . . . . . . . . . . . .  14
-     7.2.  The Assurance Constraint  . . . . . . . . . . . . . . . .  15
-     7.3.  Release Modes . . . . . . . . . . . . . . . . . . . . . .  16
-     7.4.  Challenge and Remedy  . . . . . . . . . . . . . . . . . .  16
-     7.5.  Bond Release  . . . . . . . . . . . . . . . . . . . . . .  17
-   8.  Facilitator Capability Discovery  . . . . . . . . . . . . . .  18
-   9.  Verification Profiles . . . . . . . . . . . . . . . . . . . .  19
-     9.1.  Verifier Independence . . . . . . . . . . . . . . . . . .  20
-   10. Contract Trees and Cascading Liability  . . . . . . . . . . .  21
-     10.1.  Binding a Child to Its Parent  . . . . . . . . . . . . .  21
-     10.2.  What Cascades, and What Does Not . . . . . . . . . . . .  22
-     10.3.  Finality Is Bottom-Up  . . . . . . . . . . . . . . . . .  22
-   11. Work Attestations . . . . . . . . . . . . . . . . . . . . . .  23
-     11.1.  The Children Merkle Root . . . . . . . . . . . . . . . .  25
-   12. Protocol Endpoints  . . . . . . . . . . . . . . . . . . . . .  26
-     12.1.  Proposing a Contract . . . . . . . . . . . . . . . . . .  26
+   5.  The Verifiable Task Contract  . . . . . . . . . . . . . . . .   9
+     5.1.  Hash Commitments and Content Conveyance . . . . . . . . .  12
+     5.2.  The Task Specification  . . . . . . . . . . . . . . . . .  12
+     5.3.  Liability . . . . . . . . . . . . . . . . . . . . . . . .  13
+   6.  The Delivery Object . . . . . . . . . . . . . . . . . . . . .  14
+   7.  Settlement  . . . . . . . . . . . . . . . . . . . . . . . . .  15
+     7.1.  Value Pools . . . . . . . . . . . . . . . . . . . . . . .  15
+     7.2.  The Assurance Constraint  . . . . . . . . . . . . . . . .  16
+     7.3.  Release Modes . . . . . . . . . . . . . . . . . . . . . .  17
+     7.4.  Challenge and Remedy  . . . . . . . . . . . . . . . . . .  18
+     7.5.  The Challenge Object  . . . . . . . . . . . . . . . . . .  19
+     7.6.  Bond Release  . . . . . . . . . . . . . . . . . . . . . .  20
+   8.  Facilitator Capability Discovery  . . . . . . . . . . . . . .  20
+   9.  Verification Profiles . . . . . . . . . . . . . . . . . . . .  21
+     9.1.  Verifier Independence . . . . . . . . . . . . . . . . . .  22
+   10. Contract Trees and Cascading Liability  . . . . . . . . . . .  23
+     10.1.  Binding a Child to Its Parent  . . . . . . . . . . . . .  23
+     10.2.  What Cascades, and What Does Not . . . . . . . . . . . .  24
+     10.3.  Finality Is Bottom-Up  . . . . . . . . . . . . . . . . .  24
+   11. Work Attestations . . . . . . . . . . . . . . . . . . . . . .  26
+     11.1.  The Children Merkle Root . . . . . . . . . . . . . . . .  27
+   12. Protocol Endpoints  . . . . . . . . . . . . . . . . . . . . .  28
 
 
 
-Sharma                    Expires 6 April 2027                  [Page 2]
+Sharma                    Expires 23 April 2027                 [Page 2]
 
 Internet-Draft                    PACT                      October 2026
 
 
-     12.2.  Idempotency  . . . . . . . . . . . . . . . . . . . . . .  27
-     12.3.  Error Responses  . . . . . . . . . . . . . . . . . . . .  27
-     12.4.  Recording a Verdict  . . . . . . . . . . . . . . . . . .  28
-     12.5.  Exchange . . . . . . . . . . . . . . . . . . . . . . . .  28
-   13. Conformance . . . . . . . . . . . . . . . . . . . . . . . . .  29
-     13.1.  Signatures . . . . . . . . . . . . . . . . . . . . . . .  29
-     13.2.  Rules JSON Schema Cannot Express . . . . . . . . . . . .  29
-     13.3.  Test Vectors . . . . . . . . . . . . . . . . . . . . . .  30
-   14. Worked Example  . . . . . . . . . . . . . . . . . . . . . . .  32
-   15. Security Considerations . . . . . . . . . . . . . . . . . . .  33
-     15.1.  Verifier Capture . . . . . . . . . . . . . . . . . . . .  34
-     15.2.  Algorithm and Key Confusion  . . . . . . . . . . . . . .  34
-     15.3.  Substitution of Committed Content  . . . . . . . . . . .  34
-     15.4.  Unauthenticated Parent Attachment  . . . . . . . . . . .  35
-     15.5.  Buying Silence from a Challenger . . . . . . . . . . . .  35
-     15.6.  Non-Delivery and Escrow Lock . . . . . . . . . . . . . .  35
-     15.7.  Cross-Venue Replay . . . . . . . . . . . . . . . . . . .  36
-     15.8.  Nondeterminism as Shield and as Weapon . . . . . . . . .  36
-     15.9.  Fabricated Settlement History  . . . . . . . . . . . . .  36
-   16. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  36
-     16.1.  Input Disclosure Before Contract Formation . . . . . . .  37
-     16.2.  The Settlement Graph . . . . . . . . . . . . . . . . . .  37
-     16.3.  Challenger Access  . . . . . . . . . . . . . . . . . . .  37
-     16.4.  Retention  . . . . . . . . . . . . . . . . . . . . . . .  37
-   17. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  38
-     17.1.  Media Types  . . . . . . . . . . . . . . . . . . . . . .  38
-     17.2.  Well-Known URI . . . . . . . . . . . . . . . . . . . . .  39
-     17.3.  PACT Verification Profiles Registry  . . . . . . . . . .  39
-     17.4.  PACT Settlement Bindings Registry  . . . . . . . . . . .  40
-     17.5.  PACT Problem Types Registry  . . . . . . . . . . . . . .  41
-   18. Normative References  . . . . . . . . . . . . . . . . . . . .  41
-   19. Informative References  . . . . . . . . . . . . . . . . . . .  42
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  43
+     12.1.  Proposing a Contract . . . . . . . . . . . . . . . . . .  28
+     12.2.  Idempotency  . . . . . . . . . . . . . . . . . . . . . .  29
+     12.3.  Error Responses  . . . . . . . . . . . . . . . . . . . .  29
+     12.4.  Recording a Verdict  . . . . . . . . . . . . . . . . . .  30
+     12.5.  Exchange . . . . . . . . . . . . . . . . . . . . . . . .  31
+   13. Conformance . . . . . . . . . . . . . . . . . . . . . . . . .  31
+     13.1.  Signatures . . . . . . . . . . . . . . . . . . . . . . .  31
+     13.2.  Rules JSON Schema Cannot Express . . . . . . . . . . . .  32
+     13.3.  Test Vectors . . . . . . . . . . . . . . . . . . . . . .  32
+   14. Worked Example  . . . . . . . . . . . . . . . . . . . . . . .  34
+   15. Security Considerations . . . . . . . . . . . . . . . . . . .  36
+     15.1.  Verifier Capture . . . . . . . . . . . . . . . . . . . .  36
+     15.2.  Algorithm and Key Confusion  . . . . . . . . . . . . . .  36
+     15.3.  Substitution of Committed Content  . . . . . . . . . . .  36
+     15.4.  Unauthenticated Parent Attachment  . . . . . . . . . . .  37
+     15.5.  Buying Silence from a Challenger . . . . . . . . . . . .  37
+     15.6.  Non-Delivery and Escrow Lock . . . . . . . . . . . . . .  37
+     15.7.  Cross-Venue Replay . . . . . . . . . . . . . . . . . . .  38
+     15.8.  Nondeterminism as Shield and as Weapon . . . . . . . . .  38
+     15.9.  Fabricated Settlement History  . . . . . . . . . . . . .  38
+   16. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  39
+     16.1.  Input Disclosure Before Contract Formation . . . . . . .  39
+     16.2.  The Settlement Graph . . . . . . . . . . . . . . . . . .  39
+     16.3.  Challenger Access  . . . . . . . . . . . . . . . . . . .  39
+     16.4.  Retention  . . . . . . . . . . . . . . . . . . . . . . .  40
+   17. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  40
+     17.1.  Media Types  . . . . . . . . . . . . . . . . . . . . . .  40
+     17.2.  Well-Known URI . . . . . . . . . . . . . . . . . . . . .  41
+     17.3.  PACT Verification Profiles Registry  . . . . . . . . . .  42
+     17.4.  PACT Settlement Bindings Registry  . . . . . . . . . . .  42
+     17.5.  PACT Problem Types Registry  . . . . . . . . . . . . . .  43
+   18. Normative References  . . . . . . . . . . . . . . . . . . . .  43
+   19. Informative References  . . . . . . . . . . . . . . . . . . .  45
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  46
 
 1.  Introduction
 
@@ -164,8 +165,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-
-Sharma                    Expires 6 April 2027                  [Page 3]
+Sharma                    Expires 23 April 2027                 [Page 3]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -210,18 +210,18 @@ Internet-Draft                    PACT                      October 2026
 
    PACT's agree, perform, verify, settle loop is an instance of
    optimistic fair exchange [ASOKAN98], in which a third party is
-   contacted only when the exchange fails.  The revocable-item case of
-   that work, in which value moves and is later reversed on a third
-   party's affidavit, is optimistic release in substance.  What that
-   literature establishes is what a third party must be able to do for
-   an exchange to be fair.  What it does not address, and what
-   Section 7.2 addresses, is who pays to produce the evidence a dispute
-   is decided on.
+   contacted only when the exchange fails.  The revocable-item case,
+   developed in [ASOKAN98THESIS], in which value moves and is later
+   reversed on a third party's affidavit, is optimistic release in
+   substance.  What that literature establishes is what a third party
+   must be able to do for an exchange to be fair.  What it does not
+   address, and what Section 7.2 addresses, is who pays to produce the
+   evidence a dispute is decided on.
 
 
 
 
-Sharma                    Expires 6 April 2027                  [Page 4]
+Sharma                    Expires 23 April 2027                 [Page 4]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -230,17 +230,26 @@ Internet-Draft                    PACT                      October 2026
    bound.  It is stated for public enforcement generally in
    [POLINSKY99], which traces it to Bentham, and for outsourced
    computation specifically in [BELENKIY08], whose Theorem 1 sets a
-   fine-to-reward ratio of (1-p)/p for detection probability p, with the
-   fine posted in advance as a deposit.  It is stated for rollup
-   validators in [MAMAGEISHVILI23].  This document adds one term to it,
-   for value released before verification concludes, and claims nothing
-   further.
+   fine-to-reward ratio of (1-p)/p, where p is the probability that an
+   incorrect result is checked, with the fine posted in advance as a
+   deposit.  It is stated for rollup validators in [MAMAGEISHVILI23].
+   This document adds one term to it, for value released before
+   verification concludes, and claims nothing further.
+
+   Two adjacent Internet-Drafts address agent commerce settlement
+   directly.  [I-D.hood-agtp-commerce] carries Work Completion Records
+   and an audit-verified settlement timing; [I-D.stone-vcap-ap2-binding]
+   binds verified commerce settlement to the Agent Payments Protocol.
+   Neither allocates liability between the parties, and PACT is designed
+   to be usable alongside either.
 
    Verification evidence formats are specified in [RFC9334] and
-   [RFC9711].  Action receipts and their chaining, agent accountability
-   composition, delegation chains, and contestability bindings are each
-   the subject of separate work, and PACT consumes rather than restates
-   them.
+   [RFC9711].  Signed, hash-chained action receipts
+   [I-D.sahu-agent-action-receipts], composition of accountability
+   records [I-D.mih-sato-agent-accountability-composition], delegation
+   chains [I-D.asor-wimse-agent-delegation-chain], and contestability
+   bindings [I-D.pinto-agent-authz-contestability] are each specified
+   elsewhere, and PACT consumes rather than restates them.
 
 1.4.  Changes from -00
 
@@ -266,21 +275,19 @@ Internet-Draft                    PACT                      October 2026
    *  An Assurance Constraint is stated that a facilitator can check
       before locking funds (Section 7.2).
 
+
+
+Sharma                    Expires 23 April 2027                 [Page 5]
+
+Internet-Draft                    PACT                      October 2026
+
+
    *  Bond release on contract finality is specified.  The -00 had no
       rule returning a seller's bond.
 
    *  Subcontract finality is bottom-up, resolving the -00's requirement
       that a parent commit to child attestations that could not yet
       exist (Section 10).
-
-
-
-
-
-Sharma                    Expires 6 April 2027                  [Page 5]
-
-Internet-Draft                    PACT                      October 2026
-
 
    *  Protocol endpoints are specified.  The -00 defined objects and no
       operations, so no two implementations could exchange a message
@@ -322,22 +329,26 @@ Internet-Draft                    PACT                      October 2026
    Seller:  The party that performs the work and posts the Bond.
 
    Facilitator:  A service that holds value and executes the contract's
-      settlement terms without discretion over its outcome.  A
-      Facilitator MUST NOT adjudicate a dispute it settles.
+
+
+
+
+Sharma                    Expires 23 April 2027                 [Page 6]
+
+Internet-Draft                    PACT                      October 2026
+
+
+      settlement terms without discretion over its outcome.  It checks
+      that objects conform and applies rules fixed in advance.  It MUST
+      NOT decide whether delivered work was acceptable; that is the
+      Verifier's role, and a Facilitator MUST NOT act as Verifier for a
+      contract it settles.
 
    Verifier:  The party that evaluates a Delivery against the committed
       acceptance instrument for release purposes.  Independence
       requirements are in Section 9.1.
 
    Challenger:  Any party that submits a fraud proof within the
-
-
-
-Sharma                    Expires 6 April 2027                  [Page 6]
-
-Internet-Draft                    PACT                      October 2026
-
-
       challenge window.
 
    Bond:  Seller-posted collateral, sized per Section 7.2, from which
@@ -359,6 +370,30 @@ Internet-Draft                    PACT                      October 2026
    in a Work Attestation.  The ordering below is normative; in
    particular a Verdict precedes release under the default release mode.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                 [Page 7]
+
+Internet-Draft                    PACT                      October 2026
+
+
     Buyer            Facilitator         Seller         Verifier
       |                   |                 |               |
       |<== VTC negotiated and co-signed ===>|               |
@@ -375,6 +410,7 @@ Internet-Draft                    PACT                      October 2026
       |                   |<-- Verdict (signed) ------------|
       |                   |                 |               |
       |                   |-- release(P) -->|               |
+      |                   |  [ window ] [ children final ]  |
       |                   |-- return(B,F) ->|               |
       |                   |                 |               |
       |<-- Attestation ---|-- Attestation ->|               |
@@ -382,23 +418,37 @@ Internet-Draft                    PACT                      October 2026
      Figure 1: Contract flow under the default on-verification release
                                     mode
 
-
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                  [Page 7]
-
-Internet-Draft                    PACT                      October 2026
-
-
    The challenge window opens when the Verdict is recorded and closes at
    challenge.window_seconds thereafter.  Under on-verification the
    Buyer's price is released once the Verdict is PASS; the Bond is not
    returned until the window closes and every descendant contract is
    final (Section 10).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                 [Page 8]
+
+Internet-Draft                    PACT                      October 2026
+
 
                      +------------+
                      |  PROPOSED  |
@@ -430,7 +480,7 @@ Internet-Draft                    PACT                      October 2026
 
                          Figure 2: Contract states
 
-   ABANDONED and SETTLED are terminal and both produce a Work
+   FINAL, SETTLED and ABANDONED are terminal, and each produces a Work
    Attestation.  The -00 had no path to either: expiry of task.deadline
    had no stated consequence, so escrow could lock permanently, and a
    negative outcome required the signature of the party it convicted.
@@ -439,20 +489,24 @@ Internet-Draft                    PACT                      October 2026
 
    A VTC is a JSON object, media type application/pact-contract+json,
    carrying the members below.  A VTC is valid only if every REQUIRED
-   member is present, the parties are distinct, and each named party has
-   contributed at least one signature that verifies against a key bound
-   to its identifier.
+   member is present, the parties are distinct, and both the Buyer and
+   the Seller have contributed at least one signature that verifies
+   against a key bound to its identifier.  The Facilitator and any
+   Verifier do not sign the VTC; their assent is expressed by acting on
+   it, and a Facilitator that will not act on a contract refuses it at
+   Section 12.1.
+
+   pact:  REQUIRED.  Protocol version.
 
 
 
-Sharma                    Expires 6 April 2027                  [Page 8]
+
+Sharma                    Expires 23 April 2027                 [Page 9]
 
 Internet-Draft                    PACT                      October 2026
 
 
-   pact:  REQUIRED.  Protocol version.
-
-   type:  REQUIRED.  The string vtc.
+   type:  REQUIRED.  The string VerifiableTaskContract.
 
    id:  REQUIRED.  Contract identifier, unique for the Facilitator named
       in settlement.
@@ -465,8 +519,8 @@ Internet-Draft                    PACT                      October 2026
    task:  REQUIRED.  Object with spec_hash, deadline, and OPTIONAL
       spec_uri.
 
-   price:  REQUIRED.  Object with amount, currency and settlement
-      binding identifier.
+   price:  REQUIRED.  Object with amount, currency, settlement binding
+      identifier, and network.
 
    verification:  REQUIRED.  Object with tier, profile (Section 9),
       criteria_hash, and OPTIONAL arbiter.
@@ -501,14 +555,16 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 6 April 2027                  [Page 9]
+
+
+Sharma                    Expires 23 April 2027                [Page 10]
 
 Internet-Draft                    PACT                      October 2026
 
 
    {
      "pact": "0.1",
-     "type": "vtc",
+     "type": "VerifiableTaskContract",
      "id": "vtc_7f3a91",
      "parties": {
        "buyer":       "did:web:acme.example",
@@ -524,7 +580,8 @@ Internet-Draft                    PACT                      October 2026
      "price": {
        "amount":     "180.00",
        "currency":   "USDC",
-       "settlement": "pact-escrow"
+       "settlement": "pact-escrow",
+       "network":    "eip155:8453"
      },
      "verification": {
        "tier":          "T0-reexec",
@@ -556,8 +613,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-
-Sharma                    Expires 6 April 2027                 [Page 10]
+Sharma                    Expires 23 April 2027                [Page 11]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -613,7 +669,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 6 April 2027                 [Page 11]
+Sharma                    Expires 23 April 2027                [Page 12]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -650,8 +706,14 @@ Internet-Draft                    PACT                      October 2026
       Determines the second rank of the waterfall in Section 7.4.
 
    parent:  OPTIONAL.  Present only in a subcontract.  Object with the
-      parent's vtc_id, vtc_hash, and a countersignature from the
-      parent's Seller (Section 10).
+      parent's vtc_id and vtc_hash (Section 10.1).
+
+   remainder_to:  OPTIONAL.  Where slashed value remaining after rank 4
+      of Section 7.4 is directed: buyer or sink.  Absent, sink.  A sink
+      is a Facilitator-designated destination that is not a party to the
+      contract. buyer is permitted but rewards a Buyer beyond its loss,
+      which is an incentive to manufacture challenges; the default
+      exists for that reason.
 
    Liability under PACT is bounded by cap and is discharged in the
    contract's own currency.  This document creates no cause of action
@@ -660,19 +722,19 @@ Internet-Draft                    PACT                      October 2026
    specification that implied otherwise would be claiming to settle
    questions it has no standing to settle.
 
-   A parent member MUST carry the parent's countersignature.  Without it
-   any party could name a competitor's contract as parent, fail a
-   trivial child, and cause the competitor's Bond to be slashed.
 
 
 
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 12]
+Sharma                    Expires 23 April 2027                [Page 13]
 
 Internet-Draft                    PACT                      October 2026
 
+
+   A parent member is authenticated not by a separate countersignature
+   but by the rule in Section 10.1: the child's Buyer must be the
+   parent's Seller.  Since liability is inside the bytes the Buyer
+   signs, the Buyer's signature on the child is itself the authorisation
+   to attach it.
 
 6.  The Delivery Object
 
@@ -686,7 +748,7 @@ Internet-Draft                    PACT                      October 2026
    A Delivery is a JSON object, media type application/pact-
    delivery+json.
 
-   pact, type:  REQUIRED.  Version, and the string delivery.
+   pact, type:  REQUIRED.  Version, and the string Delivery.
 
    vtc_id, vtc_hash:  REQUIRED.  Identify and commit to the contract
       being performed. vtc_hash is computed over the JCS-canonical VTC
@@ -712,10 +774,21 @@ Internet-Draft                    PACT                      October 2026
       excluding this member.
 
    A Facilitator MUST reject a Delivery whose evidence is absent or does
-   not conform to the profile named in the VTC, and MUST treat such a
-   rejection as a FAIL Verdict for Section 7.4.  This is the rule that
-   makes silence expensive: under the -00 the cheapest attack was to
-   deliver nothing verifiable and be paid anyway.
+   not conform to the profile named in the VTC, and MUST apply
+   Section 7.4 as though a FAIL Verdict had been recorded.  This is a
+   conformance rejection, not a judgement on the work: the Facilitator
+   has checked shape, not substance, which is why it does not breach the
+
+
+
+Sharma                    Expires 23 April 2027                [Page 14]
+
+Internet-Draft                    PACT                      October 2026
+
+
+   separation in Section 3.  This is the rule that makes silence
+   expensive: under the -00 the cheapest attack was to deliver nothing
+   verifiable and be paid anyway.
 
    Where task.deadline passes with no conformant Delivery recorded, the
    Facilitator MUST move the contract to ABANDONED, return the escrowed
@@ -723,19 +796,12 @@ Internet-Draft                    PACT                      October 2026
    liability.restitution_basis.  No challenge window opens, because
    there is nothing to challenge.
 
-
-
-Sharma                    Expires 6 April 2027                 [Page 13]
-
-Internet-Draft                    PACT                      October 2026
-
-
    {
      "pact": "0.1",
-     "type": "delivery",
+     "type": "Delivery",
      "vtc_id":   "vtc_7f3a91",
-     "vtc_hash": "sha256:3184cbd50cb56304a36a7b3f247148fab5bbeea0e4ff
-                  091b48becd1dc8e1b705",
+     "vtc_hash": "sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249
+                  d7eaa8baff3de553870b",
      "work_hash":  "sha256:9c1f...",
      "work_uri":   "https://cdn.dataforge.example/o/9c1f",
      "input_hash": "sha256:41ab...",
@@ -768,6 +834,14 @@ Internet-Draft                    PACT                      October 2026
    Separating the second and third is not tidiness.  Under the -00 a
    Challenger was reimbursed from the slashed Bond, so reimbursement was
    capped by the Bond; for any re-execution profile the cost of
+
+
+
+Sharma                    Expires 23 April 2027                [Page 15]
+
+Internet-Draft                    PACT                      October 2026
+
+
    producing a fraud proof approximates the cost of the work itself,
    which exceeds any plausible fraction of a Bond by roughly an order of
    magnitude.  The -00's MUST to reimburse documented verification costs
@@ -778,13 +852,6 @@ Internet-Draft                    PACT                      October 2026
    value the mechanism can no longer recover, so releasing more than the
    Bond makes defection profitable by construction, independently of
    every other parameter.
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 14]
-
-Internet-Draft                    PACT                      October 2026
-
 
 7.2.  The Assurance Constraint
 
@@ -823,6 +890,14 @@ Internet-Draft                    PACT                      October 2026
    is [MAMAGEISHVILI23].  The only term this document contributes is E.
    Every prior statement withholds the reward until checking has had its
    opportunity, so none of them has a notion of value released before
+
+
+
+Sharma                    Expires 23 April 2027                [Page 16]
+
+Internet-Draft                    PACT                      October 2026
+
+
    verification concludes.  Optimistic release both pays a defecting
    Seller and puts that payment beyond recovery, so the required Bond
    rises with it one for one.  That is why a contract can satisfy the
@@ -833,18 +908,10 @@ Internet-Draft                    PACT                      October 2026
    certain:  Every Delivery is verified before release. q is 1 by
       construction.
 
-   committed-sample:  A declared fraction is verified.  The draw MUST
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 15]
-
-Internet-Draft                    PACT                      October 2026
-
-
-      derive from a Buyer seed committed before the Delivery is
-      submitted, combined with the Delivery commitment, so that neither
-      party can bias which contracts are checked.
+   committed-sample:  A declared fraction, sample_rate, is verified.
+      The draw MUST derive from a Buyer seed committed before the
+      Delivery is submitted, combined with the Delivery commitment, so
+      that neither party can bias which contracts are checked.
 
    open:  Detection relies on third-party challenge.  A contract MUST
       NOT declare open as its sole source of assurance.  Open challenge
@@ -872,6 +939,21 @@ Internet-Draft                    PACT                      October 2026
       protocol-native remedy exists above the Bond for the unsecured
       portion.
 
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 17]
+
+Internet-Draft                    PACT                      October 2026
+
+
    The -00 made optimistic release the only mode.  Its benefit to the
    Seller is the time value of the price over the challenge window; its
    cost is the carry on collateral sized to make it safe.  On ordinary
@@ -889,15 +971,6 @@ Internet-Draft                    PACT                      October 2026
 
    1.  Reverse any unreleased escrow to the Buyer.
 
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 16]
-
-Internet-Draft                    PACT                      October 2026
-
-
    2.  Reimburse the successful Challenger's documented verification and
        submission costs, *from the Verification Fund*.
 
@@ -906,7 +979,7 @@ Internet-Draft                    PACT                      October 2026
 
    4.  Pay the Challenger bounty from the remaining Bond.
 
-   5.  Direct any remainder to the destination named in the contract.
+   5.  Direct any remainder per liability.remainder_to.
 
    Ranks 2 and 3 are the correction of the -00, whose waterfall paid the
    Challenger and then directed the remainder to a neutral sink "rather
@@ -922,8 +995,20 @@ Internet-Draft                    PACT                      October 2026
    avoid judgment.  Wherever the bounty is less than X there exists a
    private payment leaving both strictly better off than reporting, so
    silence dominates the designed mechanism.  [BELENKIY08] Theorem 6
-   gives the corresponding lower bound in its own setting, a reward of
-   at least r/(1-q), which is no less than the reward itself.
+   gives the corresponding lower bound in its own setting: a bounty of
+   at least r/(1-a), where r is the reward and a is the accuracy a
+   cheating contractor can reach by cheaper means, so never less than
+   the reward itself.  The symbol a is used here to avoid a collision
+   with this document's q.
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 18]
+
+Internet-Draft                    PACT                      October 2026
+
 
    Raising the bounty to X is not the answer either, since that leaves
    nothing for rank 3 and maximises the incentive to manufacture
@@ -936,7 +1021,52 @@ Internet-Draft                    PACT                      October 2026
    restitution it forgoes, which places a floor under any bribe a Seller
    must pay.
 
-7.5.  Bond Release
+7.5.  The Challenge Object
+
+   A Challenge is a JSON object, media type application/pact-
+   challenge+json, by which any party submits a fraud proof within the
+   window.  Members: pact, type (the string Challenge), vtc_id,
+   delivery_hash, a proof object whose members are profiled by
+   verification.profile, and the Challenger's signature.  A Facilitator
+   MUST reject a Challenge received outside the window, one whose proof
+   does not conform to the profile, or one whose delivery_hash does not
+   match the recorded Delivery.  A Challenge that is accepted is
+   evaluated by a party satisfying Section 9.1, whose finding is a
+   Verdict; the Challenger's own assertion is not.
+
+   {
+     "pact": "0.1",
+     "type": "Challenge",
+     "vtc_id":        "vtc_7f3a91",
+     "delivery_hash": "sha256:5d7c...",
+     "proof": {
+       "profile":         "acceptance",
+       "instrument_hash": "sha256:d9205d4f...",
+       "results_hash":    "sha256:a91e...",
+       "results_uri":     "https://watch.example/o/a91e",
+       "failing_checks":  ["schema_valid_rate", "row_count_min"]
+     },
+     "signature": { "protected": "...", "signature": "..." }
+   }
+
+             Figure 5: A Challenge under the acceptance profile
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 19]
+
+Internet-Draft                    PACT                      October 2026
+
+
+7.6.  Bond Release
 
    The Bond enters the -00 in its Phase A and never leaves it: no rule
    anywhere returns it.  A Facilitator MUST return the Bond, less any
@@ -945,14 +1075,6 @@ Internet-Draft                    PACT                      October 2026
    while any descendant contract remains non-final (Section 10), because
    cascading liability requires the parent's collateral to remain
    exposed until the subtree has settled.
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 17]
-
-Internet-Draft                    PACT                      October 2026
-
 
 8.  Facilitator Capability Discovery
 
@@ -989,26 +1111,19 @@ Internet-Draft                    PACT                      October 2026
 
    max_contract_value:  OPTIONAL.  Object with amount and currency.
 
-   endpoints:  REQUIRED.  Object mapping each operation in Section 12 to
-      an absolute URI.
-
-   signature:  REQUIRED.  JWS over the JCS-canonical document excluding
-      this member.
+   endpoints:  REQUIRED.  Object mapping each endpoint name in
+      Section 12 to an absolute URI.
 
 
 
 
-
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 18]
+Sharma                    Expires 23 April 2027                [Page 20]
 
 Internet-Draft                    PACT                      October 2026
 
+
+   signature:  REQUIRED.  JWS over the JCS-canonical document excluding
+      this member.
 
    {
      "pact": "0.1",
@@ -1033,7 +1148,7 @@ Internet-Draft                    PACT                      October 2026
      "signature": { "protected": "...", "signature": "..." }
    }
 
-       Figure 5: https://settle.example/.well-known/pact-facilitator
+       Figure 6: https://settle.example/.well-known/pact-facilitator
 
    A client MUST NOT infer any capability from the absence of a member.
    A Facilitator that does not publish a capability document can still
@@ -1044,27 +1159,31 @@ Internet-Draft                    PACT                      October 2026
 
    A contract names both a tier, which says what class of evidence is
    produced, and a profile, which says what is actually done to check
-   it.  The distinction matters because the tier name does not determine
-   the security of the contract and the profile largely does.
+   it.  Four tier labels are used in this document: T0-reexec,
+   deterministic re-execution; T1-tee, hardware attestation per
+   [RFC9334]; T2-zkml, a proof of inference; and T3-jury, staked
+   arbitration.  Tiers are a vocabulary, not a registry; profiles are
+   the registered quantity (Section 17.3).  The distinction matters
+   because the tier name does not determine the security of the contract
+   and the profile largely does.
 
    Consider one task, a bulk data transformation, under two profiles at
    the same nominal tier.  Re-executing the whole computation and
    comparing outputs costs approximately what performing it cost.
+
+
+
+Sharma                    Expires 23 April 2027                [Page 21]
+
+Internet-Draft                    PACT                      October 2026
+
+
    Running a committed acceptance instrument against the delivered
    artifact costs a small fraction of a percent.  Those two differ by
    more than two orders of magnitude in what verification costs relative
    to the price, and by Section 7.2 they give opposite answers about
    whether any Bond a Seller would post makes third-party challenge
    rational.
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 19]
-
-Internet-Draft                    PACT                      October 2026
-
 
    Three regimes follow, and the boundaries are consequences of
    Section 7.2 rather than stipulations.  Where verification costs a
@@ -1102,25 +1221,27 @@ Internet-Draft                    PACT                      October 2026
    parties to the contract.  It MUST be derived by the evaluator and
    MUST NOT be satisfied by a field in which a record declares itself
    independent.  Party identifiers MUST be normalized before comparison,
-   and the normalization MUST fold toward identifying the same party.
-   An independence claim reaches exactly as far as the record's own
-   commitments; a settlement-scoped attestation carries no delivery or
-   acceptance evidence.  These rules are stated for evaluation after the
-   fact in [X402COMPLIANCE]; PACT binds them at contract formation,
-   constraining who may be named as Verifier before work begins.
+   and the normalization MUST fold toward identifying the same party:
+   strip leading and trailing whitespace; lower-case the scheme and, for
+   did:web and https identifiers, the host; remove any fragment (a "#"
+   and everything after it) and any trailing "/" or ".".  Percent-
+   encoding MUST NOT be decoded, since an open-ended decoder is its own
 
 
 
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 20]
+Sharma                    Expires 23 April 2027                [Page 22]
 
 Internet-Draft                    PACT                      October 2026
 
+
+   attack surface.  An identifier that does not parse after
+   normalization is not evaluable and MUST NOT be treated as outside the
+   parties.  An independence claim reaches exactly as far as the
+   record's own commitments; a settlement-scoped attestation carries no
+   delivery or acceptance evidence.  These rules are stated for
+   evaluation after the fact in [X402COMPLIANCE]; PACT binds them at
+   contract formation, constraining who may be named as Verifier before
+   work begins.
 
 10.  Contract Trees and Cascading Liability
 
@@ -1141,7 +1262,7 @@ Internet-Draft                    PACT                      October 2026
              |                           |
          C (Seller)                  D (Seller)
 
-       Figure 6: A contract tree.  B is Seller above and Buyer below.
+       Figure 7: A contract tree.  B is Seller above and Buyer below.
 
 10.1.  Binding a Child to Its Parent
 
@@ -1160,23 +1281,21 @@ Internet-Draft                    PACT                      October 2026
    Facilitator MUST reject a child whose parent it cannot resolve and
    verify.
 
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 23]
+
+Internet-Draft                    PACT                      October 2026
+
+
    Without this check any party may name any contract as its parent.
    The attack is cheap and asymmetric: name a competitor's contract as
    parent, subcontract a trivial task to yourself, fail it, and cause
    the competitor's Bond to be slashed and its Work Attestation to
    record a loss.  The -00 carried liability.parent as a bare string
    with no hash and no check, so the attack cost one signature.
-
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 21]
-
-Internet-Draft                    PACT                      October 2026
-
 
    A Facilitator MUST reject a child whose parent chain already contains
    the child's own vtc_id, and MUST enforce a maximum tree depth.
@@ -1219,20 +1338,17 @@ Internet-Draft                    PACT                      October 2026
    The -00 required that same commitment while ordering only
    task.deadline between parent and child.  Challenge windows are not
    deadlines, so a child whose window outlasted its parent's finalised
-   after the parent, and a conformant implementation deadlocked on its
-   own requirement: commit to an attestation that does not yet exist, or
-   violate the MUST.
 
 
 
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 22]
+Sharma                    Expires 23 April 2027                [Page 24]
 
 Internet-Draft                    PACT                      October 2026
 
+
+   after the parent, and a conformant implementation deadlocked on its
+   own requirement: commit to an attestation that does not yet exist, or
+   violate the MUST.
 
      PERMITTED BY -00 (deadlock):
 
@@ -1249,7 +1365,7 @@ Internet-Draft                    PACT                      October 2026
      child   |=== work ===|== window ==|
                                        ^ child final, in time
 
-        Figure 7: The ordering the -00 permitted, and the rule that
+        Figure 8: The ordering the -00 permitted, and the rule that
                                  forbids it
 
    A Facilitator MUST reject a child contract unless the latest instant
@@ -1264,7 +1380,7 @@ Internet-Draft                    PACT                      October 2026
         + parent.challenge.window_seconds
 
    A Facilitator MUST NOT move a contract to FINAL, and MUST NOT return
-   a Bond under Section 7.5, while any descendant remains non-final.
+   a Bond under Section 7.6, while any descendant remains non-final.
    Cascading recovery requires the parent's collateral to remain exposed
    until the subtree has settled; releasing it earlier would make the
    cascade a rule about value that no longer exists.
@@ -1274,21 +1390,24 @@ Internet-Draft                    PACT                      October 2026
    real constraint on how deep a tree can be with short windows, and it
    is stated here rather than discovered at runtime.
 
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 25]
+
+Internet-Draft                    PACT                      October 2026
+
+
 11.  Work Attestations
 
    A Work Attestation records what a contract did.  It is the input to
    any reputation system built on PACT, though this document defines no
    such system and takes no position on how the records should be
    weighed.
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 23]
-
-Internet-Draft                    PACT                      October 2026
-
 
    The -00's attestation recorded that money moved.  It named no party,
    distinguished no role, carried no Facilitator signature, and
@@ -1331,6 +1450,14 @@ Internet-Draft                    PACT                      October 2026
    rather than two identities, which is the property the economic
    argument for settlement-derived reputation assumed all along.
 
+
+
+
+Sharma                    Expires 23 April 2027                [Page 26]
+
+Internet-Draft                    PACT                      October 2026
+
+
    A Facilitator MUST issue an attestation for every terminal contract,
    including SETTLED and ABANDONED, and MUST NOT require the signature
    of a party whose loss the attestation records.  Under the -00 a
@@ -1338,19 +1465,11 @@ Internet-Draft                    PACT                      October 2026
    made the reputation layer structurally incapable of recording a
    negative outcome.
 
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 24]
-
-Internet-Draft                    PACT                      October 2026
-
-
    {
      "pact": "0.1",
-     "type": "attestation",
+     "type": "WorkAttestation",
      "vtc_id":   "vtc_7f3a91",
-     "vtc_hash": "sha256:3184cbd5...",
+     "vtc_hash": "sha256:b2cccae0...",
      "parties": {
        "buyer":       "did:web:acme.example",
        "seller":      "did:web:dataforge.example",
@@ -1371,7 +1490,7 @@ Internet-Draft                    PACT                      October 2026
      ]
    }
 
-            Figure 8: A Work Attestation for a slashed contract
+            Figure 9: A Work Attestation for a slashed contract
 
    The example carries one signature, the Facilitator's.  That is
    sufficient and is the point: the Seller did not consent to this
@@ -1379,11 +1498,21 @@ Internet-Draft                    PACT                      October 2026
 
 11.1.  The Children Merkle Root
 
-   Leaves are the SHA-256 digests of each immediate child's attestation
-   in JCS-canonical form, sorted lexicographically by digest.  The tree
-   is computed as in [RFC6962] Section 2.1, with leaf hashes domain-
-   separated by a 0x00 prefix and interior hashes by 0x01.  An odd node
-   at any level is promoted unchanged to the next.
+   Let D be the list of 32-byte SHA-256 digests of each immediate
+   child's Work Attestation in JCS-canonical form, sorted ascending as
+   byte strings. children_merkle_root is MTH(D) exactly as defined in
+   [RFC6962] Section 2.1: a leaf is SHA-256(0x00 || d), an interior node
+   is SHA-256(0x01 || left || right), and for n greater than one the
+   list is split at k, the largest power of two smaller than n.  The
+   shape is therefore fixed by n alone, and two implementations that
+   agree on D agree on the root.
+
+
+
+Sharma                    Expires 23 April 2027                [Page 27]
+
+Internet-Draft                    PACT                      October 2026
+
 
    The domain separation is not optional.  Without distinct prefixes an
    attacker can present an interior node as though it were a leaf, and
@@ -1392,15 +1521,6 @@ Internet-Draft                    PACT                      October 2026
    Where a contract has no children the member is omitted.  It MUST NOT
    be present with an empty or zero value, which would be
    indistinguishable from a tree whose children were withheld.
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 25]
-
-Internet-Draft                    PACT                      October 2026
-
 
 12.  Protocol Endpoints
 
@@ -1439,31 +1559,30 @@ Internet-Draft                    PACT                      October 2026
    Section 13 and Section 7.2 before creating the resource, and MUST
    refuse otherwise.
 
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 28]
+
+Internet-Draft                    PACT                      October 2026
+
+
    POST /pact/v1/contracts HTTP/1.1
    Host: settle.example
    Content-Type: application/pact-contract+json
 
-   { "pact": "0.1", "type": "vtc", "id": "vtc_7f3a91", ... }
-
-
-
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 26]
-
-Internet-Draft                    PACT                      October 2026
-
+   { "pact": "0.1", "type": "VerifiableTaskContract",
+     "id": "vtc_7f3a91", ... }
 
    HTTP/1.1 201 Created
    Location: /pact/v1/contracts/vtc_7f3a91
    Content-Type: application/pact-contract+json
 
-   { "pact": "0.1", "type": "vtc", "id": "vtc_7f3a91",
-     "state": "PROPOSED", ... }
+   { "pact": "0.1", "type": "VerifiableTaskContract",
+     "id": "vtc_7f3a91", "state": "PROPOSED", ... }
 
 12.2.  Idempotency
 
@@ -1487,6 +1606,26 @@ Internet-Draft                    PACT                      October 2026
    violated, because a conformance failure a caller cannot locate in
    this document is a failure of this document.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 29]
+
+Internet-Draft                    PACT                      October 2026
+
+
    HTTP/1.1 422 Unprocessable Content
    Content-Type: application/problem+json
 
@@ -1504,16 +1643,6 @@ Internet-Draft                    PACT                      October 2026
    The section member is REQUIRED on any problem arising from a rule in
    this document and carries the section number stating that rule.
 
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 27]
-
-Internet-Draft                    PACT                      October 2026
-
-
 12.4.  Recording a Verdict
 
    A Verdict is a signed statement that a Delivery was evaluated against
@@ -1524,7 +1653,7 @@ Internet-Draft                    PACT                      October 2026
 
    {
      "pact": "0.1",
-     "type": "verdict",
+     "type": "Verdict",
      "vtc_id":        "vtc_7f3a91",
      "delivery_hash": "sha256:5d7c...",
      "outcome":       "PASS",
@@ -1535,7 +1664,23 @@ Internet-Draft                    PACT                      October 2026
      "signature": { "protected": "...", "signature": "..." }
    }
 
-                            Figure 9: A Verdict
+                            Figure 10: A Verdict
+
+   The Verifier is the party identified by the kid of the Verdict's
+   signature, and a Facilitator evaluates Section 9.1 against that
+   identifier.
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 30]
+
+Internet-Draft                    PACT                      October 2026
+
 
    A Verdict commits to the instrument it ran and to the results it
    produced.  Without instrument_hash a Verifier could run something
@@ -1557,25 +1702,17 @@ Internet-Draft                    PACT                      October 2026
          |                       |-- GET work_uri ----->|
          |                       |<-- POST {verdict} ---|
          |                       |                      |
-         |<-- 200 released ------|                      |
+         |<-- 200 OK ------------|                      |
          |                       |                      |
          |-- GET {attestation} ->|                      |
          |<-- 200 Attestation ---|                      |
 
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 28]
-
-Internet-Draft                    PACT                      October 2026
-
-
-             Figure 10: HTTP exchange for the flow in Figure 1
+             Figure 11: HTTP exchange for the flow in Figure 1
 
    A Delivery is answered 202 (Accepted) rather than 201 because
    acceptance of the bytes is not acceptance of the work.  The contract
    moves to DELIVERED; whether it moves on to RELEASING depends on a
-   Verdict the Facilitator does not itself produce.
+   substantive Verdict, which the Facilitator does not itself produce.
 
 13.  Conformance
 
@@ -1588,11 +1725,18 @@ Internet-Draft                    PACT                      October 2026
 
 13.1.  Signatures
 
-   Every signature object carried by a VTC, Delivery, Verdict, Work
-   Attestation, or capability document MUST be a JWS [RFC7515] with the
-   following constraints.
+   Every signature object carried by a VTC, Delivery, Verdict,
+   Challenge, Work Attestation, or capability document MUST be a JWS
+   [RFC7515] with the following constraints.
 
    *  The protected header MUST carry alg, kid and typ.
+
+
+
+Sharma                    Expires 23 April 2027                [Page 31]
+
+Internet-Draft                    PACT                      October 2026
+
 
    *  alg MUST be one of ES256, ES384 or EdDSA.  A verifier MUST reject
       any other value, and MUST reject none.  Absent an allowlist an
@@ -1614,17 +1758,9 @@ Internet-Draft                    PACT                      October 2026
    *  parties.buyer and parties.seller MUST be distinct after the
       normalization in Section 9.1.
 
-   *  Each party named in parties that is required to sign MUST
-      contribute at least one verifying signature.  A count of
-      signatures is not sufficient: two signatures from one party MUST
-      be rejected.
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 29]
-
-Internet-Draft                    PACT                      October 2026
-
+   *  Both the Buyer and the Seller MUST contribute at least one
+      verifying signature.  A count of signatures is not sufficient: two
+      signatures from one party MUST be rejected.
 
    *  challenge.window_seconds MUST be greater than zero.
 
@@ -1653,31 +1789,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 30]
+Sharma                    Expires 23 April 2027                [Page 32]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1733,7 +1845,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 6 April 2027                 [Page 31]
+Sharma                    Expires 23 April 2027                [Page 33]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1750,8 +1862,10 @@ Internet-Draft                    PACT                      October 2026
    text.  Every concrete value lived in a separate repository with no
    link from the document to it, so the specification made no verifiable
    claim about its own reference implementation.  This section fixes
-   that.  Every figure below is taken from the reference examples, and
-   the digests are the ones those examples carry.
+   that.  The tables and digests below are the reference repository's.
+   The object figures in earlier sections use short illustrative
+   identifiers for page width; the repository examples carry the full
+   ones, and the digests here are computed over those.
 
    A buyer commissions a data transformation.  The agreed price is
    180.00 USDC and the seller posts a bond of 18.00, ten percent, which
@@ -1787,9 +1901,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-
-
-Sharma                    Expires 6 April 2027                 [Page 32]
+Sharma                    Expires 23 April 2027                [Page 34]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1825,13 +1937,30 @@ Internet-Draft                    PACT                      October 2026
    committed both by the contract and from within the specification it
    belongs to.
 
-   One consistency note, stated rather than hidden.  This document
-   defines vtc_hash over the contract _including_ its signature set
-   (Section 6), whereas the reference examples were generated against
-   the -00, which excluded it.  The two values therefore differ, and the
-   reference examples must be regenerated before an implementation can
-   check itself against this section.  The spec_hash and criteria_hash
-   values above are unaffected, since neither construction changed.
+   And the contract's own commitment, computed over the signed contract
+   per Section 6:
+
+    vtc_hash
+      sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249d7eaa8baff3d
+             e553870b
+
+   This value differs from the one the -00 examples carried, and the
+   difference is semantic rather than incidental: the -00 excluded the
+   signature set from the commitment, so its digest proved what was
+   written and not who agreed to it. spec_hash and criteria_hash are
+   unchanged in construction.
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 35]
+
+Internet-Draft                    PACT                      October 2026
+
 
 15.  Security Considerations
 
@@ -1840,15 +1969,6 @@ Internet-Draft                    PACT                      October 2026
    Each subsection states the attack, why it worked, and the requirement
    in this document that closes it.  Where a threat is only mitigated
    rather than closed, that is said.
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 33]
-
-Internet-Draft                    PACT                      October 2026
-
 
 15.1.  Verifier Capture
 
@@ -1890,21 +2010,20 @@ Internet-Draft                    PACT                      October 2026
    and submit its failure as a textbook-valid fraud proof: the Seller's
    Bond is slashed, its attestation records a loss, and the Buyer keeps
    the work.  Cost of the attack: one file overwrite.  The mirror attack
+
+
+
+Sharma                    Expires 23 April 2027                [Page 36]
+
+Internet-Draft                    PACT                      October 2026
+
+
    works against a Seller that hosts the input sample.
 
    Section 5.1 requires a sibling hash over the dereferenced bytes for
    every URI inside committed content, and Section 12.4 requires a
    Verdict to commit to the instrument it actually ran, which closes the
    same attack from the verification side.
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 34]
-
-Internet-Draft                    PACT                      October 2026
-
 
 15.4.  Unauthenticated Parent Attachment
 
@@ -1946,21 +2065,20 @@ Internet-Draft                    PACT                      October 2026
    could remain locked indefinitely.  This is the most common real
    failure in commerce and it had no code path.
 
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 37]
+
+Internet-Draft                    PACT                      October 2026
+
+
    Section 6 makes deadline expiry an automatic Buyer remedy producing
    the ABANDONED state.  Note the asymmetry this creates: a Seller that
    delivers nothing is worse off than one that delivers something non-
    conformant only if the Bond exceeds the value of the work, which is a
    reason to size Bonds by harm rather than by a percentage of price.
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 35]
-
-Internet-Draft                    PACT                      October 2026
-
 
 15.7.  Cross-Venue Replay
 
@@ -2001,22 +2119,20 @@ Internet-Draft                    PACT                      October 2026
    structurally incapable of recording a loss is not evidence of
    anything.
 
-16.  Privacy Considerations
-
-   PACT moves contracts and evidence about work, and both leak.
 
 
 
 
 
 
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 36]
+Sharma                    Expires 23 April 2027                [Page 38]
 
 Internet-Draft                    PACT                      October 2026
 
+
+16.  Privacy Considerations
+
+   PACT moves contracts and evidence about work, and both leak.
 
 16.1.  Input Disclosure Before Contract Formation
 
@@ -2058,6 +2174,18 @@ Internet-Draft                    PACT                      October 2026
    there is no population able to produce the detection probability such
    a declaration asserts.
 
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 39]
+
+Internet-Draft                    PACT                      October 2026
+
+
 16.4.  Retention
 
    Retention duties stated for dispute purposes can conflict with
@@ -2067,23 +2195,16 @@ Internet-Draft                    PACT                      October 2026
    usually the property they want and occasionally the one they must
    explain.
 
-
-
-Sharma                    Expires 6 April 2027                 [Page 37]
-
-Internet-Draft                    PACT                      October 2026
-
-
 17.  IANA Considerations
 
-   This document asks IANA to register five media types, one well-known
+   This document asks IANA to register six media types, one well-known
    URI, and three registries.
 
 17.1.  Media Types
 
    IANA is requested to register the following in the "Media Types"
    registry, per [RFC6838].  The template below is given once in full;
-   the five registrations differ only in the subtype name and the object
+   the six registrations differ only in the subtype name and the object
    they carry.
 
    Type name:  application
@@ -2113,6 +2234,14 @@ Internet-Draft                    PACT                      October 2026
    Applications that use this media type:  Settlement services and
       autonomous agents forming contracts under this specification
 
+
+
+
+Sharma                    Expires 23 April 2027                [Page 40]
+
+Internet-Draft                    PACT                      October 2026
+
+
    Fragment identifier considerations:  As specified for application/
       json
 
@@ -2122,13 +2251,6 @@ Internet-Draft                    PACT                      October 2026
 
    Person & email address to contact:  Laxmikant Sharma
       <laxsharma79@gmail.com>
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 38]
-
-Internet-Draft                    PACT                      October 2026
-
 
    Intended usage:  COMMON
 
@@ -2146,6 +2268,8 @@ Internet-Draft                    PACT                      October 2026
       | pact-delivery+json    | Delivery                 | 6       |
       +-----------------------+--------------------------+---------+
       | pact-verdict+json     | Verdict                  | 12.4    |
+      +-----------------------+--------------------------+---------+
+      | pact-challenge+json   | Challenge                | 7.5     |
       +-----------------------+--------------------------+---------+
       | pact-attestation+json | Work Attestation         | 11      |
       +-----------------------+--------------------------+---------+
@@ -2167,6 +2291,13 @@ Internet-Draft                    PACT                      October 2026
 
    Status:  permanent
 
+
+
+Sharma                    Expires 23 April 2027                [Page 41]
+
+Internet-Draft                    PACT                      October 2026
+
+
    Related information:  The resource is served with media type
       application/pact-facilitator+json and MUST be signed.
 
@@ -2175,16 +2306,6 @@ Internet-Draft                    PACT                      October 2026
    IANA is requested to create a registry named "PACT Verification
    Profiles".  The registration policy is Specification Required
    [RFC8126].
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 39]
-
-Internet-Draft                    PACT                      October 2026
-
 
    Instructions for the designated expert.  A profile determines what a
    fraud proof consists of and, through Section 7.2, what a Bond must
@@ -2226,6 +2347,13 @@ Internet-Draft                    PACT                      October 2026
    A binding whose rail cannot reverse MUST say so, since Section 7.4
    then has no rank 1.
 
+
+
+Sharma                    Expires 23 April 2027                [Page 42]
+
+Internet-Draft                    PACT                      October 2026
+
+
        +=============+================================+===========+
        | Identifier  | Description                    | Reference |
        +=============+================================+===========+
@@ -2235,20 +2363,15 @@ Internet-Draft                    PACT                      October 2026
 
                         Table 7: Initial contents
 
-
-
-Sharma                    Expires 6 April 2027                 [Page 40]
-
-Internet-Draft                    PACT                      October 2026
-
-
 17.5.  PACT Problem Types Registry
 
    IANA is requested to create a registry named "PACT Problem Types",
    registration policy Specification Required, listing the [RFC9457]
    problem type identifiers used by Section 12.3.  Each entry carries
    the identifier, the HTTP status it accompanies, and the section of a
-   specification stating the rule it reports.
+   specification stating the rule it reports.  A problem type is the
+   identifier appended to the prefix https://pact-spec.github.io/
+   problem/.
 
            +==================================+========+======+
            | Identifier                       | Status | Rule |
@@ -2279,6 +2402,14 @@ Internet-Draft                    PACT                      October 2026
               DOI 10.17487/RFC2119, March 1997,
               <https://www.rfc-editor.org/info/rfc2119>.
 
+
+
+
+Sharma                    Expires 23 April 2027                [Page 43]
+
+Internet-Draft                    PACT                      October 2026
+
+
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
@@ -2287,16 +2418,6 @@ Internet-Draft                    PACT                      October 2026
               Canonicalization Scheme (JCS)", RFC 8785,
               DOI 10.17487/RFC8785, June 2020,
               <https://www.rfc-editor.org/info/rfc8785>.
-
-
-
-
-
-
-Sharma                    Expires 6 April 2027                 [Page 41]
-
-Internet-Draft                    PACT                      October 2026
-
 
    [RFC9457]  Nottingham, M., Wilde, E., and S. Dalal, "Problem Details
               for HTTP APIs", RFC 9457, DOI 10.17487/RFC9457, July 2023,
@@ -2335,6 +2456,16 @@ Internet-Draft                    PACT                      October 2026
               DOI 10.17487/RFC8259, December 2017,
               <https://www.rfc-editor.org/info/rfc8259>.
 
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 44]
+
+Internet-Draft                    PACT                      October 2026
+
+
    [RFC6962]  Laurie, B., Langley, A., and E. Kasper, "Certificate
               Transparency", RFC 6962, DOI 10.17487/RFC6962, June 2013,
               <https://www.rfc-editor.org/info/rfc6962>.
@@ -2346,13 +2477,64 @@ Internet-Draft                    PACT                      October 2026
               the IEEE Symposium on Security and Privacy, 1998,
               <https://doi.org/10.1109/secpri.1998.674826>.
 
+   [I-D.hood-agtp-commerce]
+              Hood, C., "AGTP-Commerce: Open Commerce Specification for
+              Agent-to-Agent Transactions", Work in Progress, Internet-
+              Draft, draft-hood-agtp-commerce-00, 28 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-hood-agtp-
+              commerce-00>.
+
+   [I-D.stone-vcap-ap2-binding]
+              Stone, B., "VCAP-AP2 Binding: Verified Commerce Settlement
+              for the Agent Payments Protocol", Work in Progress,
+              Internet-Draft, draft-stone-vcap-ap2-binding-00, 17 March
+              2026, <https://datatracker.ietf.org/doc/html/draft-stone-
+              vcap-ap2-binding-00>.
+
+   [I-D.sahu-agent-action-receipts]
+              Sahu, N., "Signed, Hash-Chained Action Receipts for AI
+              Agents", Work in Progress, Internet-Draft, draft-sahu-
+              agent-action-receipts-00, 16 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-sahu-agent-
+              action-receipts-00>.
+
+   [I-D.mih-sato-agent-accountability-composition]
+              Mih, S., Sato, T., Schrock, I., Bu, S., and A. Sokolov,
+              "Agent Accountability: Composition and Conformance", Work
+              in Progress, Internet-Draft, draft-mih-sato-agent-
+              accountability-composition-01, 16 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mih-sato-
+              agent-accountability-composition-01>.
+
+   [I-D.asor-wimse-agent-delegation-chain]
+              Asor, R., "Verifiable Attenuated Delegation for AI Agent
+              Chains", Work in Progress, Internet-Draft, draft-asor-
+              wimse-agent-delegation-chain-01, 3 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-asor-wimse-
+              agent-delegation-chain-01>.
 
 
 
-Sharma                    Expires 6 April 2027                 [Page 42]
+
+
+Sharma                    Expires 23 April 2027                [Page 45]
 
 Internet-Draft                    PACT                      October 2026
 
+
+   [I-D.pinto-agent-authz-contestability]
+              Pinto, T., "Contestability Bindings for Authorized Agent
+              Actions", Work in Progress, Internet-Draft, draft-pinto-
+              agent-authz-contestability-00, 29 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-pinto-agent-
+              authz-contestability-00>.
+
+   [ASOKAN98THESIS]
+              Asokan, N., "Fairness in Electronic Commerce", PhD thesis,
+              University of Waterloo. Chapter 2 defines generatable and
+              revocable items and the affidavit token by which a third
+              party reverses a completed transfer, 1998,
+              <https://uwspace.uwaterloo.ca/>.
 
    [BELENKIY08]
               Belenkiy, M., Chase, M., Erway, C.C., Jannotti, J., Kupcu,
@@ -2387,6 +2569,15 @@ Internet-Draft                    PACT                      October 2026
 
 Author's Address
 
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 46]
+
+Internet-Draft                    PACT                      October 2026
+
+
    Laxmikant Sharma
    Independent
    Email: laxsharma79@gmail.com
@@ -2405,4 +2596,37 @@ Author's Address
 
 
 
-Sharma                    Expires 6 April 2027                 [Page 43]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 23 April 2027                [Page 47]

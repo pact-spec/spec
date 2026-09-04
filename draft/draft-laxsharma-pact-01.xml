@@ -9,7 +9,7 @@
       <organization>Independent</organization>
       <address><email>laxsharma79@gmail.com</email></address>
     </author>
-    <date year="2026" month="October"/>
+    <date year="2026" month="October" day="20"/>
     <keyword>autonomous agents</keyword>
     <keyword>agent commerce</keyword>
     <keyword>escrow</keyword>
@@ -96,8 +96,9 @@
         <t>PACT's agree, perform, verify, settle loop is an instance of
         optimistic fair exchange <xref target="ASOKAN98"/>, in which a third
         party is contacted only when the exchange fails. The revocable-item
-        case of that work, in which value moves and is later reversed on a
-        third party's affidavit, is optimistic release in substance. What that
+        case, developed in <xref target="ASOKAN98THESIS"/>, in which value
+        moves and is later reversed on a third party's affidavit, is
+        optimistic release in substance. What that
         literature establishes is what a third party must be able to do for an
         exchange to be fair. What it does not address, and what
         <xref target="assurance"/> addresses, is who pays to produce the
@@ -107,17 +108,32 @@
         deterrence bound. It is stated for public enforcement generally in
         <xref target="POLINSKY99"/>, which traces it to Bentham, and for
         outsourced computation specifically in <xref target="BELENKIY08"/>,
-        whose Theorem 1 sets a fine-to-reward ratio of (1-p)/p for detection
-        probability p, with the fine posted in advance as a deposit. It is
+        whose Theorem 1 sets a fine-to-reward ratio of (1-p)/p, where p is the
+        probability that an incorrect result is checked, with the fine posted
+        in advance as a deposit. It is
         stated for rollup validators in <xref target="MAMAGEISHVILI23"/>. This
         document adds one term to it, for value released before verification
         concludes, and claims nothing further.</t>
 
+        <t>Two adjacent Internet-Drafts address agent commerce settlement
+        directly. <xref target="I-D.hood-agtp-commerce"/> carries Work
+        Completion Records and an audit-verified settlement timing;
+        <xref target="I-D.stone-vcap-ap2-binding"/> binds verified commerce
+        settlement to the Agent Payments Protocol. Neither allocates
+        liability between the parties, and PACT is designed to be usable
+        alongside either.</t>
+
         <t>Verification evidence formats are specified in
-        <xref target="RFC9334"/> and <xref target="RFC9711"/>. Action receipts
-        and their chaining, agent accountability composition, delegation
-        chains, and contestability bindings are each the subject of separate
-        work, and PACT consumes rather than restates them.</t>
+        <xref target="RFC9334"/> and <xref target="RFC9711"/>. Signed,
+        hash-chained action receipts
+        <xref target="I-D.sahu-agent-action-receipts"/>, composition of
+        accountability records
+        <xref target="I-D.mih-sato-agent-accountability-composition"/>,
+        delegation chains
+        <xref target="I-D.asor-wimse-agent-delegation-chain"/>, and
+        contestability bindings
+        <xref target="I-D.pinto-agent-authz-contestability"/> are each
+        specified elsewhere, and PACT consumes rather than restates them.</t>
       </section>
 
       <section anchor="changes"><name>Changes from -00</name>
@@ -181,8 +197,11 @@
         <dt>Buyer:</dt><dd>The party that commissions work and locks the price.</dd>
         <dt>Seller:</dt><dd>The party that performs the work and posts the Bond.</dd>
         <dt>Facilitator:</dt><dd>A service that holds value and executes the
-        contract's settlement terms without discretion over its outcome. A
-        Facilitator MUST NOT adjudicate a dispute it settles.</dd>
+        contract's settlement terms without discretion over its outcome. It
+        checks that objects conform and applies rules fixed in advance. It
+        MUST NOT decide whether delivered work was acceptable; that is the
+        Verifier's role, and a Facilitator MUST NOT act as Verifier for a
+        contract it settles.</dd>
         <dt>Verifier:</dt><dd>The party that evaluates a Delivery against the
         committed acceptance instrument for release purposes. Independence
         requirements are in <xref target="independence"/>.</dd>
@@ -225,6 +244,7 @@
    |                   |<-- Verdict (signed) ------------|
    |                   |                 |               |
    |                   |-- release(P) -->|               |
+   |                   |  [ window ] [ children final ]  |
    |                   |-- return(B,F) ->|               |
    |                   |                 |               |
    |<-- Attestation ---|-- Attestation ->|               |
@@ -270,8 +290,8 @@
         ]]></artwork>
       </figure>
 
-      <t>ABANDONED and SETTLED are terminal and both produce a Work
-      Attestation. The -00 had no path to either: expiry of
+      <t>FINAL, SETTLED and ABANDONED are terminal, and each produces a
+      Work Attestation. The -00 had no path to either: expiry of
       <tt>task.deadline</tt> had no stated consequence, so escrow could lock
       permanently, and a negative outcome required the signature of the party
       it convicted.</t>
@@ -281,12 +301,16 @@
       <t>A VTC is a JSON object, media type
       <tt>application/pact-contract+json</tt>, carrying the members below. A
       VTC is valid only if every REQUIRED member is present, the parties are
-      distinct, and each named party has contributed at least one signature
-      that verifies against a key bound to its identifier.</t>
+      distinct, and both the Buyer and the Seller have contributed at least
+      one signature that verifies against a key bound to its identifier. The
+      Facilitator and any Verifier do not sign the VTC; their assent is
+      expressed by acting on it, and a Facilitator that will not act on a
+      contract refuses it at <xref target="ep-propose"/>.</t>
 
       <dl>
         <dt><tt>pact</tt>:</dt><dd>REQUIRED. Protocol version.</dd>
-        <dt><tt>type</tt>:</dt><dd>REQUIRED. The string <tt>vtc</tt>.</dd>
+        <dt><tt>type</tt>:</dt><dd>REQUIRED. The string
+        <tt>VerifiableTaskContract</tt>.</dd>
         <dt><tt>id</tt>:</dt><dd>REQUIRED. Contract identifier, unique for the
         Facilitator named in <tt>settlement</tt>.</dd>
         <dt><tt>parties</tt>:</dt><dd>REQUIRED. Object with <tt>buyer</tt>,
@@ -297,7 +321,8 @@
         <dt><tt>task</tt>:</dt><dd>REQUIRED. Object with <tt>spec_hash</tt>,
         <tt>deadline</tt>, and OPTIONAL <tt>spec_uri</tt>.</dd>
         <dt><tt>price</tt>:</dt><dd>REQUIRED. Object with <tt>amount</tt>,
-        <tt>currency</tt> and <tt>settlement</tt> binding identifier.</dd>
+        <tt>currency</tt>, <tt>settlement</tt> binding identifier, and
+        <tt>network</tt>.</dd>
         <dt><tt>verification</tt>:</dt><dd>REQUIRED. Object with
         <tt>tier</tt>, <tt>profile</tt> (<xref target="profiles"/>),
         <tt>criteria_hash</tt>, and OPTIONAL <tt>arbiter</tt>.</dd>
@@ -326,7 +351,7 @@
         <sourcecode type="json" name="vtc.json"><![CDATA[
 {
   "pact": "0.1",
-  "type": "vtc",
+  "type": "VerifiableTaskContract",
   "id": "vtc_7f3a91",
   "parties": {
     "buyer":       "did:web:acme.example",
@@ -342,7 +367,8 @@
   "price": {
     "amount":     "180.00",
     "currency":   "USDC",
-    "settlement": "pact-escrow"
+    "settlement": "pact-escrow",
+    "network":    "eip155:8453"
   },
   "verification": {
     "tier":          "T0-reexec",
@@ -449,9 +475,15 @@
         or <tt>price</tt>, restoring the full price. Determines the second
         rank of the waterfall in <xref target="waterfall"/>.</dd>
         <dt><tt>parent</tt>:</dt><dd>OPTIONAL. Present only in a subcontract.
-        Object with the parent's <tt>vtc_id</tt>, <tt>vtc_hash</tt>, and a
-        <tt>countersignature</tt> from the parent's Seller
-        (<xref target="trees"/>).</dd>
+        Object with the parent's <tt>vtc_id</tt> and <tt>vtc_hash</tt>
+        (<xref target="tree-binding"/>).</dd>
+        <dt><tt>remainder_to</tt>:</dt><dd>OPTIONAL. Where slashed value
+        remaining after rank 4 of <xref target="waterfall"/> is directed:
+        <tt>buyer</tt> or <tt>sink</tt>. Absent, <tt>sink</tt>. A sink is a
+        Facilitator-designated destination that is not a party to the
+        contract. <tt>buyer</tt> is permitted but rewards a Buyer beyond its
+        loss, which is an incentive to manufacture challenges; the default
+        exists for that reason.</dd>
       </dl>
 
       <t>Liability under PACT is bounded by <tt>cap</tt> and is discharged in
@@ -461,9 +493,11 @@
       specification that implied otherwise would be claiming to settle
       questions it has no standing to settle.</t>
 
-      <t>A <tt>parent</tt> member MUST carry the parent's countersignature.
-      Without it any party could name a competitor's contract as parent, fail
-      a trivial child, and cause the competitor's Bond to be slashed.</t>
+      <t>A <tt>parent</tt> member is authenticated not by a separate
+      countersignature but by the rule in <xref target="tree-binding"/>: the
+      child's Buyer must be the parent's Seller. Since <tt>liability</tt> is
+      inside the bytes the Buyer signs, the Buyer's signature on the child is
+      itself the authorisation to attach it.</t>
       </section>
     </section>
 
@@ -480,7 +514,7 @@
 
       <dl>
         <dt><tt>pact</tt>, <tt>type</tt>:</dt><dd>REQUIRED. Version, and the
-        string <tt>delivery</tt>.</dd>
+        string <tt>Delivery</tt>.</dd>
         <dt><tt>vtc_id</tt>, <tt>vtc_hash</tt>:</dt><dd>REQUIRED. Identify and
         commit to the contract being performed. <tt>vtc_hash</tt> is computed
         over the JCS-canonical VTC including its <tt>signatures</tt> member,
@@ -505,8 +539,10 @@
 
       <t>A Facilitator MUST reject a Delivery whose <tt>evidence</tt> is
       absent or does not conform to the profile named in the VTC, and MUST
-      treat such a rejection as a FAIL Verdict for
-      <xref target="waterfall"/>. This is the rule that makes silence
+      apply <xref target="waterfall"/> as though a FAIL Verdict had been
+      recorded. This is a conformance rejection, not a judgement on the work:
+      the Facilitator has checked shape, not substance, which is why it does
+      not breach the separation in <xref target="terminology"/>. This is the rule that makes silence
       expensive: under the -00 the cheapest attack was to deliver
       nothing verifiable and be paid anyway.</t>
 
@@ -521,10 +557,10 @@
         <sourcecode type="json" name="delivery.json"><![CDATA[
 {
   "pact": "0.1",
-  "type": "delivery",
+  "type": "Delivery",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:3184cbd50cb56304a36a7b3f247148fab5bbeea0e4ff
-               091b48becd1dc8e1b705",
+  "vtc_hash": "sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249
+               d7eaa8baff3de553870b",
   "work_hash":  "sha256:9c1f...",
   "work_uri":   "https://cdn.dataforge.example/o/9c1f",
   "input_hash": "sha256:41ab...",
@@ -617,8 +653,8 @@
         <dl>
           <dt><tt>certain</tt>:</dt><dd>Every Delivery is verified before
           release. q is 1 by construction.</dd>
-          <dt><tt>committed-sample</tt>:</dt><dd>A declared fraction is
-          verified. The draw MUST derive from a Buyer seed committed before
+          <dt><tt>committed-sample</tt>:</dt><dd>A declared fraction,
+          <tt>sample_rate</tt>, is verified. The draw MUST derive from a Buyer seed committed before
           the Delivery is submitted, combined with the Delivery commitment, so
           that neither party can bias which contracts are checked.</dd>
           <dt><tt>open</tt>:</dt><dd>Detection relies on third-party
@@ -666,8 +702,7 @@
           <li>Restore the Buyer from the Bond, up to
           <tt>liability.restitution_basis</tt>.</li>
           <li>Pay the Challenger bounty from the remaining Bond.</li>
-          <li>Direct any remainder to the destination named in the
-          contract.</li>
+          <li>Direct any remainder per <tt>liability.remainder_to</tt>.</li>
         </ol>
 
         <t>Ranks 2 and 3 are the correction of the -00, whose waterfall paid
@@ -685,8 +720,11 @@
         judgment. Wherever the bounty is less than X there exists a private
         payment leaving both strictly better off than reporting, so silence
         dominates the designed mechanism. <xref target="BELENKIY08"/> Theorem
-        6 gives the corresponding lower bound in its own setting, a reward of
-        at least r/(1-q), which is no less than the reward itself.</t>
+        6 gives the corresponding lower bound in its own setting: a bounty of
+        at least r/(1-a), where r is the reward and a is the accuracy a
+        cheating contractor can reach by cheaper means, so never less than
+        the reward itself. The symbol a is used here to avoid a collision
+        with this document's q.</t>
 
         <t>Raising the bounty to X is not the answer either, since that leaves
         nothing for rank 3 and maximises the incentive to manufacture
@@ -698,6 +736,41 @@
         challenging will not accept a bribe below the restitution it
         forgoes, which places a floor under any bribe a Seller must pay.</t>
       </section>
+      <section anchor="challenge-object"><name>The Challenge Object</name>
+        <t>A Challenge is a JSON object, media type
+        <tt>application/pact-challenge+json</tt>, by which any party submits a
+        fraud proof within the window. Members: <tt>pact</tt>, <tt>type</tt>
+        (the string <tt>Challenge</tt>), <tt>vtc_id</tt>,
+        <tt>delivery_hash</tt>, a <tt>proof</tt> object whose members are
+        profiled by <tt>verification.profile</tt>, and the Challenger's
+        <tt>signature</tt>. A Facilitator MUST reject a Challenge received
+        outside the window, one whose <tt>proof</tt> does not conform to the
+        profile, or one whose <tt>delivery_hash</tt> does not match the
+        recorded Delivery. A Challenge that is accepted is evaluated by a
+        party satisfying <xref target="independence"/>, whose finding is a
+        Verdict; the Challenger's own assertion is not.</t>
+
+        <figure anchor="fig-challenge">
+          <name>A Challenge under the acceptance profile</name>
+          <sourcecode type="json" name="challenge.json"><![CDATA[
+{
+  "pact": "0.1",
+  "type": "Challenge",
+  "vtc_id":        "vtc_7f3a91",
+  "delivery_hash": "sha256:5d7c...",
+  "proof": {
+    "profile":         "acceptance",
+    "instrument_hash": "sha256:d9205d4f...",
+    "results_hash":    "sha256:a91e...",
+    "results_uri":     "https://watch.example/o/a91e",
+    "failing_checks":  ["schema_valid_rate", "row_count_min"]
+  },
+  "signature": { "protected": "...", "signature": "..." }
+}
+          ]]></sourcecode>
+        </figure>
+      </section>
+
       <section anchor="bondrelease"><name>Bond Release</name>
         <t>The Bond enters the -00 in its Phase A and never leaves it: no
         rule anywhere returns it. A Facilitator MUST return the Bond, less any
@@ -744,7 +817,7 @@
         <dt><tt>max_contract_value</tt>:</dt><dd>OPTIONAL. Object with
         <tt>amount</tt> and <tt>currency</tt>.</dd>
         <dt><tt>endpoints</tt>:</dt><dd>REQUIRED. Object mapping each
-        operation in <xref target="endpoints"/> to an absolute URI.</dd>
+        endpoint name in <xref target="endpoints"/> to an absolute URI.</dd>
         <dt><tt>signature</tt>:</dt><dd>REQUIRED. JWS over the JCS-canonical
         document excluding this member.</dd>
       </dl>
@@ -786,7 +859,12 @@
     <section anchor="profiles"><name>Verification Profiles</name>
       <t>A contract names both a <tt>tier</tt>, which says what class of
       evidence is produced, and a <tt>profile</tt>, which says what is
-      actually done to check it. The distinction matters because the tier name
+      actually done to check it. Four tier labels are used in this document:
+      <tt>T0-reexec</tt>, deterministic re-execution; <tt>T1-tee</tt>,
+      hardware attestation per <xref target="RFC9334"/>; <tt>T2-zkml</tt>, a
+      proof of inference; and <tt>T3-jury</tt>, staked arbitration. Tiers are
+      a vocabulary, not a registry; profiles are the registered quantity
+      (<xref target="iana-profiles"/>). The distinction matters because the tier name
       does not determine the security of the contract and the profile
       largely does.</t>
 
@@ -834,7 +912,14 @@
         parties to the contract. It MUST be derived by the evaluator and MUST
         NOT be satisfied by a field in which a record declares itself
         independent. Party identifiers MUST be normalized before comparison,
-        and the normalization MUST fold toward identifying the same party.
+        and the normalization MUST fold toward identifying the same party:
+        strip leading and trailing whitespace; lower-case the scheme and, for
+        <tt>did:web</tt> and <tt>https</tt> identifiers, the host; remove any
+        fragment (a "#" and everything after it) and any trailing "/" or
+        ".". Percent-encoding
+        MUST NOT be decoded, since an open-ended decoder is its own attack
+        surface. An identifier that does not parse after normalization is not
+        evaluable and MUST NOT be treated as outside the parties.
         An independence claim reaches exactly as far as the record's own
         commitments; a settlement-scoped attestation carries no delivery or
         acceptance evidence. These rules are stated for evaluation after the
@@ -1043,9 +1128,9 @@
         <sourcecode type="json" name="attestation.json"><![CDATA[
 {
   "pact": "0.1",
-  "type": "attestation",
+  "type": "WorkAttestation",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:3184cbd5...",
+  "vtc_hash": "sha256:b2cccae0...",
   "parties": {
     "buyer":       "did:web:acme.example",
     "seller":      "did:web:dataforge.example",
@@ -1073,12 +1158,15 @@
       and its consent is not required.</t>
 
       <section anchor="merkle"><name>The Children Merkle Root</name>
-        <t>Leaves are the SHA-256 digests of each immediate child's
-        attestation in JCS-canonical form, sorted lexicographically by
-        digest. The tree is computed as in <xref target="RFC6962"/>
-        Section 2.1, with leaf hashes domain-separated by a <tt>0x00</tt>
-        prefix and interior hashes by <tt>0x01</tt>. An odd node at any level
-        is promoted unchanged to the next.</t>
+        <t>Let D be the list of 32-byte SHA-256 digests of each immediate
+        child's Work Attestation in JCS-canonical form, sorted ascending as
+        byte strings. <tt>children_merkle_root</tt> is MTH(D) exactly as
+        defined in <xref target="RFC6962"/> Section 2.1: a leaf is
+        SHA-256(0x00 || d), an interior node is SHA-256(0x01 || left ||
+        right), and for n greater than one the list is split at k, the
+        largest power of two smaller than n. The shape is therefore fixed by
+        n alone, and two implementations that agree on D agree on the
+        root.</t>
         <t>The domain separation is not optional. Without distinct prefixes an
         attacker can present an interior node as though it were a leaf, and so
         claim an inclusion proof for a subtree that never existed.</t>
@@ -1131,7 +1219,8 @@ POST /pact/v1/contracts HTTP/1.1
 Host: settle.example
 Content-Type: application/pact-contract+json
 
-{ "pact": "0.1", "type": "vtc", "id": "vtc_7f3a91", ... }
+{ "pact": "0.1", "type": "VerifiableTaskContract",
+  "id": "vtc_7f3a91", ... }
         ]]></sourcecode>
 
         <sourcecode type="http-message"><![CDATA[
@@ -1139,8 +1228,8 @@ HTTP/1.1 201 Created
 Location: /pact/v1/contracts/vtc_7f3a91
 Content-Type: application/pact-contract+json
 
-{ "pact": "0.1", "type": "vtc", "id": "vtc_7f3a91",
-  "state": "PROPOSED", ... }
+{ "pact": "0.1", "type": "VerifiableTaskContract",
+  "id": "vtc_7f3a91", "state": "PROPOSED", ... }
         ]]></sourcecode>
       </section>
 
@@ -1199,7 +1288,7 @@ Content-Type: application/problem+json
           <sourcecode type="json" name="verdict.json"><![CDATA[
 {
   "pact": "0.1",
-  "type": "verdict",
+  "type": "Verdict",
   "vtc_id":        "vtc_7f3a91",
   "delivery_hash": "sha256:5d7c...",
   "outcome":       "PASS",
@@ -1211,6 +1300,10 @@ Content-Type: application/problem+json
 }
           ]]></sourcecode>
         </figure>
+
+        <t>The Verifier is the party identified by the <tt>kid</tt> of the
+        Verdict's signature, and a Facilitator evaluates
+        <xref target="independence"/> against that identifier.</t>
 
         <t>A Verdict commits to the instrument it ran and to the results it
         produced. Without <tt>instrument_hash</tt> a Verifier could run
@@ -1235,7 +1328,7 @@ Content-Type: application/problem+json
       |                       |-- GET work_uri ----->|
       |                       |<-- POST {verdict} ---|
       |                       |                      |
-      |<-- 200 released ------|                      |
+      |<-- 200 OK ------------|                      |
       |                       |                      |
       |-- GET {attestation} ->|                      |
       |<-- 200 Attestation ---|                      |
@@ -1245,8 +1338,8 @@ Content-Type: application/problem+json
         <t>A Delivery is answered <tt>202 (Accepted)</tt> rather than
         <tt>201</tt> because acceptance of the bytes is not acceptance of the
         work. The contract moves to DELIVERED; whether it moves on to
-        RELEASING depends on a Verdict the Facilitator does not itself
-        produce.</t>
+        RELEASING depends on a substantive Verdict, which the Facilitator
+        does not itself produce.</t>
       </section>
     </section>
 
@@ -1259,8 +1352,8 @@ Content-Type: application/problem+json
       cannot find it in the specification will not implement it.</t>
 
       <section anchor="conf-sig"><name>Signatures</name>
-        <t>Every signature object carried by a VTC, Delivery, Verdict, Work
-        Attestation, or capability document MUST be a JWS
+        <t>Every signature object carried by a VTC, Delivery, Verdict,
+        Challenge, Work Attestation, or capability document MUST be a JWS
         <xref target="RFC7515"/> with the following constraints.</t>
         <ul>
           <li>The protected header MUST carry <tt>alg</tt>, <tt>kid</tt> and
@@ -1286,10 +1379,9 @@ Content-Type: application/problem+json
           <li><tt>parties.buyer</tt> and <tt>parties.seller</tt> MUST be
           distinct after the normalization in
           <xref target="independence"/>.</li>
-          <li>Each party named in <tt>parties</tt> that is required to sign
-          MUST contribute at least one verifying signature. A count of
-          signatures is not sufficient: two signatures from one party MUST be
-          rejected.</li>
+          <li>Both the Buyer and the Seller MUST contribute at least one
+          verifying signature. A count of signatures is not sufficient: two
+          signatures from one party MUST be rejected.</li>
           <li><tt>challenge.window_seconds</tt> MUST be greater than
           zero.</li>
           <li>Every URI member inside hash-committed content MUST have a
@@ -1369,9 +1461,11 @@ Content-Type: application/problem+json
       <t>The -00 carried no numeric example and no digest anywhere in its
       text. Every concrete value lived in a separate repository with no link
       from the document to it, so the specification made no verifiable claim
-      about its own reference implementation. This section fixes that. Every
-      figure below is taken from the reference examples, and the digests are
-      the ones those examples carry.</t>
+      about its own reference implementation. This section fixes that. The
+      tables and digests below are the reference repository's. The object
+      figures in earlier sections use short illustrative identifiers for page
+      width; the repository examples carry the full ones, and the digests
+      here are computed over those.</t>
 
       <t>A buyer commissions a data transformation. The agreed price is
       180.00 USDC and the seller posts a bond of 18.00, ten percent, which is
@@ -1433,14 +1527,20 @@ Content-Type: application/problem+json
       TaskSpec, so the instrument is committed both by the contract and from
       within the specification it belongs to.</t>
 
-      <t>One consistency note, stated rather than hidden. This document
-      defines <tt>vtc_hash</tt> over the contract <em>including</em> its
-      signature set (<xref target="delivery"/>), whereas the reference
-      examples were generated against the -00, which excluded it. The two
-      values therefore differ, and the reference examples must be regenerated
-      before an implementation can check itself against this section. The
-      <tt>spec_hash</tt> and <tt>criteria_hash</tt> values above are
-      unaffected, since neither construction changed.</t>
+      <t>And the contract's own commitment, computed over the signed
+      contract per <xref target="delivery"/>:</t>
+
+      <artwork type="ascii-art"><![CDATA[
+ vtc_hash
+   sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249d7eaa8baff3d
+          e553870b
+      ]]></artwork>
+
+      <t>This value differs from the one the -00 examples carried, and the
+      difference is semantic rather than incidental: the -00 excluded the
+      signature set from the commitment, so its digest proved what was
+      written and not who agreed to it. <tt>spec_hash</tt> and
+      <tt>criteria_hash</tt> are unchanged in construction.</t>
     </section>
 
     <section anchor="security"><name>Security Considerations</name>
@@ -1634,13 +1734,13 @@ Content-Type: application/problem+json
     </section>
 
     <section anchor="iana"><name>IANA Considerations</name>
-      <t>This document asks IANA to register five media types, one
+      <t>This document asks IANA to register six media types, one
       well-known URI, and three registries.</t>
 
       <section anchor="iana-media"><name>Media Types</name>
         <t>IANA is requested to register the following in the "Media Types"
         registry, per <xref target="RFC6838"/>. The template below is given
-        once in full; the five registrations differ only in the subtype name
+        once in full; the six registrations differ only in the subtype name
         and the object they carry.</t>
 
         <dl>
@@ -1690,6 +1790,8 @@ Content-Type: application/problem+json
                 <td><xref target="delivery" format="counter"/></td></tr>
             <tr><td>pact-verdict+json</td><td>Verdict</td>
                 <td><xref target="ep-verdict" format="counter"/></td></tr>
+            <tr><td>pact-challenge+json</td><td>Challenge</td>
+                <td><xref target="challenge-object" format="counter"/></td></tr>
             <tr><td>pact-attestation+json</td><td>Work Attestation</td>
                 <td><xref target="attestations" format="counter"/></td></tr>
             <tr><td>pact-facilitator+json</td><td>Capability document</td>
@@ -1781,7 +1883,8 @@ Content-Type: application/problem+json
         <xref target="RFC9457"/> problem type identifiers used by
         <xref target="ep-errors"/>. Each entry carries the identifier, the
         HTTP status it accompanies, and the section of a specification
-        stating the rule it reports.</t>
+        stating the rule it reports. A problem <tt>type</tt> is the identifier
+        appended to the prefix <tt>https://pact-spec.github.io/problem/</tt>.</t>
 
         <table anchor="tab-problems">
           <name>Initial contents</name>
@@ -1838,6 +1941,63 @@ Content-Type: application/problem+json
           <date year="1998"/>
         </front>
         <refcontent>Proceedings of the IEEE Symposium on Security and Privacy</refcontent>
+      </reference>
+
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.hood-agtp-commerce.xml"/>
+      <reference anchor="I-D.stone-vcap-ap2-binding" target="https://datatracker.ietf.org/doc/html/draft-stone-vcap-ap2-binding-00">
+        <front>
+          <title>VCAP-AP2 Binding: Verified Commerce Settlement for the Agent Payments Protocol</title>
+          <author initials="B." surname="Stone"/>
+          <date day="17" month="March" year="2026"/>
+        </front>
+        <refcontent>Work in Progress, Internet-Draft, draft-stone-vcap-ap2-binding-00</refcontent>
+      </reference>
+      <reference anchor="I-D.sahu-agent-action-receipts" target="https://datatracker.ietf.org/doc/html/draft-sahu-agent-action-receipts-00">
+        <front>
+          <title>Signed, Hash-Chained Action Receipts for AI Agents</title>
+          <author initials="N." surname="Sahu"/>
+          <date day="16" month="August" year="2026"/>
+        </front>
+        <refcontent>Work in Progress, Internet-Draft, draft-sahu-agent-action-receipts-00</refcontent>
+      </reference>
+      <reference anchor="I-D.mih-sato-agent-accountability-composition" target="https://datatracker.ietf.org/doc/html/draft-mih-sato-agent-accountability-composition-01">
+        <front>
+          <title>Agent Accountability: Composition and Conformance</title>
+          <author initials="S." surname="Mih"/>
+          <author initials="T." surname="Sato"/>
+          <author initials="I." surname="Schrock"/>
+          <author initials="S." surname="Bu"/>
+          <author initials="A." surname="Sokolov"/>
+          <date day="16" month="August" year="2026"/>
+        </front>
+        <refcontent>Work in Progress, Internet-Draft, draft-mih-sato-agent-accountability-composition-01</refcontent>
+      </reference>
+      <reference anchor="I-D.asor-wimse-agent-delegation-chain" target="https://datatracker.ietf.org/doc/html/draft-asor-wimse-agent-delegation-chain-01">
+        <front>
+          <title>Verifiable Attenuated Delegation for AI Agent Chains</title>
+          <author initials="R." surname="Asor"/>
+          <date day="3" month="September" year="2026"/>
+        </front>
+        <refcontent>Work in Progress, Internet-Draft, draft-asor-wimse-agent-delegation-chain-01</refcontent>
+      </reference>
+      <reference anchor="I-D.pinto-agent-authz-contestability" target="https://datatracker.ietf.org/doc/html/draft-pinto-agent-authz-contestability-00">
+        <front>
+          <title>Contestability Bindings for Authorized Agent Actions</title>
+          <author initials="T." surname="Pinto"/>
+          <date day="29" month="August" year="2026"/>
+        </front>
+        <refcontent>Work in Progress, Internet-Draft, draft-pinto-agent-authz-contestability-00</refcontent>
+      </reference>
+
+      <reference anchor="ASOKAN98THESIS" target="https://uwspace.uwaterloo.ca/">
+        <front>
+          <title>Fairness in Electronic Commerce</title>
+          <author initials="N." surname="Asokan"/>
+          <date year="1998"/>
+        </front>
+        <refcontent>PhD thesis, University of Waterloo. Chapter 2 defines
+        generatable and revocable items and the affidavit token by which a
+        third party reverses a completed transfer</refcontent>
       </reference>
 
       <reference anchor="BELENKIY08" target="https://doi.org/10.1145/1403027.1403046">

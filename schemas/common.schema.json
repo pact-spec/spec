@@ -134,6 +134,13 @@
               "$ref": "common.schema.json#/$defs/hash"
             }
           }
+        },
+        "remainder_to": {
+          "enum": [
+            "buyer",
+            "sink"
+          ],
+          "$comment": "Section 5.3. Absent means sink."
         }
       }
     }

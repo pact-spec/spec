@@ -2551,23 +2551,23 @@ Internet-Draft                    PACT                      October 2026
 
    Change controller:  IETF
 
-      +=======================+==========================+=========+
-      | Subtype name          | Object                   | Section |
-      +=======================+==========================+=========+
-      | pact-contract+json    | Verifiable Task Contract | 5       |
-      +-----------------------+--------------------------+---------+
-      | pact-delivery+json    | Delivery                 | 6       |
-      +-----------------------+--------------------------+---------+
-      | pact-verdict+json     | Verdict                  | 12.4    |
-      +-----------------------+--------------------------+---------+
-      | pact-challenge+json   | Challenge                | 7.5     |
-      +-----------------------+--------------------------+---------+
-      | pact-attestation+json | Work Attestation         | 11      |
-      +-----------------------+--------------------------+---------+
-      | pact-facilitator+json | Capability document      | 8       |
-      +-----------------------+--------------------------+---------+
+    +=======================+==========================+==============+
+    | Subtype name          | Object                   | Defined in   |
+    +=======================+==========================+==============+
+    | pact-contract+json    | Verifiable Task Contract | Section 5    |
+    +-----------------------+--------------------------+--------------+
+    | pact-delivery+json    | Delivery                 | Section 6    |
+    +-----------------------+--------------------------+--------------+
+    | pact-verdict+json     | Verdict                  | Section 12.4 |
+    +-----------------------+--------------------------+--------------+
+    | pact-challenge+json   | Challenge                | Section 7.5  |
+    +-----------------------+--------------------------+--------------+
+    | pact-attestation+json | Work Attestation         | Section 11   |
+    +-----------------------+--------------------------+--------------+
+    | pact-facilitator+json | Capability document      | Section 8    |
+    +-----------------------+--------------------------+--------------+
 
-             Table 6: Media types registered by this document
+              Table 6: Media types registered by this document
 
 
 
@@ -2692,25 +2692,25 @@ Internet-Draft                    PACT                      October 2026
 
    and the section stating the rule it reports.
 
-           +==================================+========+======+
-           | Identifier                       | Status | Rule |
-           +==================================+========+======+
-           | assurance-constraint-unsatisfied | 422    | 7.2  |
-           +----------------------------------+--------+------+
-           | evidence-nonconformant           | 422    | 6    |
-           +----------------------------------+--------+------+
-           | parent-unresolvable              | 422    | 10.1 |
-           +----------------------------------+--------+------+
-           | finality-ordering-violation      | 422    | 10.3 |
-           +----------------------------------+--------+------+
-           | parties-not-distinct             | 422    | 13.2 |
-           +----------------------------------+--------+------+
-           | algorithm-not-permitted          | 400    | 13.1 |
-           +----------------------------------+--------+------+
-           | verifier-not-independent         | 422    | 9.1  |
-           +----------------------------------+--------+------+
-           | release-exceeds-bond             | 409    | 7.1  |
-           +----------------------------------+--------+------+
+       +==================================+========+==============+
+       | Identifier                       | Status | Defined in   |
+       +==================================+========+==============+
+       | assurance-constraint-unsatisfied | 422    | Section 7.2  |
+       +----------------------------------+--------+--------------+
+       | evidence-nonconformant           | 422    | Section 6    |
+       +----------------------------------+--------+--------------+
+       | parent-unresolvable              | 422    | Section 10.1 |
+       +----------------------------------+--------+--------------+
+       | finality-ordering-violation      | 422    | Section 10.3 |
+       +----------------------------------+--------+--------------+
+       | parties-not-distinct             | 422    | Section 13.2 |
+       +----------------------------------+--------+--------------+
+       | algorithm-not-permitted          | 400    | Section 13.1 |
+       +----------------------------------+--------+--------------+
+       | verifier-not-independent         | 422    | Section 9.1  |
+       +----------------------------------+--------+--------------+
+       | release-exceeds-bond             | 409    | Section 7.1  |
+       +----------------------------------+--------+--------------+
 
              Table 9: Problem types defined by this document
 

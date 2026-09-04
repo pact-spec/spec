@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rfc xmlns:xi="http://www.w3.org/2001/XInclude" version="3" category="exp"
-     docName="draft-laxsharma-pact-01" ipr="trust200902" submissionType="IETF"
+     docName="draft-laxsharma-pact-01" ipr="trust200902"
      tocInclude="true" symRefs="true" sortRefs="false">
   <front>
     <title abbrev="PACT">PACT: Liability and Settlement for Autonomous Agent Contracts</title>
@@ -2042,21 +2042,21 @@ Content-Type: application/problem+json
         <table anchor="tab-media">
           <name>Media types registered by this document</name>
           <thead>
-            <tr><th>Subtype name</th><th>Object</th><th>Section</th></tr>
+            <tr><th>Subtype name</th><th>Object</th><th>Defined in</th></tr>
           </thead>
           <tbody>
             <tr><td>pact-contract+json</td><td>Verifiable Task Contract</td>
-                <td><xref target="vtc" format="counter"/></td></tr>
+                <td><xref target="vtc"/></td></tr>
             <tr><td>pact-delivery+json</td><td>Delivery</td>
-                <td><xref target="delivery" format="counter"/></td></tr>
+                <td><xref target="delivery"/></td></tr>
             <tr><td>pact-verdict+json</td><td>Verdict</td>
-                <td><xref target="ep-verdict" format="counter"/></td></tr>
+                <td><xref target="ep-verdict"/></td></tr>
             <tr><td>pact-challenge+json</td><td>Challenge</td>
-                <td><xref target="challenge-object" format="counter"/></td></tr>
+                <td><xref target="challenge-object"/></td></tr>
             <tr><td>pact-attestation+json</td><td>Work Attestation</td>
-                <td><xref target="attestations" format="counter"/></td></tr>
+                <td><xref target="attestations"/></td></tr>
             <tr><td>pact-facilitator+json</td><td>Capability document</td>
-                <td><xref target="wellknown" format="counter"/></td></tr>
+                <td><xref target="wellknown"/></td></tr>
           </tbody>
         </table>
       </section>
@@ -2156,25 +2156,25 @@ Content-Type: application/problem+json
         <table anchor="tab-problems">
           <name>Problem types defined by this document</name>
           <thead>
-            <tr><th>Identifier</th><th>Status</th><th>Rule</th></tr>
+            <tr><th>Identifier</th><th>Status</th><th>Defined in</th></tr>
           </thead>
           <tbody>
             <tr><td>assurance-constraint-unsatisfied</td><td>422</td>
-                <td><xref target="assurance" format="counter"/></td></tr>
+                <td><xref target="assurance"/></td></tr>
             <tr><td>evidence-nonconformant</td><td>422</td>
-                <td><xref target="delivery" format="counter"/></td></tr>
+                <td><xref target="delivery"/></td></tr>
             <tr><td>parent-unresolvable</td><td>422</td>
-                <td><xref target="tree-binding" format="counter"/></td></tr>
+                <td><xref target="tree-binding"/></td></tr>
             <tr><td>finality-ordering-violation</td><td>422</td>
-                <td><xref target="tree-finality" format="counter"/></td></tr>
+                <td><xref target="tree-finality"/></td></tr>
             <tr><td>parties-not-distinct</td><td>422</td>
-                <td><xref target="conf-rules" format="counter"/></td></tr>
+                <td><xref target="conf-rules"/></td></tr>
             <tr><td>algorithm-not-permitted</td><td>400</td>
-                <td><xref target="conf-sig" format="counter"/></td></tr>
+                <td><xref target="conf-sig"/></td></tr>
             <tr><td>verifier-not-independent</td><td>422</td>
-                <td><xref target="independence" format="counter"/></td></tr>
+                <td><xref target="independence"/></td></tr>
             <tr><td>release-exceeds-bond</td><td>409</td>
-                <td><xref target="pools" format="counter"/></td></tr>
+                <td><xref target="pools"/></td></tr>
           </tbody>
         </table>
       </section>

@@ -3,51 +3,114 @@
   "$id": "https://pact-spec.github.io/spec/schemas/taskspec.schema.json",
   "title": "PACT TaskSpec",
   "type": "object",
-  "required": ["description", "deliverable", "acceptance"],
+  "required": [
+    "description",
+    "deliverable",
+    "acceptance"
+  ],
   "properties": {
-    "description": { "type": "string", "minLength": 1 },
-    "skill": { "type": "string" },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "skill": {
+      "type": "string"
+    },
     "inputs": {
       "type": "object",
       "properties": {
-        "schema_uri": { "type": "string", "format": "uri" },
-        "schema_hash": { "$ref": "common.schema.json#/$defs/hash" },
-        "sample_uri": { "type": "string", "format": "uri" },
-        "sample_hash": { "$ref": "common.schema.json#/$defs/hash" },
-        "size_hint": { "type": "object" }
+        "schema_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schema_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "sample_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sample_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "size_hint": {
+          "type": "object"
+        }
       },
-      "$comment": "A hash commitment covers only the octets hashed. spec_hash covers this URI string, not the bytes it dereferences to, so every URI whose content is consumed during bidding, execution, or verification needs a sibling hash. sample_hash and schema_hash are OPTIONAL in -00 and become REQUIRED alongside their URIs in -01; see https://github.com/pact-spec/spec/issues/1 entry 6."
+      "$comment": "A hash commitment covers only the octets hashed. spec_hash covers this URI string, not the bytes it dereferences to, so every URI whose content is consumed during bidding, execution, or verification needs a sibling hash. sample_hash and schema_hash are OPTIONAL in -00 and become REQUIRED alongside their URIs in -01; see https://github.com/pact-spec/spec/issues/1 entry 6.",
+      "additionalProperties": false
     },
     "deliverable": {
       "type": "object",
-      "required": ["format"],
+      "required": [
+        "format"
+      ],
       "properties": {
-        "format": { "type": "string" },
-        "schema_uri": { "type": "string", "format": "uri" },
-        "schema_hash": { "$ref": "common.schema.json#/$defs/hash" }
-      }
+        "format": {
+          "type": "string"
+        },
+        "schema_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schema_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        }
+      },
+      "additionalProperties": false
     },
     "acceptance": {
       "type": "object",
       "minProperties": 1,
-      "required": ["thresholds"],
+      "required": [
+        "thresholds"
+      ],
       "anyOf": [
-        { "required": ["harness_uri"] },
-        { "required": ["rubric_uri"] }
+        {
+          "required": [
+            "harness_uri"
+          ]
+        },
+        {
+          "required": [
+            "rubric_uri"
+          ]
+        }
       ],
       "dependentRequired": {
-        "harness_uri": ["harness_hash"],
-        "rubric_uri": ["rubric_hash"]
+        "harness_uri": [
+          "harness_hash"
+        ],
+        "rubric_uri": [
+          "rubric_hash"
+        ]
       },
       "properties": {
-        "harness_uri": { "type": "string", "format": "uri" },
-        "harness_hash": { "$ref": "common.schema.json#/$defs/hash" },
-        "rubric_uri": { "type": "string", "format": "uri" },
-        "rubric_hash": { "$ref": "common.schema.json#/$defs/hash" },
-        "thresholds": { "type": "object", "minProperties": 1 }
+        "harness_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "harness_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "rubric_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "rubric_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "thresholds": {
+          "type": "object",
+          "minProperties": 1
+        }
       },
-      "$comment": "An empty acceptance object validated in -00, which made every fraud proof impossible while leaving optimistic release unconditional. An instrument and thresholds are now both required, and an instrument URI must carry the hash of its bytes."
+      "$comment": "Section 5.2. Closed per Section 2. Members for the attestation and proving tiers are named in the document's prose and not as member names, so a TaskSpec for those tiers does not validate in -01; recorded as a residual.",
+      "additionalProperties": false
     },
-    "constraints": { "type": "object" }
-  }
+    "constraints": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
 }

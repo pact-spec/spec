@@ -315,11 +315,12 @@ check("attestation subject appears in parties",
       att["subject"] in att["parties"].values())
 
 print()
-print("== children Merkle root (Section 11.1, RFC 6962 Section 2.1) ==")
+print("== children Merkle root (Section 11.1, RFC 9162 Section 2.1.1) ==")
 
 
 def mth(D):
-    """Merkle Tree Hash exactly as RFC 6962 Section 2.1 defines it.
+    """Merkle Tree Hash exactly as RFC 9162 Section 2.1.1 defines it (identical
+    to the RFC 6962 definition it obsoletes), with SHA-256 as the hash.
 
     MTH({})    = SHA-256()
     MTH({d})   = SHA-256(0x00 || d)
@@ -349,11 +350,11 @@ check("n=2: root = H(0x01 || leaf(d0) || leaf(d1))",
       mth(_d[:2]) == _node(_leaf(_d[0]), _leaf(_d[1])))
 check("n=3: split at k=2, lone third leaf is not promoted unchanged",
       mth(_d[:3]) == _node(mth(_d[:2]), _leaf(_d[2])))
-# RFC 6962 Section 2.1.3 figure, seven leaves: hash = H(k, l), k = H(g, h),
+# The seven-leaf tree of RFC 6962 Section 2.1.3, unchanged in RFC 9162: hash = H(k, l), k = H(g, h),
 # l = H(i, j), j = leaf(d6). Reproduce that shape exactly.
 _g = _node(_leaf(_d[0]), _leaf(_d[1])); _h_ = _node(_leaf(_d[2]), _leaf(_d[3]))
 _i = _node(_leaf(_d[4]), _leaf(_d[5])); _j = _leaf(_d[6])
-check("n=7: matches the RFC 6962 Section 2.1.3 figure, k=4 then k=2",
+check("n=7: matches the seven-leaf figure, k=4 then k=2",
       mth(_d[:7]) == _node(_node(_g, _h_), _node(_i, _j)))
 check("root changes if leaf order changes",
       mth(_d[:4]) != mth(list(reversed(_d[:4]))))
@@ -476,6 +477,14 @@ _child_parent["liability"]["parent"] = {"vtc_id": vtc["id"],
 check("V-15 child whose buyer is not the parent's seller is rejected",
       norm(_child_parent["parties"]["buyer"]) != norm(vtc["parties"]["seller"]))
 
+
+# Section 2: an unknown version and an unknown member are both rejected.
+_v = json.loads(json.dumps(vtc)); _v["pact"] = "9.9"
+check("V-19 unimplemented pact version is rejected",
+      _v["pact"] not in ("0.1",))
+_u = json.loads(json.dumps(vtc)); _u["extension"] = True
+check("V-20 object carrying an undefined member is rejected",
+      not validate(_u, "vtc.schema.json", quiet=True))
 
 print()
 if fails:

@@ -1,0 +1,15 @@
+{
+  "pact": "0.1",
+  "type": "Verdict",
+  "vtc_id": "vtc_9f2c11",
+  "delivery_hash": "sha256:c041f6c502786e044aea8aaebc259f82638652467be5ced7b6aba791b18d16af",
+  "outcome": "PASS",
+  "profile": "acceptance",
+  "instrument_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7",
+  "results_hash": "sha256:7e02b5c1a9384d7f2e60b8c4a1d53f79e2064b8fa3c7d190e5b62f84c07a1d3e",
+  "evaluated_at": "2026-07-31T19:03:47Z",
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YXVkaXQuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3BhY3QtdmVyZGljdCtqc29uIn0",
+    "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+  }
+}

@@ -19,7 +19,7 @@ Checks performed:
   8. Canonicalization: jcs() orders object keys the way RFC 8785
      requires, which is not the way json.dumps(sort_keys=True) does.
   9. The assurance constraint of -01 Section 7.2, on the worked figures
-     carried in -01 Section 16.
+     carried in -01 Section 14.
  10. Negative vectors, including the Section 13.3 conformance vectors
      that JSON Schema cannot express.
 
@@ -138,6 +138,7 @@ dlv  = load("examples/delivery.json")
 vdt  = load("examples/verdict.json")
 att  = load("examples/attestation.json")
 fac  = load("examples/well-known/pact-facilitator.json")
+chl  = load("examples/challenge.json")
 harness_digest = instrument_digest(ROOT / "examples/acceptance-harness")
 
 print("== schema conformance ==")
@@ -147,6 +148,7 @@ check("delivery matches schema",    validate(dlv, "delivery.schema.json"))
 check("verdict matches schema",     validate(vdt, "verdict.schema.json"))
 check("attestation matches schema", validate(att, "attestation.schema.json"))
 check("facilitator matches schema", validate(fac, "facilitator.schema.json"))
+check("challenge matches schema",   validate(chl, "challenge.schema.json"))
 
 print()
 print("== canonicalization ==")
@@ -193,6 +195,11 @@ check("delivery.evidence.instrument_hash == vtc.criteria_hash",
       dlv["evidence"]["instrument_hash"] == vtc["verification"]["criteria_hash"])
 check("verdict.instrument_hash == vtc.criteria_hash",
       vdt["instrument_hash"] == vtc["verification"]["criteria_hash"])
+check("challenge.delivery_hash == sha256(JCS(delivery-sans-signature))",
+      chl["delivery_hash"] == h(jcs({k: v for k, v in dlv.items()
+                                     if k != "signature"})))
+check("challenge.proof.instrument_hash == vtc.criteria_hash",
+      chl["proof"]["instrument_hash"] == vtc["verification"]["criteria_hash"])
 
 print()
 print("== rules the schemas cannot express ==")
@@ -242,6 +249,9 @@ check("verdict protected header carries alg/kid/typ",
                           "application/pact-verdict+json"))
 check("attestation protected headers carry alg/kid/typ",
       headers_well_formed(att, "application/pact-attestation+json"))
+check("challenge protected header carries alg/kid/typ",
+      headers_well_formed({"signatures": [chl["signature"]]},
+                          "application/pact-challenge+json"))
 check("facilitator protected header carries alg/kid/typ",
       headers_well_formed({"signatures": [fac["signature"]]},
                           "application/pact-facilitator+json"))
@@ -303,6 +313,50 @@ check("attestation carries a facilitator signature",
           for sg in att["signatures"]))
 check("attestation subject appears in parties",
       att["subject"] in att["parties"].values())
+
+print()
+print("== children Merkle root (Section 11.1, RFC 6962 Section 2.1) ==")
+
+
+def mth(D):
+    """Merkle Tree Hash exactly as RFC 6962 Section 2.1 defines it.
+
+    MTH({})    = SHA-256()
+    MTH({d})   = SHA-256(0x00 || d)
+    MTH(D[n])  = SHA-256(0x01 || MTH(D[0:k]) || MTH(D[k:n])),
+                 k the largest power of two smaller than n.
+    Leaves and interior nodes carry distinct prefixes; that domain
+    separation is what gives second-preimage resistance.
+    """
+    if len(D) == 0:
+        return hashlib.sha256(b"").digest()
+    if len(D) == 1:
+        return hashlib.sha256(b"\x00" + D[0]).digest()
+    k = 1
+    while k * 2 < len(D):
+        k *= 2
+    return hashlib.sha256(b"\x01" + mth(D[:k]) + mth(D[k:])).digest()
+
+
+_d = [hashlib.sha256(bytes([i])).digest() for i in range(8)]
+_leaf = lambda x: hashlib.sha256(b"\x00" + x).digest()
+_node = lambda a, b: hashlib.sha256(b"\x01" + a + b).digest()
+check("n=1: root is the domain-separated leaf hash",
+      mth(_d[:1]) == _leaf(_d[0]))
+check("leaf and interior prefixes differ (domain separation)",
+      _leaf(_d[0]) != hashlib.sha256(b"\x01" + _d[0]).digest())
+check("n=2: root = H(0x01 || leaf(d0) || leaf(d1))",
+      mth(_d[:2]) == _node(_leaf(_d[0]), _leaf(_d[1])))
+check("n=3: split at k=2, lone third leaf is not promoted unchanged",
+      mth(_d[:3]) == _node(mth(_d[:2]), _leaf(_d[2])))
+# RFC 6962 Section 2.1.3 figure, seven leaves: hash = H(k, l), k = H(g, h),
+# l = H(i, j), j = leaf(d6). Reproduce that shape exactly.
+_g = _node(_leaf(_d[0]), _leaf(_d[1])); _h_ = _node(_leaf(_d[2]), _leaf(_d[3]))
+_i = _node(_leaf(_d[4]), _leaf(_d[5])); _j = _leaf(_d[6])
+check("n=7: matches the RFC 6962 Section 2.1.3 figure, k=4 then k=2",
+      mth(_d[:7]) == _node(_node(_g, _h_), _node(_i, _j)))
+check("root changes if leaf order changes",
+      mth(_d[:4]) != mth(list(reversed(_d[:4]))))
 
 print()
 print("== negative vectors (these MUST be rejected) ==")

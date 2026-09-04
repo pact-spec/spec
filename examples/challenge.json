@@ -1,0 +1,20 @@
+{
+  "pact": "0.1",
+  "type": "Challenge",
+  "vtc_id": "vtc_9f2c11",
+  "delivery_hash": "sha256:c041f6c502786e044aea8aaebc259f82638652467be5ced7b6aba791b18d16af",
+  "proof": {
+    "profile": "acceptance",
+    "instrument_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7",
+    "results_hash": "sha256:3053a1078994497ff0617cb028a20e58e32292ed18a7c0ee8a4399006c620636",
+    "results_uri": "https://watch.example/o/a91e",
+    "failing_checks": [
+      "schema_valid_rate",
+      "row_count_min"
+    ]
+  },
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6d2F0Y2guZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3BhY3QtY2hhbGxlbmdlK2pzb24ifQ",
+    "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+  }
+}

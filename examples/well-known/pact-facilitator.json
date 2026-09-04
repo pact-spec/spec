@@ -1,0 +1,19 @@
+{
+  "pact": "0.1",
+  "facilitator": "did:web:settle.example",
+  "settlement_bindings": [
+    { "id": "pact-escrow", "networks": ["eip155:8453"], "assets": ["USDC"] }
+  ],
+  "release_modes": ["on-verification", "on-window"],
+  "verification_profiles": ["acceptance", "bisection"],
+  "assurance_modes": ["certain", "committed-sample"],
+  "max_contract_value": { "amount": "50000.00", "currency": "USDC" },
+  "endpoints": {
+    "contract": "https://settle.example/pact/v1/contracts",
+    "delivery": "https://settle.example/pact/v1/deliveries",
+    "verdict": "https://settle.example/pact/v1/verdicts",
+    "challenge": "https://settle.example/pact/v1/challenges",
+    "attestation": "https://settle.example/pact/v1/attestations"
+  },
+  "signature": { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi9wYWN0LWZhY2lsaXRhdG9yK2pzb24ifQ", "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" }
+}

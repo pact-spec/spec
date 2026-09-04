@@ -4,7 +4,9 @@
   "id": "vtc_9f2c11",
   "parties": {
     "buyer": "did:web:buyer.example:agents:procure-1",
-    "seller": "did:web:dataforge.example:agents:etl-3"
+    "seller": "did:web:dataforge.example:agents:etl-3",
+    "facilitator": "did:web:settle.example",
+    "verifier": "did:web:audit.example"
   },
   "task": {
     "spec_hash": "sha256:bb0e87ce522479b7c2f7bcfa26df7ecd7ff67aeb8b415bbd70c22d97c47adf35",
@@ -15,28 +17,30 @@
     "amount": "180.00",
     "currency": "USDC",
     "settlement": "pact-escrow",
-    "channel": "ch_88a1"
+    "network": "eip155:8453"
   },
   "verification": {
     "tier": "T0-reexec",
-    "criteria_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7",
-    "arbiter": "did:web:arbiter.example"
+    "profile": "acceptance",
+    "criteria_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7"
   },
+  "assurance": {
+    "mode": "certain",
+    "q_min": 1.0
+  },
+  "release": "on-verification",
   "liability": {
-    "seller_bond": "18.00"
+    "seller_bond": "18.00",
+    "verification_fund": "0.50",
+    "cap": "180.00",
+    "restitution_basis": "released"
   },
   "challenge": {
     "window_seconds": 3600,
     "max_dispute_seconds": 86400
   },
   "signatures": [
-    {
-      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0",
-      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
-    },
-    {
-      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0",
-      "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
-    }
+    { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0", "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" },
+    { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0", "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" }
   ]
 }

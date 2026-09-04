@@ -1,0 +1,20 @@
+{
+  "pact": "0.1",
+  "type": "Delivery",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:b2cccae00fc7b97ba2b6ef6356ff42c006ba661e0249d7eaa8baff3de553870b",
+  "work_hash": "sha256:9c1f2ab4e7d0355f1b8c6e4a92d70f3ab5c81e46d92f0a7b3c5e18d4f60a2b79",
+  "work_uri": "https://cdn.dataforge.example/o/9c1f2ab4",
+  "input_hash": "sha256:fcdc7f0f21793df9e57e517d664145159dcabdcebbaa293b4436a67aec4924e7",
+  "delivered_at": "2026-07-31T18:22:04Z",
+  "evidence": {
+    "profile": "acceptance",
+    "instrument_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7",
+    "results_hash": "sha256:7e02b5c1a9384d7f2e60b8c4a1d53f79e2064b8fa3c7d190e5b62f84c07a1d3e",
+    "results_uri": "https://cdn.dataforge.example/o/7e02b5c1"
+  },
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1kZWxpdmVyeStqc29uIn0",
+    "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE"
+  }
+}

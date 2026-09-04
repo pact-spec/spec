@@ -136,6 +136,23 @@
         specified elsewhere, and PACT consumes rather than restates them.</t>
       </section>
 
+      <section anchor="experiment"><name>The Experiment</name>
+        <t>This document is Experimental. The question it tests is whether a
+        settlement layer that makes liability a co-signed contract term, and
+        conditions release on a declared detection probability rather than
+        on elapsed time, can be implemented independently by more than one
+        party and produce settlements each can verify. The experiment
+        succeeds if two independent Facilitator implementations settle
+        contracts whose Buyers and Sellers use different client
+        implementations, through every terminal state in
+        <xref target="fig-states"/>, with attestations either can check. It
+        fails, and that would itself be a result worth recording, if the
+        constraint in <xref target="assurance"/> proves unworkable at the
+        prices and verification costs real deployments exhibit. Experience
+        should be reported to the author and to the repository named in
+        <xref target="implstatus"/>.</t>
+      </section>
+
       <section anchor="changes"><name>Changes from -00</name>
         <t>This revision is a narrowing. The -00 attempted the surface area of
         a protocol suite in under five thousand words and did not close.
@@ -190,6 +207,31 @@
       <xref target="RFC8785"/> Section 3.2.3 requires. Sorting by Unicode code
       point is a common substitution; it agrees with the required order
       throughout the Basic Multilingual Plane and diverges above it.</t>
+
+      <t>Version. The <tt>pact</tt> member carries a version of the form
+      major.minor; this document defines 0.1. Every object defined here is
+      hash-committed and signed, so a member an implementation does not
+      recognise is inside the commitment and cannot be ignored safely. An
+      implementation MUST reject an object whose <tt>pact</tt> version it
+      does not implement, and MUST reject an object carrying a member this
+      document does not define for it. Extension is by a new version, not
+      by adding members.</t>
+
+      <t>Time. Every timestamp is an RFC 3339 date-time
+      <xref target="RFC3339"/> in UTC with the "Z" designator. The
+      Facilitator's clock governs every deadline and window in this
+      document: the instant at which the Facilitator records an object is
+      the instant that counts, and parties SHOULD allow for skew when
+      acting near a boundary.</t>
+
+      <t>Money. An amount is a decimal string with no exponent and a
+      fractional part of two to eighteen digits; comparisons are exact and
+      no rounding is implied. A currency is an asset identifier whose
+      namespace is defined by the settlement binding named in
+      <tt>price.settlement</tt>, and need not be an ISO 4217 code. A
+      network is a ledger identifier in the form the same binding defines;
+      the <tt>pact-escrow</tt> binding uses <xref target="CAIP-2"/> chain
+      identifiers.</t>
     </section>
 
     <section anchor="terminology"><name>Terminology</name>
@@ -215,6 +257,13 @@
         <dt>VTC:</dt><dd>Verifiable Task Contract (<xref target="vtc"/>).</dd>
         <dt>Delivery:</dt><dd>The object a Seller submits, and the only object
         a contract is judged against (<xref target="delivery"/>).</dd>
+        <dt>Verdict:</dt><dd>A signed statement by a Verifier that a Delivery
+        was evaluated against the committed instrument, and with what outcome
+        (<xref target="ep-verdict"/>).</dd>
+        <dt>Challenge:</dt><dd>A signed fraud proof submitted within the
+        challenge window (<xref target="challenge-object"/>).</dd>
+        <dt>Work Attestation:</dt><dd>The Facilitator-signed record of a
+        contract's terminal outcome (<xref target="attestations"/>).</dd>
       </dl>
     </section>
 
@@ -251,14 +300,17 @@
         ]]></artwork>
       </figure>
 
-      <t>The challenge window opens when the Verdict is recorded and closes at
-      <tt>challenge.window_seconds</tt> thereafter. Under
+      <t>The challenge window opens when the Verdict is recorded under
+      <tt>on-verification</tt> release, and when the contract enters
+      DELIVERED under <tt>on-window</tt> and <tt>optimistic</tt> release; it
+      closes <tt>challenge.window_seconds</tt> later by the Facilitator's
+      clock. Under
       <tt>on-verification</tt> the Buyer's price is released once the Verdict
       is PASS; the Bond is not returned until the window closes and every
       descendant contract is final (<xref target="trees"/>).</t>
 
       <figure anchor="fig-states">
-        <name>Contract states</name>
+        <name>Contract states under on-verification release</name>
         <artwork type="ascii-art"><![CDATA[
                   +------------+
                   |  PROPOSED  |
@@ -290,8 +342,13 @@
         ]]></artwork>
       </figure>
 
-      <t>FINAL, SETTLED and ABANDONED are terminal, and each produces a
-      Work Attestation. The -00 had no path to either: expiry of
+      <t>Under <tt>optimistic</tt> release DELIVERED proceeds directly to
+      RELEASING and a Verdict, if one arrives, does so inside the window.
+      Under <tt>on-window</tt> release DELIVERED proceeds to RELEASING when
+      the window closes with no successful Challenge. Under
+      <tt>unsecured</tt> release DELIVERED proceeds to RELEASING and no
+      window opens. FINAL, SETTLED and ABANDONED are terminal, and each
+      produces a Work Attestation. The -00 had no path to either: expiry of
       <tt>task.deadline</tt> had no stated consequence, so escrow could lock
       permanently, and a negative outcome required the signature of the party
       it convicted.</t>
@@ -597,7 +654,21 @@
         -00's MUST to reimburse documented verification costs was therefore
         unsatisfiable in the ordinary case.</t>
 
-        <t>A Facilitator MUST NOT permit cumulative release before a recorded
+        <figure anchor="fig-pools">
+        <name>The three pools and which waterfall rank draws on which</name>
+        <artwork type="ascii-art"><![CDATA[
+   Escrow (P)           Bond (B)           Verification Fund (F)
+   buyer's price        seller collateral  pays for checking
+        |                    |                      |
+ 1      |-- unreleased ----> Buyer                  |
+ 2      |                    |         costs <------|-> Challenger
+ 3      |                    |-- restitution -> Buyer
+ 4      |                    |-- bounty -----> Challenger
+ 5      |                    |-- remainder --> remainder_to
+        ]]></artwork>
+      </figure>
+
+      <t>A Facilitator MUST NOT permit cumulative release before a recorded
         Verdict to exceed the Bond. Value released before verification is
         value the mechanism can no longer recover, so releasing more than the
         Bond makes defection profitable by construction, independently of
@@ -673,7 +744,8 @@
           <dt><tt>on-verification</tt>:</dt><dd>REQUIRED to implement, and the
           default. Release follows a recorded PASS Verdict.</dd>
           <dt><tt>on-window</tt>:</dt><dd>Release follows expiry of the
-          challenge window with no successful challenge.</dd>
+          challenge window, which opens at DELIVERED, with no successful
+          Challenge.</dd>
           <dt><tt>optimistic</tt>:</dt><dd>Release follows Delivery, before
           any Verdict, subject to the cap in <xref target="pools"/>.</dd>
           <dt><tt>unsecured</tt>:</dt><dd>Release follows Delivery with no
@@ -735,6 +807,27 @@
         in its own contract, since a Buyer that recovers restitution by
         challenging will not accept a bribe below the restitution it
         forgoes, which places a floor under any bribe a Seller must pay.</t>
+
+        <figure anchor="fig-dispute">
+          <name>The dispute path: a Challenge overturns a PASS Verdict</name>
+          <artwork type="ascii-art"><![CDATA[
+  Buyer        Facilitator       Verifier      Challenger
+    |              |                 |               |
+    |              |<-- Verdict PASS |               |
+    |              |-- release(P) -> Seller          |
+    |              |   [ window opens ]              |
+    |              |<------------- Challenge --------|
+    |              |-- Challenge + Delivery -------->|
+    |              |<-- Verdict FAIL |               |
+    |              |   (supersedes PASS)             |
+    |<- rank 1 ----|   unreleased escrow             |
+    |              |-- rank 2 (from F) ------------->|
+    |<- rank 3 ----|   restitution (from B)          |
+    |              |-- rank 4 (from B) ------------->|
+    |              |-- rank 5 --> remainder_to       |
+    |              |   SETTLED, Attestation issued   |
+        ]]></artwork>
+        </figure>
       </section>
       <section anchor="challenge-object"><name>The Challenge Object</name>
         <t>A Challenge is a JSON object, media type
@@ -749,6 +842,16 @@
         recorded Delivery. A Challenge that is accepted is evaluated by a
         party satisfying <xref target="independence"/>, whose finding is a
         Verdict; the Challenger's own assertion is not.</t>
+
+        <t>The Challenger is the party identified by the <tt>kid</tt> of the
+        Challenge's signature. A Verdict issued on a Challenge supersedes any
+        earlier Verdict on the same Delivery, and a Facilitator MUST record
+        both. A Facilitator MAY require a deposit with each Challenge, stated
+        as <tt>challenge_deposit</tt> in its capability document
+        (<xref target="wellknown"/>), returned if the Challenge succeeds and
+        forfeited to the Verification Fund if it does not; this is the
+        protocol's defence against challenge spam, and
+        <xref target="sec-dos"/> discusses its limits.</t>
 
         <figure anchor="fig-challenge">
           <name>A Challenge under the acceptance profile</name>
@@ -816,6 +919,10 @@
         modes.</dd>
         <dt><tt>max_contract_value</tt>:</dt><dd>OPTIONAL. Object with
         <tt>amount</tt> and <tt>currency</tt>.</dd>
+        <dt><tt>challenge_deposit</tt>:</dt><dd>OPTIONAL. Object with
+        <tt>amount</tt> and <tt>currency</tt>, required with each Challenge
+        (<xref target="challenge-object"/>). Absent, no deposit is
+        required.</dd>
         <dt><tt>endpoints</tt>:</dt><dd>REQUIRED. Object mapping each
         endpoint name in <xref target="endpoints"/> to an absolute URI.</dd>
         <dt><tt>signature</tt>:</dt><dd>REQUIRED. JWS over the JCS-canonical
@@ -997,7 +1104,22 @@
         Buyer's recovery conditional on any child settling. The parent Buyer
         contracted with the parent Seller and has no privity below it.</t>
 
-        <t>This is the rule that stops subcontracting from being a liability
+        <figure anchor="fig-cascade">
+        <name>A child fails. Recovery flows up; the obligation does not flow down.</name>
+        <artwork type="ascii-art"><![CDATA[
+   A (parent Buyer)
+     ^
+     |  B still owes A the full parent remedy      (Section 10.2)
+     |
+   B (parent Seller, child Buyer)
+     ^
+     |  C's Bond restores B under rank 3           (Section 7.4)
+     |
+   C (child Seller)  -- fails --
+        ]]></artwork>
+      </figure>
+
+      <t>This is the rule that stops subcontracting from being a liability
         laundry. Absent it, a Seller facing a large obligation could
         subcontract to a thinly capitalised identity it controls, let the
         child fail, and offer the child's small Bond as the whole remedy.</t>
@@ -1161,7 +1283,8 @@
         <t>Let D be the list of 32-byte SHA-256 digests of each immediate
         child's Work Attestation in JCS-canonical form, sorted ascending as
         byte strings. <tt>children_merkle_root</tt> is MTH(D) exactly as
-        defined in <xref target="RFC6962"/> Section 2.1: a leaf is
+        defined in <xref target="RFC9162"/> Section 2.1.1, with SHA-256 as
+        the hash: a leaf is
         SHA-256(0x00 || d), an interior node is SHA-256(0x01 || left ||
         right), and for n greater than one the list is split at k, the
         largest power of two smaller than n. The shape is therefore fixed by
@@ -1206,7 +1329,43 @@
       </table>
 
       <t>All requests and responses use the media types defined in
-      <xref target="iana"/>. All requests MUST be made over HTTPS.</t>
+      <xref target="iana"/>. All requests MUST be made over HTTPS, following
+      the recommendations of <xref target="RFC9325"/>. Status codes are as
+      defined in <xref target="RFC9110"/>.</t>
+
+      <table anchor="tab-ops">
+        <name>Request, success response, and body per operation</name>
+        <thead><tr><th>Operation</th><th>Request body</th><th>Success</th>
+          <th>Response body</th></tr></thead>
+        <tbody>
+          <tr><td>Propose</td><td>pact-contract+json</td><td>201</td>
+              <td>the VTC, plus <tt>state</tt></td></tr>
+          <tr><td>Retrieve contract</td><td>none</td><td>200</td>
+              <td>the VTC, plus <tt>state</tt></td></tr>
+          <tr><td>Submit Delivery</td><td>pact-delivery+json</td><td>202</td>
+              <td>the Delivery, plus <tt>state</tt></td></tr>
+          <tr><td>Record Verdict</td><td>pact-verdict+json</td><td>201</td>
+              <td>the Verdict</td></tr>
+          <tr><td>Open challenge</td><td>pact-challenge+json</td><td>202</td>
+              <td>the Challenge, plus <tt>state</tt></td></tr>
+          <tr><td>Retrieve Attestation</td><td>none</td><td>200</td>
+              <td>pact-attestation+json</td></tr>
+        </tbody>
+      </table>
+
+      <t>The <tt>state</tt> member in a response is the current value from
+      <xref target="fig-states"/>; it is added by the Facilitator, is not
+      part of the signed object, and MUST NOT be included when the object is
+      canonicalized or hashed.</t>
+
+      <t>A Facilitator authenticates the sender of a POST by the signature
+      on the body: it MUST reject a Delivery not signed by the contract's
+      Seller, a Verdict not signed by a party admissible under
+      <xref target="ep-verdict"/>, and a Challenge whose signer it cannot
+      resolve. This document requires no additional HTTP-layer
+      authentication; a Facilitator MAY require one. Retrieval by GET is
+      unauthenticated by this document, and a Facilitator MAY restrict it to
+      the parties of the contract.</t>
 
       <section anchor="ep-propose"><name>Proposing a Contract</name>
         <t>The request body is a VTC carrying the signatures of every party
@@ -1302,8 +1461,10 @@ Content-Type: application/problem+json
         </figure>
 
         <t>The Verifier is the party identified by the <tt>kid</tt> of the
-        Verdict's signature, and a Facilitator evaluates
-        <xref target="independence"/> against that identifier.</t>
+        Verdict's signature. Where the contract names
+        <tt>parties.verifier</tt>, the Verdict MUST be signed by that party;
+        otherwise the Facilitator evaluates <xref target="independence"/>
+        against the signer.</t>
 
         <t>A Verdict commits to the instrument it ran and to the results it
         produced. Without <tt>instrument_hash</tt> a Verifier could run
@@ -1345,22 +1506,31 @@ Content-Type: application/problem+json
 
     <section anchor="conformance"><name>Conformance</name>
       <t>Every rule a PACT conformance checker enforces is stated in this
-      document as normative text. This section collects the rules that JSON
-      Schema cannot express, so that an implementation built from this
+      document as normative text. This section collects the rules that a
+      schema language cannot express, so that an implementation built from this
       document alone passes a conformance suite built from it. A rule that
       lives only in a test suite is not a requirement, and an implementer who
       cannot find it in the specification will not implement it.</t>
 
       <section anchor="conf-sig"><name>Signatures</name>
-        <t>Every signature object carried by a VTC, Delivery, Verdict,
-        Challenge, Work Attestation, or capability document MUST be a JWS
-        <xref target="RFC7515"/> with the following constraints.</t>
+        <t>Every signature carried by a VTC, Delivery, Verdict, Challenge,
+        Work Attestation, or capability document is a JWS
+        <xref target="RFC7515"/> in the General JSON Serialization of
+        Section 7.2.1 of that document, with the payload detached as its
+        Appendix F describes. The payload is BASE64URL of the JCS-canonical
+        bytes of the object with the signing member removed, so the JWS
+        Signing Input is ASCII(BASE64URL(UTF8(protected)) || "." ||
+        BASE64URL(JCS(object))) exactly as Section 5.1 of
+        <xref target="RFC7515"/> defines it. The payload is never
+        transmitted; a verifier reconstructs it from the object it holds.
+        The following constraints apply.</t>
         <ul>
           <li>The protected header MUST carry <tt>alg</tt>, <tt>kid</tt> and
           <tt>typ</tt>.</li>
-          <li><tt>alg</tt> MUST be one of <tt>ES256</tt>, <tt>ES384</tt> or
-          <tt>EdDSA</tt>. A verifier MUST reject any other value, and MUST
-          reject <tt>none</tt>. Absent an allowlist an attacker selects the
+          <li><tt>alg</tt> MUST be <tt>ES256</tt> or <tt>ES384</tt>
+          <xref target="RFC7518"/>, or <tt>EdDSA</tt> <xref target="RFC8037"/>
+          with an Ed25519 key; a verifier MAY also accept Ed448. A verifier
+          MUST reject any other value, and MUST reject <tt>none</tt>. Absent an allowlist an attacker selects the
           algorithm, which permits both unsigned acceptance and confusion of a
           public key for a symmetric secret.</li>
           <li><tt>kid</tt> MUST appear inside the protected header and MUST
@@ -1368,13 +1538,41 @@ Content-Type: application/problem+json
           signed bytes is rewritable in transit, which allows an attacker who
           can publish a key document to re-attribute a genuine signature to
           itself.</li>
-          <li><tt>typ</tt> MUST be the media type of the object signed, so
-          that a signature over one object type cannot be replayed as a
-          signature over another.</li>
+          <li><tt>typ</tt> MUST be the full media type of the object signed,
+          including the <tt>application/</tt> prefix, so that a signature
+          over one object type cannot be replayed as a signature over
+          another. Section 4.1.9 of <xref target="RFC7515"/> recommends
+          omitting the prefix; this document requires the full form so that
+          <tt>typ</tt> equals the registered media type character for
+          character. Explicit typing follows Section 3.11 of
+          <xref target="RFC8725"/>.</li>
         </ul>
+
+        <section anchor="keyres"><name>Key Resolution</name>
+          <t>A <tt>kid</tt> is a URI naming a public key. A verifier MUST
+          resolve it as follows, and MUST reject a signature whose
+          <tt>kid</tt> it cannot resolve.</t>
+          <ul>
+            <li>A <tt>did:</tt> identifier is a DID URL
+            <xref target="DID-CORE"/>. The verifier resolves the DID document
+            by the method the identifier names and selects the verification
+            method its fragment identifies. Examples in this document use
+            <tt>did:web</tt> <xref target="DID-WEB"/>; no method is
+            required or excluded.</li>
+            <li>An <tt>https:</tt> identifier dereferences, over TLS, to a
+            JWK Set <xref target="RFC7517"/>; the verifier selects the key
+            whose <tt>kid</tt> member equals the fragment.</li>
+          </ul>
+          <t>The part of a <tt>kid</tt> before its fragment MUST equal, after
+          the normalization in <xref target="independence"/>, the party
+          identifier the signature is attributed to. Verifying a signature
+          establishes that the holder of that key signed; that the key
+          belongs to the party is a property of the identity method, and this
+          document does not add to it.</t>
+        </section>
       </section>
 
-      <section anchor="conf-rules"><name>Rules JSON Schema Cannot Express</name>
+      <section anchor="conf-rules"><name>Rules Not Expressible in a Schema</name>
         <ul>
           <li><tt>parties.buyer</tt> and <tt>parties.seller</tt> MUST be
           distinct after the normalization in
@@ -1543,6 +1741,25 @@ Content-Type: application/problem+json
       <tt>criteria_hash</tt> are unchanged in construction.</t>
     </section>
 
+    <section anchor="implstatus"><name>Implementation Status</name>
+      <t>This section records the status of known implementations of this
+      document per <xref target="RFC7942"/>, and is to be removed before
+      publication as an RFC.</t>
+      <t>A reference implementation of the object schemas, the examples in
+      <xref target="example"/>, and a conformance validator is maintained at
+      https://github.com/pact-spec/spec under the Revised BSD licence. As of
+      the date of this document the validator runs sixty-six checks: schema
+      conformance for every object, JCS canonicalization including the
+      UTF-16 key-order vector of <xref target="conf-vectors"/>, every hash
+      commitment in <xref target="example"/>, the constraint of
+      <xref target="assurance"/> on the worked figures, the Merkle
+      construction of <xref target="merkle"/> against the definition in
+      <xref target="RFC9162"/>, and the vectors of
+      <xref target="conf-vectors"/>. No Facilitator, Buyer or Seller
+      exchanging messages over the endpoints of <xref target="endpoints"/> is
+      known to the author.</t>
+    </section>
+
     <section anchor="security"><name>Security Considerations</name>
       <t>Most of what follows was found by adversarial review of
       <xref target="I-D.laxsharma-pact-00"/> rather than anticipated when it
@@ -1652,6 +1869,11 @@ Content-Type: application/problem+json
         commitment. <xref target="delivery"/> requires
         <tt>vtc_hash</tt> to be computed over the contract including its
         signature set.</t>
+        <t>A Delivery, Verdict or Challenge replayed against a different
+        contract fails because each carries <tt>vtc_id</tt> and a hash that
+        binds it to one contract and one Delivery, and the
+        <tt>typ</tt> rule of <xref target="conf-sig"/> stops a signature over
+        one object type standing for another.</t>
       </section>
 
       <section anchor="sec-determinism"><name>Nondeterminism as Shield and as Weapon</name>
@@ -1678,6 +1900,44 @@ Content-Type: application/problem+json
         the signature of the party it convicts. Reputation that is
         structurally incapable of recording a loss is not evidence of
         anything.</t>
+      </section>
+
+      <section anchor="sec-facilitator"><name>Trust in the Facilitator</name>
+        <t>The Facilitator holds the price, the Bond and the Verification
+        Fund of every contract it settles. Nothing in this protocol stops a
+        Facilitator from keeping them. What the protocol does is make that
+        theft attributable: every movement of value is recorded in a Work
+        Attestation the Facilitator signs, every party holds a co-signed
+        contract stating what should have happened, and a Facilitator that
+        deviates has produced its own evidence. Whether that evidence has
+        consequences is a matter of reputation, contract or law, all of which
+        are outside this document. Deployments that cannot accept a single
+        custodian should look to multi-party custody, which this document
+        does not specify and does not preclude.</t>
+      </section>
+
+      <section anchor="sec-keys"><name>Key Compromise and Rotation</name>
+        <t>A signature here is a long-lived commitment, and a compromised key
+        signs contracts the party never agreed to. Rotation and revocation
+        belong to the identity method behind the <tt>kid</tt>
+        (<xref target="keyres"/>), and this document does not restate them.
+        Two things it does require: a Facilitator MUST record, with each
+        object it accepts, the key material or its digest as resolved at the
+        time of acceptance, so that a later rotation does not make an earlier
+        signature unverifiable; and a Facilitator MUST NOT accept an object
+        whose <tt>kid</tt> resolves to a key the identity method marks as
+        revoked at the time of acceptance.</t>
+      </section>
+
+      <section anchor="sec-dos"><name>Denial of Service by Challenge</name>
+        <t>Every accepted Challenge costs an independent evaluation. Without a
+        cost to the Challenger, a party can exhaust the Verification Fund or
+        the Facilitator's capacity by challenging every Delivery. The
+        <tt>challenge_deposit</tt> of <xref target="challenge-object"/> is
+        the defence, and it is a MAY because a deposit also deters the honest
+        challenger the open model relies on. A Facilitator that requires no
+        deposit SHOULD rate-limit Challenges per Challenger and per contract,
+        and SHOULD publish that it does so.</t>
       </section>
     </section>
 
@@ -1735,7 +1995,8 @@ Content-Type: application/problem+json
 
     <section anchor="iana"><name>IANA Considerations</name>
       <t>This document asks IANA to register six media types, one
-      well-known URI, and three registries.</t>
+      well-known URI, and two registries. It defines problem types but
+      does not ask for a registry of them (<xref target="iana-problems"/>).</t>
 
       <section anchor="iana-media"><name>Media Types</name>
         <t>IANA is requested to register the following in the "Media Types"
@@ -1877,17 +2138,23 @@ Content-Type: application/problem+json
         </table>
       </section>
 
-      <section anchor="iana-problems"><name>PACT Problem Types Registry</name>
-        <t>IANA is requested to create a registry named "PACT Problem Types",
-        registration policy Specification Required, listing the
-        <xref target="RFC9457"/> problem type identifiers used by
-        <xref target="ep-errors"/>. Each entry carries the identifier, the
-        HTTP status it accompanies, and the section of a specification
-        stating the rule it reports. A problem <tt>type</tt> is the identifier
-        appended to the prefix <tt>https://pact-spec.github.io/problem/</tt>.</t>
+      <section anchor="iana-problems"><name>Problem Types</name>
+        <t>This document creates no registry for its problem types.
+        <xref target="RFC9457"/> Section 4.2 establishes the "HTTP Problem
+        Types" registry for types intended for reuse across applications;
+        the types below are specific to this protocol and are identified by
+        URIs in a namespace this document defines, which that specification
+        permits without registration. Each is the identifier in the table
+        appended to the prefix <tt>https://pact-spec.github.io/problem/</tt>.
+        Per Section 3.1.1 of <xref target="RFC9457"/> a consumer uses the
+        URI as an identifier and SHOULD NOT dereference it automatically;
+        dereferencing SHOULD yield human-readable documentation, which the
+        author maintains at that prefix. Each entry carries the identifier,
+        the HTTP status it accompanies, and the section stating the rule it
+        reports.</t>
 
         <table anchor="tab-problems">
-          <name>Initial contents</name>
+          <name>Problem types defined by this document</name>
           <thead>
             <tr><th>Identifier</th><th>Status</th><th>Rule</th></tr>
           </thead>
@@ -1928,7 +2195,13 @@ Content-Type: application/problem+json
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6838.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8126.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8259.xml"/>
-      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6962.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9162.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7518.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8037.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7517.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.3339.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9110.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9325.xml"/>
     </references>
 
     <references><name>Informative References</name>
@@ -1989,6 +2262,25 @@ Content-Type: application/problem+json
         <refcontent>Work in Progress, Internet-Draft, draft-pinto-agent-authz-contestability-00</refcontent>
       </reference>
 
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8725.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7942.xml"/>
+      <reference anchor="DID-CORE" target="https://www.w3.org/TR/2022/REC-did-core-20220719/">
+        <front><title>Decentralized Identifiers (DIDs) v1.0</title>
+          <author><organization>W3C</organization></author>
+          <date day="19" month="July" year="2022"/></front>
+        <refcontent>W3C Recommendation</refcontent>
+      </reference>
+      <reference anchor="DID-WEB" target="https://w3c-ccg.github.io/did-method-web/">
+        <front><title>did:web Method Specification</title>
+          <author><organization>W3C Credentials Community Group</organization></author>
+          <date year="2026"/></front>
+      </reference>
+      <reference anchor="CAIP-2" target="https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md">
+        <front><title>CAIP-2: Blockchain ID Specification</title>
+          <author><organization>Chain Agnostic Standards Alliance</organization></author>
+          <date day="5" month="December" year="2019"/></front>
+        <refcontent>Status: Final</refcontent>
+      </reference>
       <reference anchor="ASOKAN98THESIS" target="https://uwspace.uwaterloo.ca/">
         <front>
           <title>Fairness in Electronic Commerce</title>
@@ -2054,5 +2346,19 @@ Content-Type: application/problem+json
         <refcontent>Internet-Draft, draft-laxsharma-pact-00</refcontent>
       </reference>
     </references>
+
+    <section anchor="acks" numbered="false"><name>Acknowledgements</name>
+      <t>The UTF-16 key-ordering vector that exposed a latent
+      canonicalization defect in the reference validator, and the
+      formulation of verifier independence as a relation the evaluator
+      derives rather than a field the record declares, came from Tersign
+      (wowlegend) on x402-foundation/x402 issue 3065. The observation that
+      verification tiers say how work is checked and never who checks it,
+      which set off the adversarial review this revision rests on, came from
+      msaleme on the same thread. Rich Smith's A2A Settlement Extension was
+      the clearest instance of the pattern <xref target="settlement"/>
+      corrects, and he engaged with the critique on a2aproject/A2A
+      discussion 1576.</t>
+    </section>
   </back>
 </rfc>

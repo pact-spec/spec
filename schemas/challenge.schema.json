@@ -51,7 +51,8 @@
           }
         }
       },
-      "$comment": "Section 7.5. Profile-conditional members enforced in code."
+      "$comment": "Section 7.5. Profile-conditional members enforced in code.",
+      "additionalProperties": false
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"

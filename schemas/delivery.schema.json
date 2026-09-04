@@ -60,7 +60,8 @@
           "format": "uri"
         }
       },
-      "$comment": "Section 6. Tier-conditional members enforced in code."
+      "$comment": "Section 6. Tier-conditional members enforced in code.",
+      "additionalProperties": false
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"

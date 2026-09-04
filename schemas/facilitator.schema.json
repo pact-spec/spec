@@ -45,7 +45,8 @@
               "type": "string"
             }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "release_modes": {
@@ -88,7 +89,8 @@
         "currency": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "endpoints": {
       "type": "object",
@@ -106,6 +108,23 @@
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"
+    },
+    "challenge_deposit": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "currency": {
+          "type": "string"
+        }
+      },
+      "$comment": "Section 8. Absent means no deposit is required.",
+      "additionalProperties": false
     }
   }
 }

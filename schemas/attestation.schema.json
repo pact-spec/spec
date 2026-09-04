@@ -46,7 +46,8 @@
         "facilitator": {
           "$ref": "common.schema.json#/$defs/did"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "subject": {
       "$ref": "common.schema.json#/$defs/did"
@@ -89,7 +90,8 @@
         "currency": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "children_merkle_root": {
       "$ref": "common.schema.json#/$defs/hash",

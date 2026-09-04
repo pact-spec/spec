@@ -48,7 +48,8 @@
           "$ref": "common.schema.json#/$defs/did"
         }
       },
-      "$comment": "buyer and seller MUST be distinct. JSON Schema cannot compare sibling values, so tools/validate.py enforces it: a self-dealt contract otherwise validates and satisfies the two-signature rule with one key signing twice."
+      "$comment": "buyer and seller MUST be distinct. JSON Schema cannot compare sibling values, so tools/validate.py enforces it: a self-dealt contract otherwise validates and satisfies the two-signature rule with one key signing twice.",
+      "additionalProperties": false
     },
     "task": {
       "type": "object",
@@ -68,14 +69,16 @@
           "type": "string",
           "format": "date-time"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "price": {
       "type": "object",
       "required": [
         "amount",
         "currency",
-        "settlement"
+        "settlement",
+        "network"
       ],
       "properties": {
         "amount": {
@@ -87,10 +90,12 @@
         "settlement": {
           "type": "string"
         },
-        "channel": {
-          "type": "string"
+        "network": {
+          "type": "string",
+          "$comment": "Section 2: form defined by the settlement binding; pact-escrow uses CAIP-2."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "verification": {
       "type": "object",
@@ -112,7 +117,8 @@
         "profile": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "liability": {
       "$ref": "common.schema.json#/$defs/liability"
@@ -134,5 +140,6 @@
     "release": {
       "$ref": "common.schema.json#/$defs/release_mode"
     }
-  }
+  },
+  "additionalProperties": false
 }

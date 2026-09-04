@@ -44,7 +44,7 @@ settlement economics do not close. Everything is logged in
 [issue #1](https://github.com/pact-spec/spec/issues/1), with dispositions.
 The three that matter most if you are reading the draft today:
 
-1. **A defrauded buyer recovers nothing from the bond.** Section 4.3
+1. **A defrauded buyer recovers nothing from the bond.** The -00's Section 4.3
    directs the slashed bond to the challenger and then to a neutral sink
    "rather than to any party to the dispute", and the buyer is a party to
    the dispute. The bond is a fine, not collateral.
@@ -91,7 +91,7 @@ The validator also checks the rules JSON Schema cannot express (parties
 are distinct after normalization, one signature per named party, protected
 headers carry `alg`/`kid`/`typ` with an allowed algorithm), evaluates the
 assurance constraint of -01 Section 7.2 against the worked figures in -01
-Section 16, pins the canonical key order described below, and runs the
+Section 14, pins the canonical key order described below, and runs the
 Section 13.3 conformance vectors.
 
 ```

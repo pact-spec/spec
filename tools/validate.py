@@ -287,7 +287,7 @@ def assurance_holds(contract, released=0.0):
 check("example contract satisfies the assurance constraint",
       assurance_holds(vtc))
 
-# Worked figures from Section 16. P = 180.00, B = 18.00, E = 0.
+# Worked figures from Section 14. P = 180.00, B = 18.00, E = 0.
 check("q_min 1.00 requires no bond at P=180",
       abs(required_bond(180.0, 1.00)) < 1e-9)
 check("q_min 0.9091 requires B ~= 18.00 at P=180",

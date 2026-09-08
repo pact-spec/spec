@@ -12,7 +12,8 @@ Checks performed:
      instrument is committed from inside the TaskSpec as well as by the
      CFB and the VTC.
   5. bid.commitment equals sha256(JCS(bid-reveal.reveal)).
-  6. attestation.vtc_hash equals sha256(JCS(vtc without signatures)).
+  6. vtc_hash in Delivery, Verdict, Challenge and Attestation equals
+     sha256(JCS(vtc)) with the signatures member included (-01 Section 6).
   7. Rules the schemas cannot express: parties are distinct, one
      signature per named party, and every JOSE protected header carries
      alg, kid and typ with an allowed algorithm.

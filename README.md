@@ -57,8 +57,14 @@ findings and narrows the document to what only PACT can specify:
   the -00 named but never specified now exists.
 - `vtc_hash` is computed over the contract including its signature set,
   so the digest proves who agreed and not only what was written.
-- The x402, A2A and AP2 bindings are corrected. PACT composes with x402 as
-  the `pact-escrow` scheme.
+- The A2A and AP2 bindings are gone. The -00 carried an AP2 mandate binding
+  and an A2A skill identifier; -01 removes both, and the contract schema has
+  no member for an external task or mandate reference. Section 1.3 says only
+  that PACT is designed to be usable alongside the adjacent drafts that do
+  carry them. `price.settlement` names a settlement binding instead, and the
+  draft reserves one identifier, `pact-escrow`, in a registry it asks IANA to
+  create. The x402 scheme itself, its payload and its verify and settle
+  procedures, is not written and is the first item of future work.
 
 ## Repository layout
 
@@ -122,11 +128,13 @@ xml2rfc --text --html draft/draft-laxsharma-pact-01.xml
 
 ## Relationship to other work
 
-PACT composes A2A task identifiers, x402 (as the `pact-escrow` scheme),
-AP2 mandates, JWS (RFC 7515) with keys resolved through DID Core, did:web
+PACT composes JWS (RFC 7515) with keys resolved through DID Core, did:web
 or a JWK Set, JCS (RFC 8785), the RFC 9162 Merkle tree, RATS/EAT evidence
-formats (RFC 9334/9711) for the TEE verification tier, and RFC 9457
-problem details for errors. Its settlement is an optimistic fair exchange
+formats (RFC 9334/9711) for the TEE verification tier, and RFC 9457 problem
+details for errors. It names a settlement binding rather than assuming a
+rail, so it is chain-agnostic, and it is designed to sit alongside the agent
+transport and payment protocols rather than to bind them: -01 specifies no
+binding to any of them. Its settlement is an optimistic fair exchange
 in the sense of Asokan, Shoup and Waidner (1998). The bond-sizing rule it
 relies on is prior art (Polinsky and Shavell; Belenkiy et al.;
 Mamageishvili and Felten) that the draft cites rather than reintroduces.

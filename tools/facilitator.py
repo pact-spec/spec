@@ -61,7 +61,11 @@ Section 13.1  JWS with a detached payload, an algorithm allowlist, and kid insid
               protected header
 """
 
-PROBLEM_BASE = "https://pact-spec.github.io/problems/"
+# Section 18.5: "This document creates no registry for its problem types." A
+# URL that 404s is worse than an opaque identifier, so these are document-local
+# URNs until a registry exists. RFC 9457 permits any URI and does not require
+# it to dereference.
+PROBLEM_BASE = "urn:pact:problem:"
 
 # Section 18.5 reserves these names but does not create a registry; the draft
 # asks IANA to create one on publication. Until then these are the document's
@@ -78,6 +82,7 @@ PROBLEMS = {
     "wrong-state": (409, "Section 12"),
     "object-conflict": (409, "Section 12.2"),
     "challenge-window-closed": (409, "Section 7.4"),
+    "evidence-nonconformant": (422, "Section 6"),
     "release-exceeds-bond": (422, "Section 7.1"),
     "unknown-contract": (404, "Section 12"),
 }
@@ -259,6 +264,7 @@ class Facilitator:
             c.pools.bond = 0
         if c.pools.fund:
             c.pools.note(f"returned verification fund {pc.money(c.pools.fund)}")
+            c.pools.fund_returned += c.pools.fund
             c.pools.fund = 0
 
     # -- Submit Delivery, Section 12 --------------------------------------
@@ -280,6 +286,38 @@ class Facilitator:
                                        "application/pact-delivery+json", [c.seller])
             if not ok:
                 raise Refuse("signature-invalid", why)
+
+            # Section 6: the Delivery is the thing being judged, and evidence
+            # must conform to the profile the contract declares. Without this
+            # the -00's cheapest attack, deliver nothing verifiable, is open
+            # again. validate.py's negative vector V-14 covers the same rule.
+            # Draft line 832: "A Facilitator MUST reject a Delivery whose
+            # evidence is absent or does not conform to the profile named in the
+            # VTC, and MUST apply Section 7.4 as though a FAIL Verdict had been
+            # recorded." Both halves are normative. Refusing without applying
+            # the waterfall would leave the contract sitting in FUNDED with the
+            # Buyer's escrow locked, which is the outcome the rule exists to
+            # prevent. This is the rule the draft calls the one that makes
+            # silence expensive.
+            evidence = dlv.get("evidence")
+            declared = c.vtc["verification"]["profile"]
+            reason = None
+            if not isinstance(evidence, dict):
+                reason = "the Delivery carries no evidence member"
+            elif evidence.get("profile") != declared:
+                reason = (f"evidence profile {evidence.get('profile')!r} does not "
+                          f"match the contract's declared profile {declared!r}")
+            elif evidence.get("instrument_hash") != \
+                    c.vtc["verification"]["criteria_hash"]:
+                reason = ("the evidence does not commit to the instrument the "
+                          "contract committed to")
+            if reason is not None:
+                c.pools.note(f"nonconformant Delivery: {reason}; applying "
+                             f"Section 7.4 as though a FAIL Verdict were recorded")
+                self._apply_waterfall(c, challenger=c.buyer, costs=0)
+                raise Refuse("evidence-nonconformant", reason,
+                             state=c.state,
+                             remedy="Section 7.4 applied as though FAIL")
 
             c.delivery = dlv
             c.state = "DELIVERED"
@@ -324,28 +362,47 @@ class Facilitator:
                 return 200, existing
 
             c = self._contract_for(verdict)
-            if c.state != "DELIVERED":
-                raise Refuse("wrong-state", f"contract {c.id} is {c.state}")
+            if c.state not in ("DELIVERED", "DISPUTED"):
+                raise Refuse("wrong-state",
+                             f"contract {c.id} is {c.state}; a Verdict is accepted "
+                             f"on DELIVERED, or on DISPUTED to resolve a challenge")
 
             kids = pc.signer_kids(verdict)
             if not kids:
                 raise Refuse("signature-missing", "the Verdict carries no signature")
 
-            # Section 9.1, derived not declared. A field that says independent
-            # is satisfied by typing the word.
+            # Draft line 1852: "The Verifier is the party identified by the kid
+            # of the Verdict's signature. Where the contract names
+            # parties.verifier, the Verdict MUST be signed by that party;
+            # otherwise the Facilitator evaluates Section 9.1 against the
+            # signer." An earlier version checked only that the signer was not
+            # the Seller or the Facilitator, so any resolvable key could pass or
+            # fail any contract.
+            named = c.vtc["parties"].get("verifier")
+            if named:
+                if not any(pc.kid_covers(k, named) for k in kids):
+                    raise Refuse("verifier-not-independent",
+                                 "the contract names a verifier and the Verdict "
+                                 "is not signed by that party",
+                                 signer=kids[0], required_verifier=named)
             for kid in kids:
                 if pc.kid_covers(kid, c.seller):
                     raise Refuse("verifier-not-independent",
                                  "the Verdict is signed by the contract's Seller",
                                  signer=kid, seller=c.seller)
+                if pc.kid_covers(kid, c.buyer):
+                    raise Refuse("verifier-not-independent",
+                                 "the Verdict is signed by the contract's Buyer",
+                                 signer=kid, buyer=c.buyer)
                 if pc.kid_covers(kid, self.identity):
                     raise Refuse("facilitator-cannot-verify",
                                  "a Facilitator MUST NOT act as Verifier for a "
                                  "contract it settles",
                                  signer=kid, facilitator=self.identity)
 
-            ok, why = pc.verify_object(verdict, self.resolver,
-                                       "application/pact-verdict+json", [])
+            ok, why = pc.verify_object(
+                verdict, self.resolver, "application/pact-verdict+json",
+                [named] if named else [])
             if not ok:
                 raise Refuse("signature-invalid", why)
 
@@ -398,22 +455,19 @@ class Facilitator:
             if not ok:
                 raise Refuse("signature-invalid", why)
 
+            # A Challenge is a fraud proof submitted for evaluation, not a
+            # finding. Section 7.5: "A Challenge that is accepted is evaluated
+            # by a party satisfying Section 9.1, whose finding is a Verdict; the
+            # Challenger's own assertion is not." An earlier version of this
+            # file applied the waterfall directly here, which let any party with
+            # a resolvable key destroy a Seller's bond with no Verdict ever
+            # recorded. Accepting a Challenge moves the contract to DISPUTED and
+            # nothing else.
             c.challenge = ch
             c.state = "DISPUTED"
-
-            # The Challenge object carries no member for the documented costs
-            # that waterfall rank 2 must reimburse, and the schema is closed,
-            # so a Facilitator has nothing in the object to reimburse against.
-            # Implementing this surfaced the gap. Until a -02 adds a cost claim,
-            # the honest reading is that the Verification Fund is sized for one
-            # challenge under the contract's profile and is spent on one, so
-            # that is what this implementation does. Recorded in the ledger.
-            challenger = pc.signer_kids(ch)[0] if pc.signer_kids(ch) else c.buyer
-            costs = c.pools.fund
-            c.pools.note("rank 2 note: the Challenge object defines no documented "
-                         "cost member, so the whole Verification Fund is treated "
-                         "as the sized reimbursement. This is a -02 gap.")
-            self._apply_waterfall(c, challenger=challenger, costs=costs)
+            c.pools.note(f"challenge accepted from "
+                         f"{pc.signer_kids(ch)[0] if pc.signer_kids(ch) else 'unknown'}, "
+                         f"awaiting a Verdict from an independent evaluator")
             body = dict(ch)
             body["state"] = c.state
             self._remember("challenge", ch, body)
@@ -475,6 +529,7 @@ class Facilitator:
 
         if p.fund:
             p.note(f"returned unspent verification fund {pc.money(p.fund)}")
+            p.fund_returned += p.fund
             p.fund = 0
 
         c.state = "SETTLED"

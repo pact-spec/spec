@@ -94,6 +94,18 @@ class Harness:
         return agents.cosign(vtc, self.buyer, self.seller)
 
 
+def conservation(c) -> dict:
+    """Every cent that went in must be accounted for at a terminal state."""
+    p = c.pools
+    put_in = p.bond_initial + pc.cents(c.vtc["price"]["amount"]) + \
+        pc.cents(c.vtc["liability"]["verification_fund"])
+    accounted = (p.paid_to_buyer + p.paid_to_seller + p.paid_to_challenger +
+                 p.remainder + p.bond_returned + p.fund_returned +
+                 p.escrow + p.bond + p.fund)
+    return {"in": pc.money(put_in), "accounted": pc.money(accounted),
+            "balanced": put_in == accounted}
+
+
 def scenario(h: Harness, name: str, run) -> dict:
     before = len(h.client.wire)
     t0 = time.perf_counter()
@@ -111,7 +123,9 @@ def scenario(h: Harness, name: str, run) -> dict:
              "req": w.request_bytes, "resp": w.response_bytes,
              "ms": round(w.seconds * 1000, 2)} for w in wire],
     }
-    out.update({k: v for k, v in detail.items() if k != "state"})
+    out.update({k: v for k, v in detail.items() if k not in ("state", "contract")})
+    if "contract" in detail:
+        out["money"] = conservation(detail["contract"])
     REPORT["scenarios"][name] = out
     return out
 
@@ -143,7 +157,7 @@ def run_final(h: Harness) -> dict:
     return {"state": c.state, "attestation_verifies": ok, "attestation_reason": why,
             "schema": {"contract": schema, "delivery": dschema, "verdict": vschema,
                        "attestation": _schema_check(att, "attestation.schema.json")},
-            "amounts": att["amounts"], "ledger": c.pools.ledger}
+            "amounts": att["amounts"], "ledger": c.pools.ledger, "contract": c}
 
 
 def run_settled(h: Harness) -> dict:
@@ -162,7 +176,7 @@ def run_settled(h: Harness) -> dict:
     return {"state": c.state, "attestation_verifies": ok, "attestation_reason": why,
             "amounts": att["amounts"], "ledger": c.pools.ledger,
             "buyer_recovered": pc.money(c.pools.paid_to_buyer),
-            "seller_received": pc.money(c.pools.paid_to_seller)}
+            "seller_received": pc.money(c.pools.paid_to_seller), "contract": c}
 
 
 def run_settled_price(h: Harness) -> dict:
@@ -187,7 +201,8 @@ def run_settled_price(h: Harness) -> dict:
             "attestation_reason": "ok",
             "amounts": att["amounts"], "ledger": c.pools.ledger,
             "buyer_recovered": pc.money(c.pools.paid_to_buyer),
-            "from_bond": pc.money(c.pools.paid_to_buyer - pc.cents(vtc["price"]["amount"]))}
+            "from_bond": pc.money(c.pools.paid_to_buyer - pc.cents(vtc["price"]["amount"])),
+            "contract": c}
 
 
 def run_abandoned(h: Harness) -> dict:
@@ -203,7 +218,7 @@ def run_abandoned(h: Harness) -> dict:
     return {"state": c.state, "attestation_verifies": ok, "attestation_reason": why,
             "amounts": att["amounts"], "ledger": c.pools.ledger,
             "buyer_recovered": pc.money(c.pools.paid_to_buyer),
-            "bond_kept_by_seller": pc.money(c.pools.bond_returned)}
+            "bond_kept_by_seller": pc.money(c.pools.bond_returned), "contract": c}
 
 
 # --------------------------------------------------------------------------
@@ -268,6 +283,56 @@ def run_refusals(h: Harness) -> None:
     tampered["signatures"][0]["protected"] = prot
     record("algorithm_none", *h.client.propose(tampered))
 
+    # --- the cases the September review found this implementation failing ---
+
+    # Draft line 1852: the contract names a verifier, so only that party judges.
+    stranger = agents.make_party("did:web:watchdog.example", h.resolver, h.client)
+    vtc4 = h.fresh("vtc_refuse_stranger")
+    h.client.propose(vtc4)
+    d4 = agents.make_delivery(vtc4, h.seller, b"w", b"r")
+    h.client.deliver(d4)
+    record("verdict_by_unnamed_party",
+           *h.client.verdict(agents.make_verdict(vtc4, d4, stranger, "PASS")))
+
+    # Section 7.5: a Challenge is evaluated by an independent party whose
+    # finding is a Verdict. Accepting one must NOT settle the contract.
+    st, _ = h.client.challenge(agents.make_challenge(vtc4, d4, stranger, ["rows"]))
+    c4 = h.fac.contracts["vtc_refuse_stranger"]
+    REPORT["refusals"]["challenge_alone_does_not_settle"] = {
+        "status": st, "type": f"state stays {c4.state}",
+        "section": "Section 7.5",
+        "detail": f"bond intact: {pc.money(c4.pools.bond)} of "
+                  f"{pc.money(c4.pools.bond_initial)}, attestation issued: "
+                  f"{c4.attestation is not None}",
+    }
+
+    # Section 6: a Delivery must carry evidence conformant to the profile.
+    vtc5 = h.fresh("vtc_refuse_noevidence")
+    h.client.propose(vtc5)
+    d5 = agents.make_delivery(vtc5, h.seller, b"w", b"r")
+    del d5["evidence"]
+    d5 = h.seller.sign_into(d5, agents.MEDIA_DELIVERY)
+    record("delivery_without_evidence", *h.client.deliver(d5))
+
+    # RFC 8725 3.11 and vector V-05: typ carries the full media type.
+    vtc6 = h.fresh("vtc_refuse_typ")
+    h.client.propose(vtc6)
+    d6 = agents.make_delivery(vtc6, h.seller, b"w", b"r")
+    h.client.deliver(d6)
+    wrong = agents.make_verdict(vtc6, d6, h.verifier, "PASS")
+    wrong["signature"] = pc.sign({k: v for k, v in wrong.items() if k != "signature"},
+                                 h.verifier.key, agents.MEDIA_DELIVERY)
+    record("verdict_signed_with_delivery_typ", *h.client.verdict(wrong))
+
+    # Section 9.1 normalization: a longer identifier is a different party.
+    evil = agents.make_party(SELLER + ".evil", h.resolver, h.client)
+    vtc7 = h.fresh("vtc_refuse_prefix")
+    h.client.propose(vtc7)
+    d7 = agents.make_delivery(vtc7, h.seller, b"w", b"r")
+    h.client.deliver(d7)
+    record("verdict_by_prefix_lookalike",
+           *h.client.verdict(agents.make_verdict(vtc7, d7, evil, "PASS")))
+
 
 # --------------------------------------------------------------------------
 # Microbenchmarks
@@ -314,19 +379,17 @@ def run_micro(h: Harness) -> None:
         "delivery": len(pc.jcs(pc.hashable(dlv))),
     }
 
-    # T0-reexec, the cheapest verification tier: the acceptance harness the
-    # contract commits to by hash. This is the cost the profile imposes, and it
-    # dominates every protocol operation above by orders of magnitude, which is
-    # the point worth making about where verification cost actually lives.
-    harness = ROOT / "examples" / "acceptance-harness" / "test_acceptance.py"
-    if harness.exists():
-        t0 = time.perf_counter()
-        proc = subprocess.run([sys.executable, str(harness)],
-                              capture_output=True, cwd=str(harness.parent))
-        REPORT["micro"]["t0_reexec_acceptance_harness"] = {
-            "wall_ms": round((time.perf_counter() - t0) * 1000, 2),
-            "exit": proc.returncode,
-        }
+    # There is deliberately NO T0-reexec figure here. An earlier version timed
+    # examples/acceptance-harness/test_acceptance.py by running it as a plain
+    # script, which executes no tests at all: it is a pytest module, so it
+    # imports, defines its test functions, and exits 0 in silence. The number
+    # that produced was pytest's import time and nothing else, and the claim
+    # built on it, that verification cost exceeds protocol cost by three orders
+    # of magnitude, had no measurement behind it. Producing an honest figure
+    # needs the harness invoked through pytest with its documented arguments,
+    # and those currently fail because pytest_addoption sits in a test module
+    # rather than a conftest.py. Moving it changes the directory manifest and
+    # therefore criteria_hash, which is a -02 item.
 
 
 # --------------------------------------------------------------------------
@@ -385,10 +448,7 @@ def main() -> None:
     if cb:
         print(f"  canonical bytes                    contract {cb['contract']}, "
               f"delivery {cb['delivery']}")
-    t0 = REPORT["micro"].get("t0_reexec_acceptance_harness")
-    if t0:
-        print(f"  T0-reexec acceptance harness       {t0['wall_ms']:>10.2f} ms "
-              f"(exit {t0['exit']})")
+    print("\n  no T0-reexec figure is reported; see the comment in run_micro")
 
 
 if __name__ == "__main__":

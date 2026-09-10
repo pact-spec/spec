@@ -142,16 +142,38 @@ def attach(obj: dict, entry: dict, array: bool) -> dict:
 # --------------------------------------------------------------------------
 
 def norm(identifier: str) -> str:
-    """Normalize a party identifier before comparing two of them.
+    """Normalize a party identifier per Section 9.1, exactly as written.
 
-    Section 9.1 requires that independence be *derived* by comparing party
-    identifiers, not declared in a field. Comparison without normalization is
-    the hole: two identifiers differing only by case, a trailing separator or
-    Unicode form would compare unequal and a Seller could verify its own work.
-    Conformance vector V-07 pins this.
+    "strip leading and trailing whitespace; lower-case the scheme and, for
+    did:web and https identifiers, the host; remove any fragment (a "#" and
+    everything after it) and any trailing "/" or ".". Percent-encoding MUST NOT
+    be decoded, since an open-ended decoder is its own attack surface."
+
+    Note what this does NOT do. It does not case-fold the whole identifier: the
+    path of a did:web is case sensitive, and folding it would merge two
+    distinct parties. An earlier version of this function folded everything and
+    never stripped the fragment, which is both too permissive and too strict in
+    different places.
     """
-    s = unicodedata.normalize("NFC", identifier).strip().casefold()
-    while s.endswith(("/", "#", ":")):
+    s = unicodedata.normalize("NFC", identifier).strip()
+    s = s.split("#", 1)[0]
+
+    if ":" in s:
+        scheme, rest = s.split(":", 1)
+        scheme = scheme.lower()
+        if scheme == "did":
+            parts = rest.split(":")
+            if parts:
+                parts[0] = parts[0].lower()               # the DID method
+                if parts[0] == "web" and len(parts) > 1:
+                    parts[1] = parts[1].lower()           # the host
+            rest = ":".join(parts)
+        elif scheme in ("http", "https") and rest.startswith("//"):
+            host, sep, tail = rest[2:].partition("/")
+            rest = "//" + host.lower() + sep + tail
+        s = scheme + ":" + rest
+
+    while s.endswith(("/", ".")):
         s = s[:-1]
     return s
 
@@ -291,7 +313,8 @@ def sign(obj: dict, key: Key, typ: str) -> dict:
     return {"protected": b64u(jcs(protected)), "signature": b64u(sig)}
 
 
-def verify_entry(obj: dict, entry: dict, resolver: KeyResolver) -> tuple[bool, str]:
+def verify_entry(obj: dict, entry: dict, resolver: KeyResolver,
+                 expect_typ: str | None = None) -> tuple[bool, str]:
     """Verify one signature entry. Returns (ok, reason)."""
     try:
         protected = json.loads(b64u_decode(entry["protected"]))
@@ -304,6 +327,14 @@ def verify_entry(obj: dict, entry: dict, resolver: KeyResolver) -> tuple[bool, s
     if "kid" in entry:
         # Section 13.1: a kid outside the signed header is attacker-controlled.
         return False, "kid carried as a sibling of the protected header"
+    # RFC 8725 section 3.11 and conformance vector V-05: typ carries the full
+    # media type so a signature minted over one object cannot be presented as
+    # one minted over another. This was previously accepted as an argument and
+    # never compared, which made V-05 pass in validate.py and fail over the wire.
+    if expect_typ is not None and protected.get("typ") != expect_typ:
+        return False, (f"typ {protected.get('typ')!r} does not match the expected "
+                       f"{expect_typ!r}")
+
     alg = protected["alg"]
     if alg not in ALLOWED_ALGS:
         # Rejecting `none` and everything off the allowlist is the whole point:
@@ -337,11 +368,14 @@ def signer_kids(obj: dict) -> list[str]:
 def kid_covers(kid: str, party: str) -> bool:
     """True when `kid` is a key identifier belonging to `party`.
 
-    A kid is a DID URL or a JWK Set URI, so the party identifier is a prefix
-    of it once both are normalized. Comparing raw strings here would reopen
-    exactly the hole Section 9.1 closes.
+    Section 9.1 normalization strips the fragment, so a kid of
+    did:web:seller.example#key-1 normalizes to the party identifier itself and
+    this is an equality test. It used to be a prefix test, which is a hole:
+    did:web:acme.example.evil starts with did:web:acme.example and would have
+    signed as its neighbour. Line 1965 of the draft requires equality of the
+    normalized identifier, not containment.
     """
-    return norm(kid).startswith(norm(party))
+    return norm(kid) == norm(party)
 
 
 def verify_object(obj: dict, resolver: KeyResolver, typ: str,
@@ -352,7 +386,7 @@ def verify_object(obj: dict, resolver: KeyResolver, typ: str,
         return False, "object carries no signatures"
 
     for entry in entries:
-        ok, why = verify_entry(obj, entry, resolver)
+        ok, why = verify_entry(obj, entry, resolver, expect_typ=typ)
         if not ok:
             return False, why
 
@@ -415,6 +449,7 @@ class Pools:
     fund: int = 0
     bond_initial: int = 0
     bond_returned: int = 0
+    fund_returned: int = 0
     released: int = 0  # E in the constraint of Section 7.2
     paid_to_buyer: int = 0
     restituted: int = 0

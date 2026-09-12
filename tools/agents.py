@@ -98,7 +98,7 @@ def make_party(did: str, resolver: pc.KeyResolver, client: Client,
 # --------------------------------------------------------------------------
 
 def draft_contract(vid: str, buyer: str, seller: str, facilitator: str,
-                   verifier: str, *, price: str = "180.00", bond: str = "18.00",
+                   verifier: str | None, *, price: str = "180.00", bond: str = "18.00",
                    fund: str = "0.50", q_min: float = 0.9091,
                    deadline: str = "2027-01-01T00:00:00Z",
                    release: str = "on-verification",
@@ -106,14 +106,14 @@ def draft_contract(vid: str, buyer: str, seller: str, facilitator: str,
                    spec_hash: str | None = None,
                    criteria_hash: str | None = None) -> dict:
     """An unsigned contract in the shape schemas/vtc.schema.json requires."""
+    parties = {"buyer": buyer, "seller": seller, "facilitator": facilitator}
+    if verifier is not None:
+        parties["verifier"] = verifier   # absent: Section 9.1 is derived per signer
     return {
         "pact": "0.1",
         "type": "VerifiableTaskContract",
         "id": vid,
-        "parties": {
-            "buyer": buyer, "seller": seller,
-            "facilitator": facilitator, "verifier": verifier,
-        },
+        "parties": parties,
         "task": {
             "spec_hash": spec_hash or pc.h(b"taskspec placeholder"),
             "spec_uri": "https://buyer.example/specs/taskspec.json",

@@ -35,6 +35,7 @@ import base64
 import hashlib
 import json
 import unicodedata
+from decimal import Decimal
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -201,10 +202,19 @@ def required_bond(price: float, q: float, released: float = 0.0) -> float:
     return price * (1.0 - q) / q + released
 
 
-def assurance_holds(price: float, bond: float, q_min: float,
-                    released: float = 0.0) -> bool:
-    # Compare in cents to keep the decimal figures of a contract exact.
-    return round(bond * 100) >= round(required_bond(price, q_min, released) * 100)
+def assurance_holds(price: str | float, bond: str | float, q_min: str | float,
+                    released: str | float = "0") -> bool:
+    """B >= P(1-q)/q + E, evaluated exactly.
+
+    Multiplied through by q (which is positive) this is B*q >= P*(1-q) + E*q,
+    which needs no division and no rounding. An earlier version rounded both
+    sides to the nearest cent first, and a bond one hundredth of a cent short
+    of the bound passed.
+    """
+    P, B, q, E = (Decimal(str(x)) for x in (price, bond, q_min, released))
+    if q <= 0:
+        raise ValueError("q must be greater than zero")
+    return B * q >= P * (1 - q) + E * q
 
 
 # --------------------------------------------------------------------------
@@ -222,14 +232,18 @@ def b64u_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 
-def signing_input(protected: dict, obj: dict) -> bytes:
+def signing_input(protected_b64: str, obj: dict) -> bytes:
     """ASCII(BASE64URL(UTF8(protected)) || "." || BASE64URL(JCS(object))).
 
     Exactly RFC 7515 section 5.1, over the object with its signing member
     removed. The payload is never transmitted; a verifier rebuilds it from
-    the object it holds.
+    the object it holds. The protected header is used AS TRANSMITTED: an
+    earlier version re-serialized the parsed header, which meant a
+    conformant JWS whose header bytes differed from this module's own
+    serialization (whitespace, key order) was rejected, and the commitment
+    depended on a re-serialization the signer never saw.
     """
-    return (b64u(jcs(protected)) + "." + b64u(jcs(signable(obj)))).encode("ascii")
+    return (protected_b64 + "." + b64u(jcs(signable(obj)))).encode("ascii")
 
 
 @dataclass
@@ -301,6 +315,16 @@ class KeyResolver:
         return self._keys.get(kid)
 
 
+def public_bytes(key: "Key") -> bytes:
+    """Raw public key bytes, for the Section 16.11 record of what was resolved."""
+    from cryptography.hazmat.primitives import serialization
+    if key.alg == "EdDSA":
+        return key.public.public_bytes(serialization.Encoding.Raw,
+                                       serialization.PublicFormat.Raw)
+    return key.public.public_bytes(serialization.Encoding.X962,
+                                   serialization.PublicFormat.UncompressedPoint)
+
+
 def sign(obj: dict, key: Key, typ: str) -> dict:
     """Return one entry for the object's `signatures` array.
 
@@ -308,9 +332,9 @@ def sign(obj: dict, key: Key, typ: str) -> dict:
     an omitted typ lets an attacker present a token minted for one purpose as
     one minted for another.
     """
-    protected = {"alg": key.alg, "kid": key.kid, "typ": typ}
-    sig = key.sign_bytes(signing_input(protected, obj))
-    return {"protected": b64u(jcs(protected)), "signature": b64u(sig)}
+    protected_b64 = b64u(jcs({"alg": key.alg, "kid": key.kid, "typ": typ}))
+    sig = key.sign_bytes(signing_input(protected_b64, obj))
+    return {"protected": protected_b64, "signature": b64u(sig)}
 
 
 def verify_entry(obj: dict, entry: dict, resolver: KeyResolver,
@@ -338,8 +362,10 @@ def verify_entry(obj: dict, entry: dict, resolver: KeyResolver,
     alg = protected["alg"]
     if alg not in ALLOWED_ALGS:
         # Rejecting `none` and everything off the allowlist is the whole point:
-        # absent one, the attacker selects the algorithm.
-        return False, f"algorithm {alg!r} is not allowed"
+        # absent one, the attacker selects the algorithm. The reason string
+        # starts with "algorithm" so a caller can map it to Table 9's
+        # algorithm-not-permitted rather than a generic signature failure.
+        return False, f"algorithm {alg!r} is not permitted"
 
     key = resolver.resolve(protected["kid"])
     if key is None:
@@ -349,7 +375,7 @@ def verify_entry(obj: dict, entry: dict, resolver: KeyResolver,
 
     try:
         key.verify_bytes(b64u_decode(entry["signature"]),
-                         signing_input(protected, obj))
+                         signing_input(entry["protected"], obj))
     except Exception:
         return False, "signature does not verify"
     return True, "ok"
@@ -427,7 +453,13 @@ def mth(items: list[bytes]) -> bytes:
 # --------------------------------------------------------------------------
 
 def cents(amount: str | float) -> int:
-    return round(float(amount) * 100)
+    """Whole cents. Amounts with more than two decimal places are refused at
+    propose by the Facilitator (it settles in cents); this never rounds."""
+    d = Decimal(str(amount))
+    scaled = d * 100
+    if scaled != scaled.to_integral_value():
+        raise ValueError(f"amount {amount!r} is not a whole number of cents")
+    return int(scaled)
 
 
 def money(c: int) -> str:
@@ -450,6 +482,7 @@ class Pools:
     bond_initial: int = 0
     bond_returned: int = 0
     fund_returned: int = 0
+    cap: int = 0       # liability.cap: the most the Facilitator may move from the Seller
     released: int = 0  # E in the constraint of Section 7.2
     paid_to_buyer: int = 0
     restituted: int = 0

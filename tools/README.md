@@ -5,21 +5,23 @@ implementation of the protocol.
 
 | File | What it is |
 |---|---|
-| `validate.py` | The conformance validator: 66 checks over the committed examples and the Section 13.3 vectors. Needs only `jsonschema` and `referencing`. |
-| `pactcore.py` | Canonicalization, digests, JWS signing and verification, identifier normalization, the assurance constraint, and the RFC 9162 Merkle tree. |
-| `facilitator.py` | A reference Facilitator: the six operations of Table 1 over five paths, the Figure 2 state machine, the Section 7.4 waterfall, and RFC 9457 refusals that name the rule. |
+| `validate.py` | The conformance validator: 66 checks over the committed examples and the Section 13.3 vectors. Needs only `jsonschema` and `referencing`. No check is cryptographic. |
+| `pactcore.py` | Canonicalization, digests, JWS signing and verification over the transmitted protected header, identifier normalization, the assurance constraint in exact decimal arithmetic, and the RFC 9162 Merkle tree. |
+| `facilitator.py` | A reference Facilitator: the six operations of Table 1 over five paths, the Figure 2 state machine including the challenge window and the Figure 6 overturned-PASS path, the Section 7.4 waterfall, schema validation of every posted object, a signed capability document, and RFC 9457 refusals in the draft's own namespace that name the rule. `--rules` prints what it enforces and what it chose. |
 | `agents.py` | Buyer, Seller, Verifier and Challenger clients. |
-| `measure.py` | Drives four contracts through the terminal states, exercises thirteen refusal paths, checks that money balances, and reports costs. |
+| `measure.py` | Drives five contracts through the terminal states on a clock the harness advances, exercises 24 refusals and 2 acceptances each on the rule it is named for, asserts that money balances, checks every minted object and the capability document against the schemas, and reports costs. |
 
 ```
-pip install jsonschema referencing            # validate.py
-pip install cryptography                      # everything else
+pip install jsonschema referencing cryptography
 python3 tools/validate.py
 python3 tools/measure.py
+python3 tools/facilitator.py --rules
 ```
 
-`cryptography` is optional and `validate.py` does not need it, so a checkout
-still validates on a machine with nothing else installed.
+`validate.py` needs only the first two packages, so a checkout still validates
+on a machine with nothing else installed. The Facilitator refuses to start
+without `jsonschema`, because Section 12.1 makes schema conformance a MUST at
+Propose and a Facilitator that skips it is not one.
 
 ## What this does and does not answer
 
@@ -43,55 +45,93 @@ No payment rail is touched. Section 1.2 puts the rail out of scope and
 three pools. What is real is the object flow, the state machine, the signature
 verification and the arithmetic.
 
-## Questions this raises for -02
+## Not implemented, and refused rather than faked
 
-These are readings of the specification that an implementer has to resolve
-before writing code, and the draft does not resolve them. They are not bugs in
-this code, and none of them was discovered by running it: the arithmetic came
-from an adversarial review of the text in early September, and building the
-implementation confirmed it and added the second item below.
+A contract that needs any of these is refused at Propose with a problem body
+saying so, rather than accepted and then stranded or silently mishandled:
+subcontracts (Section 10; `liability.parent` is refused as `parent-unresolvable`),
+release modes other than on-verification, assurance modes other than certain,
+verification profiles other than acceptance, challenge deposits, settlement
+bindings other than the one the capability document advertises, and amounts
+finer than a cent. Key resolution is an in-process registry with the Section
+13.1.1 interface; the network lookup is the part that is stubbed.
 
-**Non-delivery can carry no bond consequence, and the disposition of the bond is
-then unspecified.** Section 6 requires that on a missed deadline the Facilitator
-"slash the Bond to the extent of `liability.restitution_basis`". The worked
-example sets that member to `released`, and under the default `on-verification`
-release nothing is released before a Verdict, so the extent is zero. Separately,
-Section 7.6 requires the Bond be returned "when the contract reaches FINAL or
-SETTLED" and says nothing about ABANDONED, which is the third terminal state. So
-the specification neither slashes the bond nor returns it. This implementation
-returns it, which is a choice it had to make and not a rule it followed:
+## Choices the draft left to the implementer
 
-```
-locked escrow 180.00, bond 18.00, fund 0.50
-deadline passed with no Delivery, returned escrow 180.00 to buyer
-restitution basis 'released' gives 0.00 from bond
-returned bond 18.00 to seller
-```
+Each of these is a place where the -01 text is silent or says two things.
+`facilitator.py --rules` prints the same list. They are choices, not rules, and
+a second implementation is free to choose differently, which is exactly the
+kind of disagreement the experiment exists to surface.
 
-**The `restitution_basis` default is load-bearing and undefended.** Under
-`released` the amount owed to the Buyer at rank 3 of the Section 7.4 waterfall
-is whatever was paid out before the Verdict, which under the default release
-mode is nothing. Under `price` the Buyer is restored from the Bond up to the
-cap. The document never argues for one over the other, and the worked example
-picks `released` without comment. Note carefully what this does and does not
-mean: in the ordinary pre-release FAIL path the Buyer is made whole anyway,
-because rank 1 returns the full unreleased escrow first, so a rank 3 payment of
-zero is arithmetically correct rather than a failure. The member matters in the
-paths where value has already moved, which is the Figure 6 overturned PASS.
+1. **The Bond on ABANDONED.** Section 6 slashes it "to the extent of
+   `restitution_basis`", which under `released` with nothing released is zero.
+   Section 7.6 returns the Bond on FINAL or SETTLED and says nothing about the
+   third terminal state. This implementation returns it. Measured: a Seller that
+   signs, posts 18.00, and never delivers gets the whole 18.00 back.
+2. **Rank 3 restores the Buyer's loss, net of rank 1.** Read literally, basis
+   `price` would pay the Bond on top of a reversed escrow in the pre-release
+   failure, a windfall the draft's own `remainder_to` rule exists to prevent.
+   Under the net reading the two basis values differ only when release was
+   partial; under on-verification they never differ.
+3. **The bounty.** The draft requires it to be non-exclusive and forbids capping
+   it at a fraction "chosen for tidiness", and does not fix it. This
+   implementation pays the whole remaining Bond after rank 3, split equally among
+   successful Challengers. With K independent discoverers a full bounty each is
+   not fundable from one Bond, which the draft's text assumes it is.
+4. **Rank 2 pays 0.00.** The Challenge object has no member for the documented
+   costs rank 2 reimburses, and its schema is closed.
+5. **A Challenge with no Verdict inside `max_dispute_seconds` lapses**; the
+   earlier Verdict stands and the window is not extended. The draft declares the
+   bound and never applies it.
+6. **PROPOSED is not observable.** With no rail the pools are debited in memory
+   when a co-signed contract is accepted, so the 201 reports FUNDED.
 
-**The Challenge object carries no cost claim.** Rank 2 of the waterfall
-reimburses "the successful Challenger's documented verification and submission
-costs" from the Verification Fund, and the Challenge schema is closed and has no
-member for those costs. A Facilitator has nothing in the object to reimburse
-against.
+## Measured on 12 September 2026
 
-## A correction
+Intel Core i9-9880H at 2.30 GHz, Python 3.12.11, Ed25519, single host, loopback
+HTTP, in-memory store, no payment rail, the Facilitator's clock advanced by the
+harness. The same code has produced per-call figures two to three times apart
+across sessions on the same laptop; the order of magnitude is the result.
 
-An earlier version of this file claimed, as a second defect, that "a defrauded
-buyer still recovers nothing from the bond". That was wrong, and it was wrong in
-the transcript printed directly beneath it: rank 1 returns the whole 180.00
-escrow to the Buyer before rank 3 is reached, so the Buyer's loss is zero and a
-restitution payment of zero is correct. It is recorded here rather than quietly
-deleted because the same misreading is easy for anyone else reading the
-waterfall, and because the point of publishing a specification for demolition is
-lost if the corrections are not published too.
+| Path | Exchanges | Request / response bytes | Attestation amounts (settled / restituted / slashed) |
+|---|---|---|---|
+| FINAL: PASS, window closes | 4 | 3,065 / 4,011 | 180.00 / 0.00 / 0.00 |
+| SETTLED: verifier FAIL | 4 | 3,071 / 4,014 | 0.00 / 0.00 / 18.00 |
+| ABANDONED: no Delivery | 3 | 1,469 / 3,780 | 0.00 / 0.00 / 0.00 |
+| SETTLED: PASS overturned by a Challenge | 6 | 4,458 / 5,446 | 180.00 / 18.00 / 18.00 |
+
+Each lifecycle completes in 25 to 45 ms, most of it schema validation of the
+posted objects. Per call, medians: canonicalize a contract 51 us; canonicalize
+and digest 60 us; sign a contract including canonicalization 128 us; verify a
+contract signature end to end 198 us, of which the Ed25519 primitive over 1.5 KB
+is 123 us; normalize an identifier 1.3 us; the assurance constraint in exact
+decimal 2.1 us; an RFC 9162 root over 2, 8 and 64 leaves 4, 21 and 179 us.
+
+The overturned-PASS row is the one the restitution basis does any work in, and
+its amounts are what Section 11's worked attestation should carry: the draft's
+example has restituted 18.00 with settled 0.00, which fits neither path.
+
+There is no verification-cost figure. The example instrument is a pytest module
+whose runtime says nothing about real work, and an earlier version of this file
+reported a number for it that was pytest's import time.
+
+## Corrections
+
+This file has been wrong twice, and both are recorded here rather than deleted,
+because the point of publishing a specification for demolition is lost if the
+corrections are not published too.
+
+An earlier version claimed, as a defect, that "a defrauded buyer still recovers
+nothing from the bond". That was wrong, and it was wrong in the transcript
+printed directly beneath it: rank 1 returns the whole escrow to the Buyer before
+rank 3 is reached, so the Buyer's loss is zero and a restitution payment of zero
+is correct.
+
+An earlier version of `facilitator.py` returned the Bond and reached FINAL in the
+same call that recorded a PASS, so no challenge window ever opened and the
+Figure 6 path was unreachable in the only release mode the draft requires. A
+second adversarial review on 11 September found that, along with a deadline
+parsed in local time, Verdict and Challenge commitments that could be bypassed
+by omitting a member, a bounty paid to a Challenger that did not exist, an
+unsigned capability document, and no schema validation at Propose. All are fixed
+and the numbers above are from the corrected code.

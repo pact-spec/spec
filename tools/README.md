@@ -5,7 +5,7 @@ implementation of the protocol.
 
 | File | What it is |
 |---|---|
-| `validate.py` | The conformance validator: 66 checks over the committed examples and the Section 13.3 vectors. Needs only `jsonschema` and `referencing`. No check is cryptographic. |
+| `validate.py` | The conformance validator: 66 checks over the committed examples and the Section 13.3 vectors. Needs only `jsonschema` and `referencing`. It recomputes digests and Merkle roots but verifies no signature. |
 | `pactcore.py` | Canonicalization, digests, JWS signing and verification over the transmitted protected header, identifier normalization, the assurance constraint in exact decimal arithmetic, and the RFC 9162 Merkle tree. |
 | `facilitator.py` | A reference Facilitator: the six operations of Table 1 over five paths, the Figure 2 state machine including the challenge window and the Figure 6 overturned-PASS path, the Section 7.4 waterfall, schema validation of every posted object, a signed capability document, and RFC 9457 refusals in the draft's own namespace that name the rule. `--rules` prints what it enforces and what it chose. |
 | `agents.py` | Buyer, Seller, Verifier and Challenger clients. |

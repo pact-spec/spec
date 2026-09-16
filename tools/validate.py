@@ -3,15 +3,16 @@
 
 Checks performed:
   1. Every example validates against its JSON Schema.
-  2. cfb.task.spec_hash and vtc.task.spec_hash equal
-     sha256(JCS(taskspec.json)).
-  3. cfb/vtc verification.criteria_hash equals the acceptance-instrument
+  2. vtc.task.spec_hash equals sha256(JCS(taskspec.json)).
+  3. vtc verification.criteria_hash equals the acceptance-instrument
      digest: sha256(JCS({relative path: sha256(bytes)})) over
      examples/acceptance-harness/.
   4. taskspec.acceptance.harness_hash equals that same digest, so the
      instrument is committed from inside the TaskSpec as well as by the
-     CFB and the VTC.
-  5. bid.commitment equals sha256(JCS(bid-reveal.reveal)).
+     VTC.
+  5. delivery_hash in Verdict and Challenge equals sha256(JCS(delivery))
+     with the signature member included, matching facilitator.py; the
+     v0.1.0 validator excluded it and the two tools disagreed.
   6. vtc_hash in Delivery, Verdict, Challenge and Attestation equals
      sha256(JCS(vtc)) with the signatures member included (-01 Section 6).
   7. Rules the schemas cannot express: parties are distinct, one
@@ -23,6 +24,10 @@ Checks performed:
      carried in -01 Section 14.
  10. Negative vectors, including the Section 13.3 conformance vectors
      that JSON Schema cannot express.
+ 11. Signature sets and ECDSA encoding, ahead of the text (facilitator
+     CHOICES C9): the P-256 and P-384 orders behind the low-S rule are
+     proved by computing n*G, an unsorted signature set is rejected
+     (V-21) and a high-S signature is rejected (V-22).
 
 Caveat on canonicalization: jcs() below is a restricted implementation of
 RFC 8785, correct for the value types these examples use (strings,
@@ -45,6 +50,7 @@ evidences self-consistency of these examples, not canonicalization
 interoperability with another implementation.
 """
 import json, hashlib, sys, pathlib, base64
+import pactcore as pc  # identifier normalization, the exact constraint, signature rules
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
@@ -189,16 +195,14 @@ check("delivery.vtc_hash == sha256(JCS(vtc, signatures included))",
       dlv["vtc_hash"] == vtc_hash)
 check("attestation.vtc_hash == sha256(JCS(vtc, signatures included))",
       att["vtc_hash"] == vtc_hash)
-check("verdict.delivery_hash == sha256(JCS(delivery-sans-signature))",
-      vdt["delivery_hash"] == h(jcs({k: v for k, v in dlv.items()
-                                     if k != "signature"})))
+check("verdict.delivery_hash == sha256(JCS(delivery, signature included))",
+      vdt["delivery_hash"] == h(jcs(dlv)))
 check("delivery.evidence.instrument_hash == vtc.criteria_hash",
       dlv["evidence"]["instrument_hash"] == vtc["verification"]["criteria_hash"])
 check("verdict.instrument_hash == vtc.criteria_hash",
       vdt["instrument_hash"] == vtc["verification"]["criteria_hash"])
-check("challenge.delivery_hash == sha256(JCS(delivery-sans-signature))",
-      chl["delivery_hash"] == h(jcs({k: v for k, v in dlv.items()
-                                     if k != "signature"})))
+check("challenge.delivery_hash == sha256(JCS(delivery, signature included))",
+      chl["delivery_hash"] == h(jcs(dlv)))
 check("challenge.proof.instrument_hash == vtc.criteria_hash",
       chl["proof"]["instrument_hash"] == vtc["verification"]["criteria_hash"])
 
@@ -260,43 +264,47 @@ check("facilitator protected header carries alg/kid/typ",
 # Section 9.1: identifiers are normalized before comparison, and the
 # normalization folds toward "same party". A trailing separator, a case
 # variant, or surrounding whitespace must not make one party look like two.
-def norm(identifier):
-    return identifier.strip().rstrip("/.#").lower()
+# The function is pactcore's, so this validator and the Facilitator cannot
+# disagree about who is who. The copy that lived here folded the whole
+# identifier, which merges two did:web paths that differ only in case.
+norm = pc.norm
 
 
 check("party comparison normalizes trailing separators and case",
       norm("did:web:X.example/") == norm("did:web:x.example"))
 check("normalized parties in the example are still distinct",
       norm(vtc["parties"]["buyer"]) != norm(vtc["parties"]["seller"]))
+check("did:web path case is not folded: Section 9.1 folds scheme and host only",
+      norm("did:web:x.example:agents:A") != norm("did:web:x.example:agents:a"))
 
 print()
 print("== the assurance constraint (Section 7.2) ==")
 
 
-def required_bond(price, q, released=0.0):
-    """B >= P(1-q)/q + E.  The facilitator-checkable sufficient form."""
-    return price * (1.0 - q) / q + released
+# B >= P(1-q)/q + E, evaluated exactly by pactcore.assurance_holds: multiplied
+# through by q, so no division and no rounding. The float copy that lived here
+# carried a 1e-9 slack and passed a bond a hundredth of a cent short.
+def holds(contract, released="0"):
+    return pc.assurance_holds(contract["price"]["amount"],
+                              contract["liability"]["seller_bond"],
+                              contract["assurance"]["q_min"], released)
 
 
-def assurance_holds(contract, released=0.0):
-    P = float(contract["price"]["amount"])
-    B = float(contract["liability"]["seller_bond"])
-    q = float(contract["assurance"]["q_min"])
-    return B + 1e-9 >= required_bond(P, q, released)
+check("example contract satisfies the assurance constraint", holds(vtc))
+check("q_min 0.9091 requires B = 18.00 at P=180, so 17.99 fails",
+      pc.assurance_holds("180.00", "18.00", "0.9091")
+      and not pc.assurance_holds("180.00", "17.99", "0.9091"))
 
-
-check("example contract satisfies the assurance constraint",
-      assurance_holds(vtc))
-
-# Worked figures from Section 14. P = 180.00, B = 18.00, E = 0.
+# Worked figures from Section 14. P = 180.00, B = 18.00, E = 0. Each bound is
+# checked from both sides, one cent apart.
 check("q_min 1.00 requires no bond at P=180",
-      abs(required_bond(180.0, 1.00)) < 1e-9)
-check("q_min 0.9091 requires B ~= 18.00 at P=180",
-      abs(required_bond(180.0, 180.0 / 198.0) - 18.0) < 1e-6)
-check("q_min 0.90 requires B = 20.00 at P=180, so 18.00 fails",
-      abs(required_bond(180.0, 0.90) - 20.0) < 1e-9)
-check("q_min 0.50 requires B = 180.00 at P=180",
-      abs(required_bond(180.0, 0.50) - 180.0) < 1e-9)
+      pc.assurance_holds("180.00", "0.00", "1.00"))
+check("q_min 0.90 requires B = 20.00 at P=180, so 19.99 fails",
+      pc.assurance_holds("180.00", "20.00", "0.90")
+      and not pc.assurance_holds("180.00", "19.99", "0.90"))
+check("q_min 0.50 requires B = 180.00 at P=180, so 179.99 fails",
+      pc.assurance_holds("180.00", "180.00", "0.50")
+      and not pc.assurance_holds("180.00", "179.99", "0.50"))
 
 # Section 7.2: open assurance may not be the sole declared source.
 check("'open' is not the example's sole source of assurance",
@@ -425,19 +433,19 @@ check("V-05 signature typed for another object is rejected",
       not headers_well_formed(_typ, "application/pact-contract+json"))
 
 _alias = json.loads(json.dumps(vtc))
-_alias["parties"]["seller"] = _alias["parties"]["buyer"].upper() + "/"
-check("V-07 parties differing only by case and trailing '/' are rejected",
+_alias["parties"]["seller"] = _alias["parties"]["buyer"] + "/"
+check("V-07 parties differing only by a trailing '/' are rejected",
       norm(_alias["parties"]["buyer"]) == norm(_alias["parties"]["seller"]))
 
 _q = json.loads(json.dumps(vtc))
 _q["assurance"] = {"mode": "committed-sample", "q_min": 0.90}
 check("V-12 B=18.00 at P=180.00 with q_min 0.90 fails the constraint",
-      not assurance_holds(_q))
+      not holds(_q))
 
 _q2 = json.loads(json.dumps(vtc))
 _q2["assurance"] = {"mode": "certain", "q_min": 1.00}
 check("V-13 B=18.00 at P=180.00 with q_min 1.00 satisfies it",
-      assurance_holds(_q2))
+      holds(_q2))
 
 _noev = {k: v for k, v in dlv.items() if k != "evidence"}
 check("V-14 delivery without evidence is rejected",
@@ -486,6 +494,70 @@ check("V-19 unimplemented pact version is rejected",
 _u = json.loads(json.dumps(vtc)); _u["extension"] = True
 check("V-20 object carrying an undefined member is rejected",
       not validate(_u, "vtc.schema.json", quiet=True))
+
+print()
+print("== signature sets and ECDSA encoding (facilitator CHOICES C9) ==")
+
+# The low-S rule needs the group order of each curve. These two checks prove
+# the constants in pactcore.CURVE_ORDER by computing n * G in affine
+# double-and-add, with no library: n * G is the point at infinity exactly when
+# n is the order. Curve parameters from FIPS 186-4 D.1.2.3 and D.1.2.4.
+P256 = dict(p=2**256 - 2**224 + 2**192 + 2**96 - 1,
+            gx=0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296,
+            gy=0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5)
+P384 = dict(p=2**384 - 2**128 - 2**96 + 2**32 - 1,
+            gx=int("AA87CA22BE8B05378EB1C71EF320AD746E1D3B628BA79B9859F741E082542A38"
+                   "5502F25DBF55296C3A545E3872760AB7", 16),
+            gy=int("3617DE4A96262C6F5D9E98BF9292DC29F8F41DBD289A147CE9DA3113B5F0B8C0"
+                   "0A60B1CE1D7E819D7A431D7C90EA0E5F", 16))
+
+
+def is_group_order(p, gx, gy, n):
+    a = p - 3
+
+    def add(P, Q):
+        if P is None:
+            return Q
+        if Q is None:
+            return P
+        (x1, y1), (x2, y2) = P, Q
+        if x1 == x2 and (y1 + y2) % p == 0:
+            return None
+        if P == Q:
+            lam = (3 * x1 * x1 + a) * pow(2 * y1, -1, p) % p
+        else:
+            lam = (y2 - y1) * pow(x2 - x1, -1, p) % p
+        x3 = (lam * lam - x1 - x2) % p
+        return (x3, (lam * (x1 - x3) - y1) % p)
+
+    acc = None
+    for bit in bin(n)[2:]:
+        acc = add(acc, acc)
+        if bit == "1":
+            acc = add(acc, (gx, gy))
+    return acc is None
+
+
+check("P-256 order constant behind the low-S rule is the group order (n*G = O)",
+      is_group_order(P256["p"], P256["gx"], P256["gy"], pc.CURVE_ORDER["ES256"]))
+check("P-384 order constant behind the low-S rule is the group order (n*G = O)",
+      is_group_order(P384["p"], P384["gx"], P384["gy"], pc.CURVE_ORDER["ES384"]))
+
+_rev = dict(vtc, signatures=list(reversed(vtc["signatures"])))
+check("V-21 signature set not sorted by normalized kid is rejected",
+      pc.signatures_ordered(vtc)[0] and not pc.signatures_ordered(_rev)[0])
+
+# A high-S encoding is refused before any key is consulted, so the vector
+# needs no key material and no `cryptography`.
+_k = pc.Key(kid="did:web:v.example#k", alg="ES256", private=None, public=None)
+_high = b"\x01" * 32 + (pc.CURVE_ORDER["ES256"] - 1).to_bytes(32, "big")
+try:
+    _k.verify_bytes(_high, b"")
+    _high_s_refused = False
+except pc.InvalidSignature:
+    _high_s_refused = True
+check("V-22 ECDSA signature with s in the high half of the order is rejected",
+      _high_s_refused)
 
 print()
 if fails:

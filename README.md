@@ -93,9 +93,11 @@ findings and narrows the document to what only PACT can specify:
   with a `0x00` prefix, nodes with `0x01`, split at the largest power of
   two less than the count.
 
-The validator runs 66 checks: 7 schema, 2 canonicalization, 10 hash,
-10 rule, 9 assurance-constraint, 6 Merkle, and 22 negative vectors from
-the draft's conformance table. The rules JSON Schema cannot express are
+The validator runs 71 checks: 7 schema, 2 canonicalization, 10 hash,
+11 rule, 9 assurance-constraint, 6 Merkle, 22 negative vectors from
+the draft's conformance table, and 4 on signature sets and ECDSA
+encoding (two prove the curve orders behind the low-S rule, two are
+the vectors V-21 and V-22). The rules JSON Schema cannot express are
 checked in code: parties distinct after normalization, one signature per
 named party, protected headers carrying `alg`, `kid` and `typ` with an
 allowed algorithm, and the assurance constraint of -01 Section 7.2 against

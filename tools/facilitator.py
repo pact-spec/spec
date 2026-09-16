@@ -96,6 +96,11 @@ C6  PROPOSED is never observable: with no rail the pools are debited in memory t
 C7  Amounts are settled in whole cents; a contract with more decimal places is refused.
 C8  Not implemented: subcontracts (Section 10), release modes other than on-verification,
     challenge deposits, committed-sample assurance, network key resolution, any rail.
+C9  The `signatures` array is sorted by the Section 9.1 normalized kid, ties by the raw kid,
+    code point order; an unsorted array is refused as signatures-unordered. The -01 text
+    does not order the array, so one agreement signed in two orders has two vtc_hash values.
+    ECDSA signatures are refused unless s is in the low half of the curve order, for the
+    same reason: a second valid encoding of one signature is a second digest.
 """
 
 # Section 18.5: identifiers are appended to this prefix, which the draft owns.
@@ -134,6 +139,7 @@ PROBLEMS = {
     "object-conflict": (409, "Section 12.2"),
     "unknown-contract": (404, "Section 12"),
     "payload-too-large": (413, "Section 12"),
+    "signatures-unordered": (422, "Section 13.1"),
     "internal-error": (500, "Section 12"),
 }
 
@@ -440,6 +446,12 @@ class Facilitator:
                     raise Refuse("unexpected-signer",
                                  "the contract carries a signature from a party that is "
                                  "neither its Buyer nor its Seller", signer=kid)
+            # CHOICES C9, after the signer check so a stranger's signature is refused
+            # as what it is: the set is sorted, so the Section 6 digest over it
+            # does not depend on which party signed last.
+            ok, why = pc.signatures_ordered(vtc)
+            if not ok:
+                raise Refuse("signatures-unordered", why)
 
             # Section 7.2: evaluated exactly, BEFORE funds lock.
             q_min = vtc["assurance"]["q_min"]
@@ -1064,9 +1076,16 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--port", type=int, default=8402)
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--problems", action="store_true",
+                    help="print every problem type this Facilitator emits, with its "
+                         "HTTP status and the section it cites, then exit")
     ap.add_argument("--rules", action="store_true",
                     help="print the rules this implementation enforces, and its choices, and exit")
     args = ap.parse_args()
+    if args.problems:
+        for kind, (status, section) in sorted(PROBLEMS.items()):
+            print(f"{PROBLEM_BASE}{kind}\t{status}\t{section}")
+        return
     if args.rules:
         print(RULES.strip())
         print()

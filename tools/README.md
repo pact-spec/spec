@@ -5,9 +5,9 @@ implementation of the protocol.
 
 | File | What it is |
 |---|---|
-| `validate.py` | The conformance validator: 66 checks over the committed examples and the Section 13.3 vectors. Needs only `jsonschema` and `referencing`. It recomputes digests and Merkle roots but verifies no signature. |
+| `validate.py` | The conformance validator: 71 checks over the committed examples, the Section 13.3 vectors, and the two vectors V-21 and V-22 added here ahead of the text (choice 7 below). Needs only `jsonschema` and `referencing`. It recomputes digests and Merkle roots but verifies no signature; the constraint, the normalization and the signature-set rules are imported from `pactcore.py` so the two tools cannot disagree. |
 | `pactcore.py` | Canonicalization, digests, JWS signing and verification over the transmitted protected header, identifier normalization, the assurance constraint in exact decimal arithmetic, and the RFC 9162 Merkle tree. |
-| `facilitator.py` | A reference Facilitator: the six operations of Table 1 over five paths, the Figure 2 state machine including the challenge window and the Figure 6 overturned-PASS path, the Section 7.4 waterfall, schema validation of every posted object, a signed capability document, and RFC 9457 refusals in the draft's own namespace that name the rule. `--rules` prints what it enforces and what it chose. |
+| `facilitator.py` | A reference Facilitator: the six operations of Table 1 over five paths, the Figure 2 state machine including the challenge window and the Figure 6 overturned-PASS path, the Section 7.4 waterfall, schema validation of every posted object, a signed capability document, and RFC 9457 refusals in the draft's own namespace that name the rule. `--rules` prints what it enforces and what it chose; `--problems` prints every problem type it emits with its status and section. |
 | `agents.py` | Buyer, Seller, Verifier and Challenger clients. |
 | `measure.py` | Drives five contracts through the terminal states on a clock the harness advances, exercises 24 refusals and 2 acceptances each on the rule it is named for, asserts that money balances, checks every minted object and the capability document against the schemas, and reports costs. |
 
@@ -85,6 +85,17 @@ kind of disagreement the experiment exists to surface.
    bound and never applies it.
 6. **PROPOSED is not observable.** With no rail the pools are debited in memory
    when a co-signed contract is accepted, so the 201 reports FUNDED.
+7. **The signature set is sorted and ECDSA is low-S.** Section 6 digests the
+   contract including its `signatures` array, and the -01 text does not order
+   that array, so one agreement signed in two orders has two `vtc_hash` values.
+   This implementation refuses an array not sorted by the Section 9.1
+   normalized kid (ties by the raw kid, code point order) as
+   `signatures-unordered`, and refuses an ECDSA signature whose s is in the high
+   half of the curve order, for the same reason: a second valid encoding of one
+   signature is a second digest. Both are checked in `validate.py` and both
+   are proposed as rules for the next revision. It also computes `delivery_hash` over the Delivery
+   including its signature, which is what `validate.py` now checks too; the
+   v0.1.0 validator excluded the signature and the two tools disagreed.
 
 ## Measured on 12 September 2026
 

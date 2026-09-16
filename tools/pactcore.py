@@ -40,7 +40,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # Ed25519 and P-256 come from `cryptography`. It is an optional dependency:
-# validate.py's sixty-six checks do not need it, and this module is only
+# validate.py's checks do not need it, and this module is only
 # imported by the Facilitator and the agents.
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -183,6 +183,22 @@ def same_party(a: str, b: str) -> bool:
     return norm(a) == norm(b)
 
 
+def signatures_ordered(obj: dict) -> tuple[bool, str]:
+    """The `signatures` array sorted by kid (facilitator CHOICES C9).
+
+    Two agents that each attach their own entry and then exchange the object
+    produce two arrays, two vtc_hash values (Section 6 digests the signature
+    set) and two contracts for one agreement. The order is the Section 9.1
+    normalized kid, ties broken by the raw kid, both compared as sequences of
+    Unicode code points. Returns (ok, reason); an object with fewer than two
+    entries is trivially ordered.
+    """
+    keys = [(norm(k), k) for k in signer_kids(obj)]
+    if keys != sorted(keys):
+        return False, "signatures are not sorted by normalized kid"
+    return True, "ok"
+
+
 # --------------------------------------------------------------------------
 # The assurance constraint, Section 7.2
 # --------------------------------------------------------------------------
@@ -276,6 +292,9 @@ class Key:
         curve_hash = hashes.SHA256() if self.alg == "ES256" else hashes.SHA384()
         der = self.private.sign(data, ec.ECDSA(curve_hash))
         r, s = decode_dss_signature(der)
+        n = CURVE_ORDER[self.alg]
+        if s > n // 2:                       # emit the low-S form, see verify_bytes
+            s = n - s
         size = 32 if self.alg == "ES256" else 48
         return r.to_bytes(size, "big") + s.to_bytes(size, "big")
 
@@ -288,8 +307,27 @@ class Key:
             raise InvalidSignature("bad JWS ECDSA signature length")
         r = int.from_bytes(sig[:size], "big")
         s = int.from_bytes(sig[size:], "big")
+        # RFC 7518 fixes the encoding (raw r||s) but not which of the two valid
+        # s values a verifier accepts. Accepting both lets anyone holding a
+        # valid signature mint a second one over the same bytes without the
+        # key, and a second signature entry changes vtc_hash (Section 6). The
+        # low half is enforced here ahead of the text; see CHOICES C9.
+        n = CURVE_ORDER[self.alg]
+        if s == 0 or s > n // 2:
+            raise InvalidSignature("ECDSA s is not in the low half of the curve order")
         curve_hash = hashes.SHA256() if self.alg == "ES256" else hashes.SHA384()
         self.public.verify(encode_dss_signature(r, s), data, ec.ECDSA(curve_hash))
+
+
+# Group orders of P-256 and P-384 (FIPS 186-4 D.1.2.3 and D.1.2.4), for the
+# low-S rule in sign_bytes and verify_bytes. tools/validate.py proves both
+# constants without a library by computing n * G on each curve and requiring
+# the point at infinity.
+CURVE_ORDER = {
+    "ES256": 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551,
+    "ES384": int("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF"
+                 "581A0DB248B0A77AECEC196ACCC52973", 16),
+}
 
 
 class KeyResolver:

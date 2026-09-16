@@ -18,14 +18,14 @@
       "properties": {
         "schema_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "schema_hash": {
           "$ref": "common.schema.json#/$defs/hash"
         },
         "sample_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "sample_hash": {
           "$ref": "common.schema.json#/$defs/hash"
@@ -53,7 +53,7 @@
         },
         "schema_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "schema_hash": {
           "$ref": "common.schema.json#/$defs/hash"
@@ -72,18 +72,6 @@
       "required": [
         "thresholds"
       ],
-      "anyOf": [
-        {
-          "required": [
-            "harness_uri"
-          ]
-        },
-        {
-          "required": [
-            "rubric_uri"
-          ]
-        }
-      ],
       "dependentRequired": {
         "harness_uri": [
           "harness_hash"
@@ -95,14 +83,14 @@
       "properties": {
         "harness_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "harness_hash": {
           "$ref": "common.schema.json#/$defs/hash"
         },
         "rubric_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "rubric_hash": {
           "$ref": "common.schema.json#/$defs/hash"
@@ -112,8 +100,8 @@
           "minProperties": 1
         }
       },
-      "$comment": "Section 5.2. Members for the attestation and proving tiers are named in prose and not as member names, so a TaskSpec for those tiers does not validate; recorded as a residual.",
-      "additionalProperties": false
+      "$comment": "Section 5.2: members are the tier's; harness_uri and rubric_uri, when present, carry sibling hashes (dependentRequired). Not empty.",
+      "additionalProperties": true
     },
     "constraints": {
       "type": "object"

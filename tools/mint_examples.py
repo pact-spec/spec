@@ -119,7 +119,7 @@ def build() -> dict[str, dict]:
         pc.sign(vtc, keys["seller"], agents.MEDIA_CONTRACT)])
     vtc_hash = pc.digest_over(vtc)
 
-    work = (CONTENT / "sample-10k.csv").read_bytes()  # stands in for the deliverable
+    work = b"customers-clean.csv: the deduplicated deliverable, 2,099,959 rows; bytes not carried in the repository\n"
     results = b'{"schema_valid_rate": 1.0, "dup_rate": 0.0}\n'
     delivery = {
         "pact": "0.2", "type": "Delivery", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
@@ -202,10 +202,11 @@ def build() -> dict[str, dict]:
 
     capability = {
         "pact": "0.2", "type": "FacilitatorCapabilities", "facilitator": FACILITATOR,
+        "issued_at": "2026-11-01T09:00:00Z",
         "settlement_bindings": [{"id": "https://settle.example/bindings/ledger-1",
                                  "networks": ["eip155:8453"], "assets": ["USDC"]}],
         "flows": ["verdict-first", "delivery-first"],
-        "verification_profiles": ["acceptance", "bisection"],
+        "verification_profiles": ["acceptance"],
         "terms_profiles": [{"id": profile.id, "profile_hash": profile.profile_hash}],
         "max_contract_value": {"amount": "50000.00", "currency": "USDC"},
         "endpoints": {

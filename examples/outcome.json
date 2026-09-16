@@ -2,7 +2,7 @@
   "pact": "0.2",
   "type": "OutcomeRecord",
   "vtc_id": "vtc_9f2c11",
-  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2",
+  "vtc_hash": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff4949304c2c855ca1d746ba6459",
   "parties": {
     "buyer": "did:web:buyer.example:agents:procure-1",
     "seller": "did:web:dataforge.example:agents:etl-3",
@@ -13,12 +13,12 @@
     "state": "SETTLED",
     "challenge_upheld": true
   },
-  "work_hash": "sha256:d7f43b3a51c28274adc4ebe535cc9de80f0b6d6c975a1d1ce519d582306338b1",
+  "work_hash": "sha256:a26dc519a79ac70835a71ea58c9e34f0625778aee280a3170b6b9a5037036ef0",
   "trace": [
     {
       "event": "accepted",
       "at": "2026-11-01T10:00:00Z",
-      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2"
+      "object": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff4949304c2c855ca1d746ba6459"
     },
     {
       "event": "funded",
@@ -27,12 +27,12 @@
     {
       "event": "delivered",
       "at": "2026-11-10T08:30:12Z",
-      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8aaaf2f186702504fba242ffb"
+      "object": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45370cb3023331bc8bfbd924fcbe"
     },
     {
       "event": "verdict",
       "at": "2026-11-10T09:14:30Z",
-      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8e09452a74bac15e6752ca81",
+      "object": "sha256:1ac94d72dbdd1f51e523ecddb3a3b360703976215b13324485db355c948adfc0",
       "signer": "did:web:audit.example#k1",
       "outcome": "PASS"
     },
@@ -44,7 +44,7 @@
     {
       "event": "challenge",
       "at": "2026-11-10T09:40:00Z",
-      "object": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df6cfef12d12d1340c15e5d85",
+      "object": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093ec2c6795962e67a6e2ff55ff",
       "signer": "did:web:watch.example#k1",
       "costs": {
         "amount": "1.20",
@@ -54,11 +54,11 @@
     {
       "event": "verdict",
       "at": "2026-11-10T09:58:05Z",
-      "object": "sha256:012bab194f444012f87ff8986419537f9de9f3dfe845c6623ac6a7488fb98b73",
+      "object": "sha256:10d537e7b8face8bd7695541d36d32568394a53197653280c404e2d84a63d46d",
       "signer": "did:web:audit.example#k1",
       "outcome": "FAIL",
-      "answers": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df6cfef12d12d1340c15e5d85",
-      "supersedes": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8e09452a74bac15e6752ca81"
+      "answers": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093ec2c6795962e67a6e2ff55ff",
+      "supersedes": "sha256:1ac94d72dbdd1f51e523ecddb3a3b360703976215b13324485db355c948adfc0"
     },
     {
       "event": "children-final",
@@ -73,7 +73,7 @@
   ],
   "terms_result": {
     "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-    "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5fc1147743326dabd45bda546dc62",
+    "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956e835df2653b99d71d363a68",
     "currency": "USDC",
     "transfers": [
       {
@@ -92,7 +92,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -122,8 +122,8 @@
   },
   "signatures": [
     {
-      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5vdXRjb21lK2pzb24ifQ",
-      "signature": "eOufu8kaI-zRjU13rTVFSSJbn-zPC2QMn0QpHP4V65OpunfT2KNN3p-YESE7ht9tf2uUPHxWkDZuH1cgVJVsDQ"
+      "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpzZXR0bGUuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3ZuZC5wYWN0Lm91dGNvbWUranNvbiJ9",
+      "signature": "aCCOZ9nppKxHUDSzPWgHryznQCNXaNtClwPUQPgpwGKe05D3FrXDVnsbsFSSyUeYW9Qq3I99SaF4oD2VZi5QAA"
     }
   ]
 }

@@ -277,7 +277,7 @@ SCENARIOS = [
     ("FINAL (verdict-first, PASS, window closes)", scenario_final, "FINAL: PASS"),
     ("SETTLED (the Verifier records FAIL)", scenario_settled, "SETTLED: the Verifier"),
     ("ABANDONED (deadline, no Delivery)", scenario_abandoned, "ABANDONED"),
-    ("SETTLED (PASS overturned by a Challenge)", scenario_overturned, "SETTLED on an upheld Challenge, Figure"),
+    ("SETTLED (PASS overturned by a Challenge)", scenario_overturned, "SETTLED on an upheld Challenge (the"),
     ("SETTLED (overturned, restitution_basis price)",
      lambda h: scenario_overturned(h, restitution_basis="price"), "SETTLED on an upheld Challenge, basis"),
     ("FINAL after verdict-lapsed", scenario_verdict_lapsed, "FINAL after verdict-lapsed"),
@@ -346,6 +346,19 @@ def refusals(h: Harness) -> list[tuple[str, int, str, bool, object]]:
             {"protected": header, "signature": ""},
             pc.sign(vtc, h.seller.key, agents.MEDIA_CONTRACT)])
         return c.propose(vtc)
+
+    def jwk_in_header():
+        vtc = h.contract()
+        entry = vtc["signatures"][0]
+        hdr = json.loads(pc.b64u_decode(entry["protected"]))
+        hdr["jwk"] = {"kty": "OKP", "crv": "Ed25519", "x": pc.b64u(pc.public_bytes(h.buyer.key))}
+        entry["protected"] = pc.b64u(json.dumps(hdr, separators=(",", ":")).encode())
+        return c.propose(vtc)
+
+    def second_verdict_no_challenge():
+        vtc, d, v = h.window_open()
+        again = agents.make_verdict(vtc, d, h.verifier, "FAIL")
+        return c.verdict(again)
 
     def third_party_signature():
         vtc = h.contract(sign=False)
@@ -472,6 +485,32 @@ def refusals(h: Harness) -> list[tuple[str, int, str, bool, object]]:
         child = h.contract(buyer=h.seller, seller=h.sub, days=1, parent=link)
         return c.register_child(parent["id"], child)
 
+    def child_outcome_after_terminal():
+        parent = h.contract(days=7)
+        h.call(c.propose, parent, 201)
+        link = {"vtc_id": parent["id"], "vtc_hash": pc.digest_over(parent),
+                "facilitator": h.fac.identity}
+        child = h.contract(buyer=h.seller, seller=h.sub, days=1, parent=link,
+                           facilitator=h.other.did)
+        h.call(lambda x: c.register_child(parent["id"], x), child, 201)
+        dp = agents.make_delivery(parent, h.seller, b"parent work 3", b"parent results")
+        h.call(c.deliver, dp, 202)
+        h.call(c.verdict, agents.make_verdict(parent, dp, h.verifier, "PASS"), 201)
+        h.clock.advance(WINDOW + 1)
+        h.clock.advance(F.latest_finality(child) - h.clock.t + 1)
+        h.outcome(parent)   # FINAL, the child recorded unresolved
+        record = {
+            "pact": "0.2", "type": "OutcomeRecord", "vtc_id": child["id"],
+            "vtc_hash": pc.digest_over(child), "parties": child["parties"],
+            "outcome": {"state": "FINAL", "challenge_upheld": False},
+            "trace": [{"event": "accepted", "at": iso(h.clock.t), "object": pc.digest_over(child)},
+                      {"event": "terminal", "at": iso(h.clock.t), "state": "FINAL",
+                       "challenge_upheld": False}],
+            "terms_result": {"profile": terms.ID, "profile_hash": h.profile.profile_hash,
+                             "currency": "USDC", "transfers": []},
+        }
+        return c.supply_child_outcome(parent["id"], pc.digest_over(child), record)
+
     def child_outcome_wrong_hash():
         parent = h.funded()
         link = {"vtc_id": parent["id"], "vtc_hash": pc.digest_over(parent),
@@ -490,7 +529,7 @@ def refusals(h: Harness) -> list[tuple[str, int, str, bool, object]]:
                              "currency": "USDC", "transfers": []},
         }
         record["signatures"] = [pc.sign(record, h.other.key, agents.MEDIA_OUTCOME)]
-        return c.supply_child_outcome(parent["id"], child["id"], record)
+        return c.supply_child_outcome(parent["id"], pc.digest_over(child), record)
 
     return [
         # propose
@@ -523,6 +562,12 @@ def refusals(h: Harness) -> list[tuple[str, int, str, bool, object]]:
         ("terms parameters fail the profile schema", 422, "terms-parameters-invalid", False,
          lambda: c.propose(h.contract(bond="eighteen"))),
         ("contract signed with alg none", 400, "algorithm-not-permitted", False, alg_none_contract),
+        ("contract with no signatures", 400, "signature-missing", False,
+         lambda: c.propose(h.contract(sign=False))),
+        ("contract whose protected header embeds a jwk", 400, "signature-invalid", False, jwk_in_header),
+        ("second Verdict inside the window with no Challenge", 409, "wrong-state", False, second_verdict_no_challenge),
+        ("Challenge before any Delivery", 409, "challenge-window-closed", False,
+         lambda: c.challenge(agents.make_challenge(h.funded(), agents.make_delivery(h.contract(), h.seller, b"x", b"y"), h.watch, ["x"]))),
         ("a third party co-signs the contract", 422, "unexpected-signer", False, third_party_signature),
         ("signature set out of order", 422, "signatures-unordered", False, unsorted),
         ("same id, different contract", 409, "object-conflict", False, altered_same_id),
@@ -541,7 +586,7 @@ def refusals(h: Harness) -> list[tuple[str, int, str, bool, object]]:
         ("Verdict over another instrument", 422, "verdict-nonconformant", False, verdict_other_instrument),
         ("Verdict whose delivery_hash omits the signature", 422, "verdict-nonconformant", False,
          verdict_wrong_delivery_hash),
-        ("Verdict signed with the Delivery typ", 401, "signature-invalid", False, verdict_with_delivery_typ),
+        ("Verdict signed with the Delivery typ", 400, "signature-invalid", False, verdict_with_delivery_typ),
         ("Verdict in DISPUTED without challenge_hash", 422, "verdict-nonconformant", False,
          verdict_in_disputed_without_challenge_hash),
         ("Verdict by the Challenger it answers", 422, "verifier-not-independent", False,
@@ -558,6 +603,8 @@ def refusals(h: Harness) -> list[tuple[str, int, str, bool, object]]:
         ("child with L(child) not before L(parent)", 422, "finality-ordering-violation", False, child_timing),
         ("child Outcome Record over the wrong contract", 422, "child-outcome-invalid", False,
          child_outcome_wrong_hash),
+        ("child Outcome Record supplied after the parent's terminal entry", 409, "wrong-state", False,
+         child_outcome_after_terminal),
         # retrieval
         ("GET an unknown contract", 404, "unknown-contract", False, lambda: c.status("vtc_nobody")),
         ("GET the Outcome Record before the terminal entry", 409, "wrong-state", False,
@@ -590,13 +637,12 @@ def acceptances(h: Harness) -> list[tuple[str, object]]:
         after = h.status_of(vtc)["trace"]
         return code == 422 and before == after
 
-    def pass_in_window_changes_nothing():
+    def named_verifier_answers_own_challenge():
         vtc, d, v = h.window_open()
-        again = agents.make_verdict(vtc, d, h.verifier, "PASS")
-        again["evaluated_at"] = "2099-01-01T00:00:00Z"   # different bytes, or it is a replay
-        again.pop("signature")
-        code, body = c.verdict(h.verifier.sign_into(again, agents.MEDIA_VERDICT))
-        return code == 201 and body["state"] == "WINDOW_OPEN" and body["trace"][-1]["supersedes"] == pc.digest_over(v)
+        ch = agents.make_challenge(vtc, d, h.verifier, ["row_count"], costs=None)
+        code1, _ = c.challenge(ch)
+        code2, body = c.verdict(agents.make_verdict(vtc, d, h.verifier, "FAIL", ch))
+        return code1 == 202 and code2 == 201 and body["state"] == "SETTLED" and body["trace"][-1]["challenge_upheld"] is True
 
     return [
         ("a Challenge alone settles nothing", challenge_alone_does_not_settle),
@@ -604,8 +650,8 @@ def acceptances(h: Harness) -> list[tuple[str, object]]:
          resubmit_identical_contract),
         ("a Buyer's Challenge is admissible", buyer_challenge_admissible),
         ("a refused request leaves no entry in the trace", refusal_leaves_no_entry),
-        ("a second PASS inside the window changes the state of nothing",
-         pass_in_window_changes_nothing),
+        ("a named Verifier answers its own Challenge and the FAIL settles the contract",
+         named_verifier_answers_own_challenge),
     ]
 
 
@@ -616,6 +662,7 @@ def run_refusals(h: Harness) -> tuple[list[dict], list[dict]]:
         base = terms.PROBLEM_BASE if is_profile else F.PROBLEM_BASE
         where = body.get("profile_section") if is_profile else body.get("section")
         ok = (code == status and body.get("type") == base + kind and bool(where)
+              and (is_profile or where == F.PROBLEMS[kind][1])
               and (not is_profile or body.get("profile") == terms.ID))
         rows.append({"name": name, "expected": (status, kind), "got": (code, body.get("type", "?")),
                      "section": where, "ok": ok})
@@ -653,7 +700,7 @@ def run_micro(h: Harness) -> dict:
     d = agents.make_delivery(vtc, h.seller, b"w", b"r")
     v = agents.make_verdict(vtc, d, h.verifier, "PASS")
     signable = pc.signable(v)
-    vec = h.profile.vectors()[1]
+    vec = next(v for v in h.profile.vectors() if v["name"].startswith("SETTLED on an upheld Challenge (the"))
     leaves = [bytes.fromhex(pc.h(str(i).encode())[7:]) for i in range(64)]
     return {
         "canonicalize contract (us)": bench(lambda: pc.jcs(vtc), 2000),

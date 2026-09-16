@@ -69,7 +69,23 @@
           "maximum": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "committed-sample"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "required": [
+          "sample_rate"
+        ]
+      },
+      "$comment": "sample_rate is the declared fraction of deliveries verified under committed-sample; how the draw is made is outside the profile."
     }
   },
   "additionalProperties": false,

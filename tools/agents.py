@@ -78,8 +78,8 @@ class Client:
     def status(self, vid): return self.get(f"{BASE_PATH}/contracts/{vid}")
     def register_child(self, parent_id, child_vtc):
         return self.post(f"{BASE_PATH}/contracts/{parent_id}/children", child_vtc, MEDIA_CONTRACT)
-    def supply_child_outcome(self, parent_id, child_id, record):
-        return self.post(f"{BASE_PATH}/contracts/{parent_id}/children/{child_id}", record, MEDIA_OUTCOME)
+    def supply_child_outcome(self, parent_id, child_hash, record):
+        return self.post(f"{BASE_PATH}/contracts/{parent_id}/children/{child_hash}", record, MEDIA_OUTCOME)
     def deliver(self, d): return self.post(f"{BASE_PATH}/deliveries", d, MEDIA_DELIVERY)
     def verdict(self, v): return self.post(f"{BASE_PATH}/verdicts", v, MEDIA_VERDICT)
     def challenge(self, c): return self.post(f"{BASE_PATH}/challenges", c, MEDIA_CHALLENGE)
@@ -98,7 +98,7 @@ class Party:
 
 
 def make_party(did: str, resolver: pc.KeyResolver, client: Client,
-               alg: str = "EdDSA") -> Party:
+               alg: str = "Ed25519") -> Party:
     key = resolver.register(pc.Key.generate(f"{did}#key-1", alg))
     return Party(did=did, key=key, client=client)
 

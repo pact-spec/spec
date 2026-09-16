@@ -1,6 +1,6 @@
 [
   {
-    "name": "FINAL: PASS, window closes, Figure 1",
+    "name": "FINAL: PASS, window closes (the verdict-first path)",
     "contract": {
       "price": {
         "amount": "180.00",
@@ -82,7 +82,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -104,14 +104,21 @@
       {
         "event": 7,
         "from": "fund",
-        "to": "buyer",
+        "to": "seller",
         "amount": "0.50",
         "code": "fund-return"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
   },
   {
-    "name": "SETTLED on an upheld Challenge, Figure 5",
+    "name": "SETTLED on an upheld Challenge (the dispute path)",
     "contract": {
       "price": {
         "amount": "180.00",
@@ -208,7 +215,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -234,7 +241,14 @@
         "amount": "18.00",
         "code": "restitution"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
   },
   {
     "name": "SETTLED: the Verifier records FAIL",
@@ -310,7 +324,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -332,11 +346,18 @@
       {
         "event": 5,
         "from": "fund",
-        "to": "buyer",
+        "to": "seller",
         "amount": "0.50",
         "code": "fund-return"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
   },
   {
     "name": "ABANDONED: deadline with no Delivery",
@@ -404,7 +425,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -426,11 +447,18 @@
       {
         "event": 4,
         "from": "fund",
-        "to": "buyer",
+        "to": "seller",
         "amount": "0.50",
         "code": "fund-return"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
   },
   {
     "name": "SETTLED on an upheld Challenge, basis price",
@@ -530,7 +558,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -556,7 +584,14 @@
         "amount": "18.00",
         "code": "restitution"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
   },
   {
     "name": "FINAL after verdict-lapsed",
@@ -638,7 +673,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -660,11 +695,18 @@
       {
         "event": 7,
         "from": "fund",
-        "to": "buyer",
+        "to": "seller",
         "amount": "0.50",
         "code": "fund-return"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
   },
   {
     "name": "FINAL under delivery-first, principal at window-closed",
@@ -742,7 +784,7 @@
       },
       {
         "event": 1,
-        "from": "buyer",
+        "from": "seller",
         "to": "fund",
         "amount": "0.50",
         "code": "fund"
@@ -764,10 +806,73 @@
       {
         "event": 6,
         "from": "fund",
-        "to": "buyer",
+        "to": "seller",
         "amount": "0.50",
         "code": "fund-return"
       }
-    ]
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
+  },
+  {
+    "name": "admission: refused, seller_bond 17.99 at q_min 0.9091 on 180.00",
+    "contract": {
+      "price": {
+        "amount": "180.00",
+        "currency": "USDC"
+      },
+      "flow": "verdict-first",
+      "terms": {
+        "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+        "parameters": {
+          "seller_bond": "17.99",
+          "verification_fund": "0.50",
+          "cap": "180.00",
+          "restitution_basis": "released",
+          "remainder_to": "sink",
+          "principal_on": "verdict",
+          "assurance": {
+            "mode": "certain",
+            "q_min": 0.9091
+          }
+        }
+      }
+    },
+    "admission": {
+      "refused": "assurance-constraint-unsatisfied"
+    }
+  },
+  {
+    "name": "admission: admitted, seller_bond 18.00 at q_min 0.9091 on 180.00",
+    "contract": {
+      "price": {
+        "amount": "180.00",
+        "currency": "USDC"
+      },
+      "flow": "verdict-first",
+      "terms": {
+        "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+        "parameters": {
+          "seller_bond": "18.00",
+          "verification_fund": "0.50",
+          "cap": "180.00",
+          "restitution_basis": "released",
+          "remainder_to": "sink",
+          "principal_on": "verdict",
+          "assurance": {
+            "mode": "certain",
+            "q_min": 0.9091
+          }
+        }
+      }
+    },
+    "admission": {
+      "admitted": true
+    }
   }
 ]

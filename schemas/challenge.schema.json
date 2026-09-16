@@ -42,7 +42,7 @@
         },
         "results_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "failing_checks": {
           "type": "array",
@@ -51,8 +51,22 @@
           }
         }
       },
-      "$comment": "Section 7.3. Profile-conditional members enforced in code.",
-      "additionalProperties": false
+      "$comment": "Section 7.3. Profile-conditional members enforced in code. Members beyond those named are the verification profile's (Section 2); for acceptance, instrument_hash and results_hash are required.",
+      "additionalProperties": true,
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "acceptance"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "profile",
+          "instrument_hash",
+          "results_hash"
+        ]
+      }
     },
     "costs": {
       "$ref": "common.schema.json#/$defs/amount_with_currency",

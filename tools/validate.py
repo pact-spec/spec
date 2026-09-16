@@ -232,6 +232,9 @@ def main() -> int:
     standing = [e for e in tr if e["event"] == "verdict"][-1]
     r.check(standing["outcome"] == "FAIL" and ("answers" in standing) == outcome["outcome"]["challenge_upheld"],
             "challenge_upheld is true exactly when the standing FAIL answers a Challenge")
+    ats = [e["at"] for e in tr]
+    r.check(ats == sorted(ats) and status["issued_at"] >= status["trace"][-1]["at"],
+            "trace timestamps never decrease and issued_at is not earlier than the last entry (Section 4.2)")
     r.check(status["state"] == "WINDOW_OPEN" and status["trace"][-1]["event"] == "window-opened",
             "the example Status is the window-opened moment")
 
@@ -241,7 +244,7 @@ def main() -> int:
     if HAVE_CRYPTO:
         resolver = pc.KeyResolver()
         for role, jwk in keys.items():
-            resolver.register(pc.Key.from_public_bytes(jwk["kid"], "EdDSA", pc.b64u_decode(jwk["x"])))
+            resolver.register(pc.Key.from_public_bytes(jwk["kid"], "Ed25519", pc.b64u_decode(jwk["x"])))
         for name, obj, typ, required in (
                 ("vtc", vtc, "vtc", [parties["buyer"], parties["seller"]]),
                 ("delivery", delivery, "delivery", [parties["seller"]]),
@@ -268,14 +271,16 @@ def main() -> int:
     def tup(ts):
         return [(t["event"], t["from"], t["to"], t["amount"], t["code"]) for t in ts]
     final_printed = [(1, "buyer", "escrow", "180.00", "lock"), (1, "seller", "bond", "18.00", "bond"),
-                     (1, "buyer", "fund", "0.50", "fund"), (3, "escrow", "seller", "180.00", "principal"),
-                     (7, "bond", "seller", "18.00", "return"), (7, "fund", "buyer", "0.50", "fund-return")]
+                     (1, "seller", "fund", "0.50", "fund"), (3, "escrow", "seller", "180.00", "principal"),
+                     (7, "bond", "seller", "18.00", "return"), (7, "fund", "seller", "0.50", "fund-return")]
     overturned_printed = [(1, "buyer", "escrow", "180.00", "lock"), (1, "seller", "bond", "18.00", "bond"),
-                          (1, "buyer", "fund", "0.50", "fund"), (3, "escrow", "seller", "180.00", "principal"),
+                          (1, "seller", "fund", "0.50", "fund"), (3, "escrow", "seller", "180.00", "principal"),
                           (8, "fund", "challenger:did:web:watch.example#k1", "0.50", "costs"),
                           (8, "bond", "buyer", "18.00", "restitution")]
-    r.check(tup(vecs[0]["transfers"]) == final_printed, "Appendix A.6, the FINAL list, is vector 1 verbatim")
-    r.check(tup(vecs[1]["transfers"]) == overturned_printed, "Appendix A.6, the overturned list, is vector 2 verbatim")
+    by_name = lambda prefix: next(v for v in vecs if v["name"].startswith(prefix))
+    r.check(tup(by_name("FINAL: PASS")["transfers"]) == final_printed, "Appendix A.6, the FINAL list, is the bundle's verdict-first vector verbatim")
+    r.check(tup(by_name("SETTLED on an upheld Challenge (the")["transfers"]) == overturned_printed, "Appendix A.6, the overturned list, is the bundle's dispute-path vector verbatim")
+    r.check(sum("admission" in v for v in vecs) == 2 and len(vecs) == 9, "the bundle carries nine vectors, two of them admission vectors")
     r.check(outcome["terms_result"]["transfers"] == prof.schedule(vtc, outcome["trace"]),
             "outcome.terms_result.transfers is the schedule over the example trace")
     ok, why = prof.check(vtc, outcome["terms_result"]["transfers"], terminal=True)
@@ -326,7 +331,7 @@ def main() -> int:
                                             "581A0DB248B0A77AECEC196ACCC52973", 16),
             "P-384 group order is the SEC 2 value")
     if not HAVE_CRYPTO:
-        for _ in range(22):
+        for _ in range(26):
             r.skip("negative vector")
         return r.done()
 
@@ -392,7 +397,7 @@ def main() -> int:
             lambda: fac.propose(cosign(fresh | {"parties": dict(parties, seller=parties["buyer"] + "/")}, kb, ks)),
             ("parties-not-distinct",))
     refused("V-08 two buyer signatures, no seller", lambda: fac.propose(cosign(fresh, kb, kb)),
-            ("signature-missing", "signature-invalid", "unexpected-signer"))
+            ("unexpected-signer",))
     refused("V-09 window_seconds 0",
             lambda: fac.propose(cosign(fresh | {"challenge": dict(vtc["challenge"], window_seconds=0)}, kb, ks)),
             ("schema-invalid",))
@@ -409,8 +414,20 @@ def main() -> int:
             ("terms-parameters-invalid",))
     case_seller = parties["buyer"].replace("procure-1", "Procure-1")
     kcase = resolver.register(pc.Key.generate(case_seller + "#k1"))
-    code, _ = fac.propose(cosign(fresh | {"id": "vtc_case01", "parties": dict(parties, seller=case_seller)}, kb, kcase))
+    try:
+        code, _ = fac.propose(cosign(fresh | {"id": "vtc_case01", "parties": dict(parties, seller=case_seller)}, kb, kcase))
+    except F.Refuse as exc:
+        code = exc.kind
     r.check(code == 201, "V-19 buyer and seller differing only in did:web path case are accepted as distinct")
+    forbidden = {"jwk": {"kty": "OKP"}, "jku": "https://keys.example/jwks", "x5c": ["MIIB"], "x5u": "https://keys.example/c.pem",
+                 "x5t": "abc", "x5t#S256": "abc", "crit": ["b64"]}
+    bad = []
+    for member, value in forbidden.items():
+        try:
+            fac.propose(with_header(vtc, **{member: value})); bad.append(member + " accepted")
+        except F.Refuse as exc:
+            if exc.kind != "signature-invalid": bad.append(f"{member}: {exc.kind}")
+    r.check(not bad, "V-26 a protected header carrying jwk, jku, x5c, x5u, x5t, x5t#S256 or crit is refused as signature-invalid", "; ".join(bad))
     refused("V-20 undefined member", lambda: fac.propose(cosign(fresh | {"bonus": True}, kb, ks)), ("schema-invalid",))
     refused("V-21 signatures out of order",
             lambda: fac.propose(vtc | {"signatures": list(reversed(vtc["signatures"]))}), ("signatures-unordered",))
@@ -433,9 +450,11 @@ def main() -> int:
     # The example contract, then the Delivery-level and Verdict-level vectors
     code, _ = fac.propose(vtc)
     r.check(code == 201, "V-01 the example contract is accepted by the reference Facilitator")
+    before = len(fac.get_status(vtc["id"])[1]["trace"])
     refused("V-14 Delivery without evidence",
             lambda: fac.submit_delivery(resign({k: v for k, v in delivery.items() if k != "evidence"}, ks, MEDIA["delivery"])),
             ("evidence-nonconformant",))
+    r.check(len(fac.get_status(vtc["id"])[1]["trace"]) == before, "V-14: the refused Delivery left no entry in the trace")
     code, _ = fac.submit_delivery(delivery)
     r.check(code == 202, "the example Delivery is accepted after the nonconformant one was refused")
     refused("V-17 Verdict signed by the seller", lambda: fac.record_verdict(resign(verdict, ks, MEDIA["verdict"])),

@@ -2,6 +2,7 @@
   "pact": "0.2",
   "type": "FacilitatorCapabilities",
   "facilitator": "did:web:settle.example",
+  "issued_at": "2026-11-01T09:00:00Z",
   "settlement_bindings": [
     {
       "id": "https://settle.example/bindings/ledger-1",
@@ -18,13 +19,12 @@
     "delivery-first"
   ],
   "verification_profiles": [
-    "acceptance",
-    "bisection"
+    "acceptance"
   ],
   "terms_profiles": [
     {
       "id": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-      "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5fc1147743326dabd45bda546dc62"
+      "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956e835df2653b99d71d363a68"
     }
   ],
   "max_contract_value": {
@@ -39,7 +39,7 @@
     "outcome": "https://settle.example/pact/v2/outcomes"
   },
   "signature": {
-    "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5mYWNpbGl0YXRvcitqc29uIn0",
-    "signature": "hSax9MOodgYWoYjkTk9OMtj-vIAzCwETfS9gSXQpVUprqF_nNYpKtEo3OS1joYgIFiIFQwXh0hRqdrn2erHoDg"
+    "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpzZXR0bGUuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3ZuZC5wYWN0LmZhY2lsaXRhdG9yK2pzb24ifQ",
+    "signature": "8gd373Neg1u8nXuae2cQvFbbjwBoovlZ4NT1hs_cdHntSEOJdSfXQXqXahrv8QyLaFGrU1inged3ajGJwrsQBg"
   }
 }

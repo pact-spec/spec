@@ -91,10 +91,6 @@ class BondedRestitution:
         bond = _d(prm["seller_bond"])
         fund = _d(prm["verification_fund"])
         cap = _d(prm["cap"])
-        if bond > cap or fund > cap:
-            raise ProfileRefusal("parameters-inconsistent",
-                                 "seller_bond and verification_fund cannot exceed cap",
-                                 "A.4", cap=prm["cap"])
         mode = prm["assurance"]["mode"]
         if mode == "open":
             raise ProfileRefusal("assurance-constraint-unsatisfied",
@@ -111,6 +107,10 @@ class BondedRestitution:
                 f"{_money(released_before_verdict)}", "A.4",
                 required_bond=f"{need:f}", declared_bond=prm["seller_bond"],
                 q_min=prm["assurance"]["q_min"], price=vtc["price"]["amount"])
+        if bond > cap or fund > cap:
+            raise ProfileRefusal("parameters-inconsistent",
+                                 "seller_bond and verification_fund cannot exceed cap",
+                                 "A.4", cap=prm["cap"])
 
     # -- Appendix A.3: accounts -----------------------------------------------
     @staticmethod
@@ -161,7 +161,7 @@ class BondedRestitution:
             if ev == "funded":
                 emit(i, "buyer", "escrow", price, "lock")
                 emit(i, "seller", "bond", bond0, "bond")
-                emit(i, "buyer", "fund", fund0, "fund")
+                emit(i, "seller", "fund", fund0, "fund")
             elif ev == "delivered":
                 if principal_on == "delivered":
                     emit(i, "escrow", "seller", bal["escrow"], "principal")
@@ -182,11 +182,11 @@ class BondedRestitution:
                 if state == "FINAL":
                     emit(i, "escrow", "seller", bal["escrow"], "principal")
                     emit(i, "bond", "seller", bal["bond"], "return")
-                    emit(i, "fund", "buyer", bal["fund"], "fund-return")
+                    emit(i, "fund", "seller", bal["fund"], "fund-return")
                 elif state == "ABANDONED":
                     emit(i, "escrow", "buyer", bal["escrow"], "reverse")
                     emit(i, "bond", "seller", bal["bond"], "return")
-                    emit(i, "fund", "buyer", bal["fund"], "fund-return")
+                    emit(i, "fund", "seller", bal["fund"], "fund-return")
                 else:  # SETTLED, five ranks
                     st = standing()
                     upheld = bool(e.get("challenge_upheld")) and st is not None and "answers" in st
@@ -214,7 +214,7 @@ class BondedRestitution:
                          min(bal["bond"], room), "remainder")                        # 5
                     # anything the cap kept in the bond is not this profile's to move
                     emit(i, "bond", "seller", bal["bond"], "return")
-                    emit(i, "fund", "buyer", bal["fund"], "fund-return")
+                    emit(i, "fund", "seller", bal["fund"], "fund-return")
         return out
 
     def step(self, vtc: dict, trace: list[dict]) -> list[dict]:
@@ -247,6 +247,15 @@ class BondedRestitution:
 
     def reproduces(self) -> tuple[bool, str]:
         for v in self.vectors():
+            if "admission" in v:
+                try:
+                    self.admit(v["contract"])
+                    if not v["admission"].get("admitted"):
+                        return False, f"vector {v['name']}: admitted, bundle says refused"
+                except ProfileRefusal as exc:
+                    if v["admission"].get("refused") != exc.kind:
+                        return False, f"vector {v['name']}: refused as {exc.kind}"
+                continue
             got = self.schedule(v["contract"], v["trace"])
             if got != v["transfers"]:
                 return False, f"vector {v['name']}: schedule differs from the bundle"
@@ -361,8 +370,8 @@ def _trace_delivery_first() -> list[dict]:
 
 def build_vectors(profile: BondedRestitution) -> list[dict]:
     cases = [
-        ("FINAL: PASS, window closes, Figure 1", _contract(), _trace_final()),
-        ("SETTLED on an upheld Challenge, Figure 5", _contract(), _trace_overturned()),
+        ("FINAL: PASS, window closes (the verdict-first path)", _contract(), _trace_final()),
+        ("SETTLED on an upheld Challenge (the dispute path)", _contract(), _trace_overturned()),
         ("SETTLED: the Verifier records FAIL", _contract(), _trace_settled_by_verifier()),
         ("ABANDONED: deadline with no Delivery", _contract(), _trace_abandoned()),
         ("SETTLED on an upheld Challenge, basis price",
@@ -377,7 +386,23 @@ def build_vectors(profile: BondedRestitution) -> list[dict]:
         transfers = profile.schedule(contract, trace)
         ok, why = profile.check(contract, transfers, terminal=True)
         assert ok, f"{name}: {why}"
-        out.append({"name": name, "contract": contract, "trace": trace, "transfers": transfers})
+        out.append({"name": name, "contract": contract, "trace": trace, "transfers": transfers,
+                    "accounts": {"internal": list(INTERNAL)}})
+    q = {"mode": "certain", "q_min": 0.9091}
+    admission = [
+        ("admission: refused, seller_bond 17.99 at q_min 0.9091 on 180.00",
+         _contract(parameters={"seller_bond": "17.99", "assurance": q}), "assurance-constraint-unsatisfied"),
+        ("admission: admitted, seller_bond 18.00 at q_min 0.9091 on 180.00",
+         _contract(parameters={"seller_bond": "18.00", "assurance": q}), None),
+    ]
+    for name, contract, refused in admission:
+        try:
+            profile.admit(contract)
+            assert refused is None, f"{name}: admitted"
+            out.append({"name": name, "contract": contract, "admission": {"admitted": True}})
+        except ProfileRefusal as exc:
+            assert refused == exc.kind, f"{name}: {exc.kind}"
+            out.append({"name": name, "contract": contract, "admission": {"refused": exc.kind}})
     return out
 
 

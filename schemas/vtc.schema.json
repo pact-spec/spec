@@ -42,7 +42,7 @@
         },
         "spec_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "deadline": {
           "$ref": "common.schema.json#/$defs/timestamp"
@@ -99,9 +99,6 @@
           "type": "integer",
           "minimum": 1,
           "$comment": "Section 7.2: bounds the wait for a first Verdict under verdict-first; makes L finite (Section 10.3)."
-        },
-        "arbiter": {
-          "$ref": "common.schema.json#/$defs/party"
         }
       },
       "additionalProperties": false

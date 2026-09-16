@@ -31,7 +31,7 @@
     },
     "work_uri": {
       "type": "string",
-      "format": "uri"
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
     },
     "input_hash": {
       "$ref": "common.schema.json#/$defs/hash"
@@ -53,11 +53,25 @@
         },
         "results_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         }
       },
-      "$comment": "Section 6. Tier- and profile-conditional members are enforced in code. delivered_at is gone: the trace carries the Facilitator's time.",
-      "additionalProperties": false
+      "$comment": "Section 6. Tier- and profile-conditional members are enforced in code. delivered_at is gone: the trace carries the Facilitator's time. Members beyond those named are the verification profile's (Section 2); for acceptance, instrument_hash and results_hash are required.",
+      "additionalProperties": true,
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "acceptance"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "profile",
+          "instrument_hash",
+          "results_hash"
+        ]
+      }
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"

@@ -18,9 +18,8 @@
     },
     "timestamp": {
       "type": "string",
-      "format": "date-time",
-      "pattern": "Z$",
-      "$comment": "Section 2: RFC 3339 in UTC with the Z designator."
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "$comment": "Section 2: RFC 3339 in UTC with the Z designator. A pattern rather than format, so that validation does not depend on optional format checkers."
     },
     "tier": {
       "type": "string",
@@ -219,7 +218,7 @@
           "type": "boolean"
         }
       },
-      "$comment": "Section 4.2, Table 1. Which optional members an event carries is stated there and checked in code.",
+      "$comment": "Section 4.2, Table 2. Which optional members an event carries is stated there and checked in code.",
       "additionalProperties": false
     },
     "transfer": {

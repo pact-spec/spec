@@ -13,7 +13,8 @@
     "verification_profiles",
     "terms_profiles",
     "endpoints",
-    "signature"
+    "signature",
+    "issued_at"
   ],
   "properties": {
     "pact": {
@@ -31,7 +32,9 @@
       "items": {
         "type": "object",
         "required": [
-          "id"
+          "id",
+          "networks",
+          "assets"
         ],
         "properties": {
           "id": {
@@ -110,13 +113,41 @@
         "challenge",
         "outcome"
       ],
-      "additionalProperties": {
-        "type": "string",
-        "format": "uri"
+      "additionalProperties": false,
+      "properties": {
+        "contract": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$"
+        },
+        "delivery": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$"
+        },
+        "verdict": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$"
+        },
+        "challenge": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$"
+        },
+        "outcome": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$"
+        }
       }
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"
+    },
+    "issued_at": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "retrieval": {
+      "enum": [
+        "parties",
+        "open"
+      ]
     }
   }
 }

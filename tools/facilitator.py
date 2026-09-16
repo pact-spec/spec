@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import pathlib
 import re
 import threading
@@ -55,10 +56,11 @@ Section 5.3   terms.profile and profile_hash match an advertised profile; parame
 Section 6     a Delivery is accepted in FUNDED only, signed by the Seller, with evidence conformant
               to the verification profile; a nonconformant one is refused and recorded nowhere
 Section 7.1   flows this Facilitator does not advertise are refused; the window is never extended
-Section 7.2   a Verdict signer is the named verifier, or independent by Section 9.1; never the
-              Facilitator; never the Challenger it answers; challenge_hash names a pending
-              Challenge exactly when the contract is DISPUTED; verdict-lapsed after
-              max_verdict_seconds
+Section 7.2   a Verdict is accepted in DELIVERED (verdict-first) or WINDOW_OPEN (delivery-first)
+              only while none stands, and in DISPUTED only answering a pending Challenge; its
+              signer is the named verifier, or independent by Section 9.1, never the Facilitator;
+              verdict-lapsed after max_verdict_seconds
+Section 7.3   a Challenger's own Verdict on its Challenge is refused unless it is the named verifier
 Section 7.3   a Challenge is accepted before closes_at only, with a conformant proof, never from
               the Seller, always from the Buyer if otherwise valid
 Section 7.4   a pending Challenge lapses after max_dispute_seconds and the earlier Verdict stands
@@ -121,8 +123,8 @@ PROBLEMS = {
     "retrieval-restricted": (403, "17.12"),
     "schema-invalid": (422, "14.2"),
     "settlement-unsupported": (422, "13.1"),
-    "signature-invalid": (401, "14.1"),
-    "signature-missing": (401, "14.2"),
+    "signature-invalid": (400, "14.1"),
+    "signature-missing": (400, "14.2"),
     "signatures-unordered": (422, "14.1"),
     "terms-parameters-invalid": (422, "5.3"),
     "terms-unsupported": (422, "5.3"),
@@ -222,8 +224,10 @@ def latest_finality(vtc: dict) -> float:
 def _sig_kind(why: str) -> str:
     if why.startswith("algorithm"):
         return "algorithm-not-permitted"
-    if "no signature" in why:
+    if "no signature" in why or "carries no signatures" in why:
         return "signature-missing"
+    if "more than one signature" in why:
+        return "unexpected-signer"
     return "signature-invalid"
 
 
@@ -300,6 +304,7 @@ class Facilitator:
         self.seen: dict[tuple[str, str], str] = {}  # (kind, digest) -> vtc_id
         self.lock = threading.RLock()
         self.message_count = 0
+        self._op: float | None = None   # one clock reading per operation (Section 4.2)
         # What this Facilitator advertises, Section 8. Contracts outside it are
         # refused at propose rather than accepted and stranded.
         self.settlement_bindings = [
@@ -332,8 +337,16 @@ class Facilitator:
     def _profile(self, c: Contract) -> terms.BondedRestitution:
         return self.profiles[(c.vtc["terms"]["profile"], c.vtc["terms"]["profile_hash"])]
 
+    def _begin(self) -> float:
+        # whole seconds: what the trace prints is what the comparisons use (Section 4.2)
+        self._op = float(math.floor(self.now()))
+        return self._op
+
+    def _op_now(self) -> float:
+        return self._op if self._op is not None else float(math.floor(self.now()))
+
     def _record(self, c: Contract, event: str, **members: Any) -> dict:
-        entry = {"event": event, "at": iso(self.now())}
+        entry = {"event": event, "at": iso(self._op_now())}
         entry.update({k: v for k, v in members.items() if v is not None})
         c.trace.append(entry)
         # Section 5.3: the profile's schedule is invoked with the event and
@@ -345,7 +358,7 @@ class Facilitator:
         st = {
             "pact": "0.2", "type": "ContractStatus",
             "vtc_id": c.id, "vtc_hash": c.digest(), "state": c.state,
-            "trace": list(c.trace), "issued_at": iso(self.now()),
+            "trace": list(c.trace), "issued_at": iso(self._op_now()),
         }
         st["signature"] = pc.sign(st, self.key, MEDIA_STATUS)
         self.schemas.check(st, "status.schema.json")
@@ -359,13 +372,13 @@ class Facilitator:
             if key is not None and kid not in c.keys:
                 c.keys[kid] = pc.b64u(pc.public_bytes(key))
 
-    # -- clock-driven edges, Table 1 ---------------------------------------
+    # -- clock-driven edges, Table 2 ---------------------------------------
     def _tick(self, c: Contract) -> None:
         """Advance the contract along every clock-driven edge that is due, in
-        the order of Table 1, until nothing more is due."""
+        the order of Table 2, until nothing more is due."""
         for _ in range(16):
             before = len(c.trace)
-            now = self.now()
+            now = self._op_now()
             if c.state in ("ACCEPTED", "FUNDED") and now >= c.deadline:
                 self._record(c, "deadline-passed")
                 c.state = "AWAITING_CHILDREN"
@@ -395,7 +408,7 @@ class Facilitator:
     def _children_tick(self, c: Contract) -> None:
         if c.state in TERMINAL:
             return
-        now = self.now()
+        now = self._op_now()
         for child in c.children.values():
             if child.record is not None or child.unresolved:
                 continue
@@ -415,7 +428,7 @@ class Facilitator:
         self._terminal(c)
 
     def _open_window(self, c: Contract) -> None:
-        closes = self.now() + c.vtc["challenge"]["window_seconds"]
+        closes = self._op_now() + c.vtc["challenge"]["window_seconds"]
         c.window_closes_at = closes
         self._record(c, "window-opened", closes_at=iso(closes))
         c.state = "WINDOW_OPEN"
@@ -429,12 +442,16 @@ class Facilitator:
             state, upheld = "SETTLED", "answers" in st
         else:
             state, upheld = "FINAL", False
+        n_trace, n_transfers, prior = len(c.trace), len(c.transfers), c.state
         self._record(c, "terminal", state=state, challenge_upheld=upheld)
-        c.state = state
         prof = self._profile(c)
         ok, why = prof.check(c.vtc, c.transfers, terminal=True)
-        if not ok:  # the profile broke its own arithmetic; never sign that
+        if not ok:  # the profile broke its own arithmetic; never sign that, and record nothing
+            del c.trace[n_trace:]
+            del c.transfers[n_transfers:]
+            c.state = prior
             raise Refuse("internal-error", f"terms result fails an invariant: {why}")
+        c.state = state
         record = {
             "pact": "0.2", "type": "OutcomeRecord",
             "vtc_id": c.id, "vtc_hash": c.digest(),
@@ -460,6 +477,8 @@ class Facilitator:
     def _check_contract(self, vtc: dict) -> None:
         """Everything Section 14 asks of a contract on its own, used both at
         propose and at child registration."""
+        if not vtc.get("signatures"):
+            raise Refuse("signature-missing", "the contract carries no signatures")
         self.schemas.check(vtc, "vtc.schema.json")
         parties = vtc["parties"]
         buyer, seller = parties["buyer"], parties["seller"]
@@ -487,6 +506,7 @@ class Facilitator:
 
     def propose(self, vtc: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("contract", vtc)
             if hit is not None:
                 return hit
@@ -519,6 +539,10 @@ class Facilitator:
                              "advertises in its capability document",
                              settlement=price_m["settlement"], network=price_m["network"],
                              currency=price_m["currency"])
+            if price_m["currency"] != self.max_contract_value["currency"]:
+                raise Refuse("settlement-unsupported",
+                             "price is not stated in the currency of this Facilitator's max_contract_value",
+                             currency=price_m["currency"])
             if pc.cents(price_m["amount"]) > pc.cents(self.max_contract_value["amount"]):
                 raise Refuse("settlement-unsupported",
                              f"price exceeds this Facilitator's max_contract_value "
@@ -542,12 +566,12 @@ class Facilitator:
             if err:
                 raise Refuse("terms-parameters-invalid", err, profile=t["profile"])
             deadline = parse_rfc3339(vtc["task"]["deadline"])
-            if deadline <= self.now():
+            if deadline <= self._op_now():
                 raise Refuse("deadline-invalid",
                              "task.deadline is already past on this Facilitator's clock")
             prof.admit(vtc)   # raises terms.ProfileRefusal, reported per Section 13.3
 
-            c = Contract(vtc=vtc, created_at=self.now(), deadline=deadline)
+            c = Contract(vtc=vtc, created_at=self._op_now(), deadline=deadline)
             self.contracts[c.id] = c
             self._record_keys(c, vtc)
             self._remember("contract", vtc, c.id)
@@ -561,12 +585,14 @@ class Facilitator:
     # -- Retrieve, Section 11 and 12 --------------------------------------
     def get_status(self, vid: str) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             c = self._contract(vid)
             self._tick(c)
             return 200, self._status(c)
 
     def get_outcome(self, vid: str) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             c = self._contract(vid)
             self._tick(c)
             if c.outcome is None:
@@ -583,11 +609,14 @@ class Facilitator:
     # -- Submit Delivery, Section 6 ---------------------------------------
     def submit_delivery(self, dlv: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("delivery", dlv)
             if hit is not None:
                 return hit
-            for member in ("vtc_id", "vtc_hash", "signature"):
-                if not isinstance(dlv.get(member), (str, dict)):
+            if "signature" not in dlv:
+                raise Refuse("signature-missing", "the Delivery carries no signature")
+            for member in ("vtc_id", "vtc_hash"):
+                if not isinstance(dlv.get(member), str):
                     raise Refuse("schema-invalid", f"the Delivery lacks {member}")
             c = self._contract(dlv["vtc_id"])
             self._tick(c)
@@ -619,7 +648,7 @@ class Facilitator:
                 raise Refuse("evidence-nonconformant", reason, state=c.state)
 
             c.delivery = dlv
-            c.delivered_at = self.now()
+            c.delivered_at = self._op_now()
             self._record_keys(c, dlv)
             self._remember("delivery", dlv, c.id)
             self._record(c, "delivered", object=pc.digest_over(dlv))
@@ -644,7 +673,7 @@ class Facilitator:
         if "results_hash" not in ev:
             return "the acceptance profile requires results_hash in the evidence"
         if ver["tier"] == "T0-reexec" and "input_hash" not in dlv:
-            return "input_hash is required for a tier whose fraud proof re-executes (Section 6)"
+            return "input_hash is required for a tier whose proof of nonconformance re-executes (Section 6)"
         return None
 
     def _delivery_digest(self, c: Contract) -> str:
@@ -656,9 +685,12 @@ class Facilitator:
     # -- Record Verdict, Section 7.2 --------------------------------------
     def record_verdict(self, verdict: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("verdict", verdict)
             if hit is not None:
                 return hit
+            if "signature" not in verdict:
+                raise Refuse("signature-missing", "the Verdict carries no signature")
             self.schemas.check(verdict, "verdict.schema.json")
             c = self._contract(verdict["vtc_id"])
             self._tick(c)
@@ -668,10 +700,15 @@ class Facilitator:
                              "delivery_hash does not commit to the recorded Delivery, "
                              "including its signature", expected=recorded,
                              received=verdict["delivery_hash"])
-            if c.state not in ("DELIVERED", "WINDOW_OPEN", "DISPUTED") or c.flow == "no-window":
+            answers = verdict.get("challenge_hash")
+            admissible = ((c.state == "DELIVERED" and c.flow == "verdict-first" and c.standing is None)
+                          or (c.state == "WINDOW_OPEN" and c.flow == "delivery-first" and c.standing is None)
+                          or c.state == "DISPUTED")
+            if not admissible:
                 raise Refuse("wrong-state",
-                             f"contract {c.id} is {c.state} under {c.flow}; Table 1 lists no "
-                             f"verdict entry for it")
+                             f"contract {c.id} is {c.state} under {c.flow}"
+                             f"{' with a Verdict standing' if c.standing is not None else ''}; "
+                             f"Table 2 lists no verdict entry for it")
             ver = c.vtc["verification"]
             if verdict["instrument_hash"] != ver["criteria_hash"]:
                 raise Refuse("verdict-nonconformant",
@@ -681,7 +718,6 @@ class Facilitator:
                 raise Refuse("verdict-nonconformant",
                              f"profile {verdict['profile']!r} is not the contract's "
                              f"{ver['profile']!r}")
-            answers = verdict.get("challenge_hash")
             if c.state == "DISPUTED":
                 if answers is None:
                     raise Refuse("verdict-nonconformant",
@@ -740,7 +776,7 @@ class Facilitator:
                     raise Refuse("verifier-not-independent",
                                  f"the Verdict is signed by the contract's {label}",
                                  signer=kid)
-            if answers is not None:
+            if answers is not None and not named:
                 for ck in pc.signer_kids(c.challenges[answers]):
                     if pc.same_party(ck, kid):
                         raise Refuse("verifier-not-independent",
@@ -750,22 +786,25 @@ class Facilitator:
     # -- Open Challenge, Section 7.3 --------------------------------------
     def open_challenge(self, ch: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("challenge", ch)
             if hit is not None:
                 return hit
+            if "signature" not in ch:
+                raise Refuse("signature-missing", "the Challenge carries no signature")
             self.schemas.check(ch, "challenge.schema.json")
             c = self._contract(ch["vtc_id"])
             self._tick(c)
+            if c.state not in ("WINDOW_OPEN", "DISPUTED"):
+                raise Refuse("challenge-window-closed",
+                             f"no challenge window is open: contract {c.id} is {c.state}",
+                             state=c.state)
             recorded = self._delivery_digest(c)
             if ch["delivery_hash"] != recorded:
                 raise Refuse("object-conflict",
                              "delivery_hash does not commit to the recorded Delivery",
                              expected=recorded, received=ch["delivery_hash"])
-            if c.state not in ("WINDOW_OPEN", "DISPUTED"):
-                raise Refuse("challenge-window-closed",
-                             f"no challenge window is open: contract {c.id} is {c.state}",
-                             state=c.state)
-            if c.window_closes_at is None or self.now() >= c.window_closes_at:
+            if c.window_closes_at is None or self._op_now() >= c.window_closes_at:
                 raise Refuse("challenge-window-closed",
                              "the challenge window has closed", closes_at=iso(c.window_closes_at or 0))
             proof = ch["proof"]
@@ -787,12 +826,12 @@ class Facilitator:
             kids = pc.signer_kids(ch)
             if any(pc.kid_covers(k, c.seller) for k in kids):
                 raise Refuse("unexpected-signer", "a performer's statement against its own "
-                             "Delivery is not a fraud proof (Section 7.3)", signer=kids[0])
-            # A Challenge is a fraud proof submitted for evaluation, not a
+                             "Delivery is not a proof of nonconformance (Section 7.3)", signer=kids[0])
+            # A Challenge is a proof of nonconformance submitted for evaluation, not a
             # finding. The Buyer is admissible; nothing here checks who else is.
             digest = pc.digest_over(ch)
             c.challenges[digest] = ch
-            c.challenge_at[digest] = self.now()
+            c.challenge_at[digest] = self._op_now()
             c.pending.append(digest)
             self._record_keys(c, ch)
             self._remember("challenge", ch, c.id)
@@ -803,6 +842,7 @@ class Facilitator:
     # -- Contract trees, Section 10 ---------------------------------------
     def register_child(self, parent_id: str, child: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             p = self._contract(parent_id)
             self._tick(p)
             hit = self.seen.get(("child", pc.digest_over(child)))
@@ -842,15 +882,20 @@ class Facilitator:
             self._tick(p)
             return 201, self._status(p)
 
-    def supply_child_outcome(self, parent_id: str, child_id: str, record: dict) -> tuple[int, dict]:
+    def supply_child_outcome(self, parent_id: str, child_hash: str, record: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             p = self._contract(parent_id)
             self._tick(p)
-            child = next((ch for ch in p.children.values() if ch.vtc["id"] == child_id), None)
+            child = next((ch for ch in p.children.values() if ch.digest == child_hash), None)
             if child is None:
-                raise Refuse("unknown-contract", f"no registered child {child_id} of {parent_id}")
-            if child.record is not None:
+                raise Refuse("unknown-contract", f"no registered child with digest {child_hash} under {parent_id}")
+            if child.record is not None:   # a replay of an accepted record is the existing resource (Section 13.2)
+                if pc.digest_over(record) != pc.digest_over(child.record):
+                    raise Refuse("object-conflict", "a different Outcome Record is already held for this child")
                 return 200, self._status(p)
+            if p.state in TERMINAL:
+                raise Refuse("wrong-state", "the parent has reached a terminal state; child records are no longer accepted (Table 2)", state=p.state)
             self.schemas.check(record, "outcome.schema.json")
             if record["vtc_hash"] != child.digest:
                 raise Refuse("child-outcome-invalid",
@@ -871,11 +916,13 @@ class Facilitator:
             "pact": "0.2",
             "type": "FacilitatorCapabilities",
             "facilitator": self.identity,
+            "issued_at": iso(self._op_now()),
             "settlement_bindings": self.settlement_bindings,
             "flows": self.flows,
             "verification_profiles": self.verification_profiles,
             "terms_profiles": [{"id": pid, "profile_hash": ph} for (pid, ph) in self.profiles],
             "max_contract_value": self.max_contract_value,
+            "retrieval": "open",   # CHOICES C2
             "endpoints": {
                 "contract": self.base_url + "/pact/v2/contracts",
                 "delivery": self.base_url + "/pact/v2/deliveries",
@@ -981,11 +1028,11 @@ class Handler(BaseHTTPRequestHandler):
         def run() -> None:
             m = re.match(r"^/pact/v2/contracts/([^/]+)/children(?:/([^/]+))?$", self.path)
             if m:
-                parent_id, child_id = m.groups()
-                if child_id is None:
+                parent_id, child_hash = m.groups()
+                if child_hash is None:
                     status, body = self.fac.register_child(parent_id, self._body())
                 else:
-                    status, body = self.fac.supply_child_outcome(parent_id, child_id, self._body())
+                    status, body = self.fac.supply_child_outcome(parent_id, child_hash, self._body())
                 self._send(status, body, MEDIA_STATUS)
                 return
             m = re.match(r"^/pact/v2/(contracts|deliveries|verdicts|challenges)$", self.path)

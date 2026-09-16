@@ -2,9 +2,9 @@
   "pact": "0.2",
   "type": "Delivery",
   "vtc_id": "vtc_9f2c11",
-  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2",
-  "work_hash": "sha256:d7f43b3a51c28274adc4ebe535cc9de80f0b6d6c975a1d1ce519d582306338b1",
-  "work_uri": "https://cdn.dataforge.example/o/d7f4",
+  "vtc_hash": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff4949304c2c855ca1d746ba6459",
+  "work_hash": "sha256:a26dc519a79ac70835a71ea58c9e34f0625778aee280a3170b6b9a5037036ef0",
+  "work_uri": "https://cdn.dataforge.example/o/a26d",
   "input_hash": "sha256:d7f43b3a51c28274adc4ebe535cc9de80f0b6d6c975a1d1ce519d582306338b1",
   "evidence": {
     "profile": "acceptance",
@@ -13,7 +13,7 @@
     "results_uri": "https://cdn.dataforge.example/o/28d3"
   },
   "signature": {
-    "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vdm5kLnBhY3QuZGVsaXZlcnkranNvbiJ9",
-    "signature": "9CVlezLLYF2raBHqijKrLTB94BIrXmxNr-5vhFWVilodcH4WXj2ri5Z1QTcQSh34DPmNtZKMf_li4GdlkASzCg"
+    "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpkYXRhZm9yZ2UuZXhhbXBsZTphZ2VudHM6ZXRsLTMjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5kZWxpdmVyeStqc29uIn0",
+    "signature": "nfFbSutJoIrmHR2YBuvt_csj1uY8Je5POBuVEQpgHxpbPzAXBoUa-SvyRGegpbRUjmBRWkVPa5shiIU8FxRQCQ"
   }
 }

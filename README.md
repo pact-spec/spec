@@ -113,11 +113,7 @@ pip install jsonschema referencing cryptography
 python3 tools/validate.py
 ```
 
-103 checks: 10 schema, 4 canonicalization, 18 hash commitments, 20 rules
-the schemas cannot express, 9 signature verifications, 10 on the terms
-profile including the two transfer lists printed in Appendix A.6, 6 Merkle
-per RFC 9162, and 26 conformance vectors of Section 14.3 run through the
-reference Facilitator. `pactcore.jcs` is a full RFC 8785 canonicalizer for
+107 checks, in the validator's own words: 10 schema conformance; 4 canonicalization (RFC 8785); 18 hash commitments; 21 rules of the document; 9 signature verification; 11 terms profile: bonded-restitution; 6 Merkle tree hash (RFC 9162); 28 conformance vectors of Section 14.3, through the reference Facilitator. `pactcore.jcs` is a full RFC 8785 canonicalizer for
 the JSON value types, including UTF-16 key order and ECMAScript number
 formatting; both are pinned by vectors because both were got wrong once.
 

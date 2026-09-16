@@ -18,3 +18,4 @@ jobs:
       - run: pip install xml2rfc
       - run: xml2rfc --text draft/draft-laxsharma-pact-00.xml
       - run: xml2rfc --text draft/draft-laxsharma-pact-01.xml
+      - run: xml2rfc --text draft/draft-laxsharma-pact-02.xml

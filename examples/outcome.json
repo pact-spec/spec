@@ -1,0 +1,129 @@
+{
+  "pact": "0.2",
+  "type": "OutcomeRecord",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2",
+  "parties": {
+    "buyer": "did:web:buyer.example:agents:procure-1",
+    "seller": "did:web:dataforge.example:agents:etl-3",
+    "facilitator": "did:web:settle.example",
+    "verifier": "did:web:audit.example"
+  },
+  "outcome": {
+    "state": "SETTLED",
+    "challenge_upheld": true
+  },
+  "work_hash": "sha256:d7f43b3a51c28274adc4ebe535cc9de80f0b6d6c975a1d1ce519d582306338b1",
+  "trace": [
+    {
+      "event": "accepted",
+      "at": "2026-11-01T10:00:00Z",
+      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2"
+    },
+    {
+      "event": "funded",
+      "at": "2026-11-01T10:00:00Z"
+    },
+    {
+      "event": "delivered",
+      "at": "2026-11-10T08:30:12Z",
+      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8aaaf2f186702504fba242ffb"
+    },
+    {
+      "event": "verdict",
+      "at": "2026-11-10T09:14:30Z",
+      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8e09452a74bac15e6752ca81",
+      "signer": "did:web:audit.example#k1",
+      "outcome": "PASS"
+    },
+    {
+      "event": "window-opened",
+      "at": "2026-11-10T09:14:30Z",
+      "closes_at": "2026-11-10T10:14:30Z"
+    },
+    {
+      "event": "challenge",
+      "at": "2026-11-10T09:40:00Z",
+      "object": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df6cfef12d12d1340c15e5d85",
+      "signer": "did:web:watch.example#k1",
+      "costs": {
+        "amount": "1.20",
+        "currency": "USDC"
+      }
+    },
+    {
+      "event": "verdict",
+      "at": "2026-11-10T09:58:05Z",
+      "object": "sha256:012bab194f444012f87ff8986419537f9de9f3dfe845c6623ac6a7488fb98b73",
+      "signer": "did:web:audit.example#k1",
+      "outcome": "FAIL",
+      "answers": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df6cfef12d12d1340c15e5d85",
+      "supersedes": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8e09452a74bac15e6752ca81"
+    },
+    {
+      "event": "children-final",
+      "at": "2026-11-10T09:58:05Z"
+    },
+    {
+      "event": "terminal",
+      "at": "2026-11-10T09:58:05Z",
+      "state": "SETTLED",
+      "challenge_upheld": true
+    }
+  ],
+  "terms_result": {
+    "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+    "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5fc1147743326dabd45bda546dc62",
+    "currency": "USDC",
+    "transfers": [
+      {
+        "event": 1,
+        "from": "buyer",
+        "to": "escrow",
+        "amount": "180.00",
+        "code": "lock"
+      },
+      {
+        "event": 1,
+        "from": "seller",
+        "to": "bond",
+        "amount": "18.00",
+        "code": "bond"
+      },
+      {
+        "event": 1,
+        "from": "buyer",
+        "to": "fund",
+        "amount": "0.50",
+        "code": "fund"
+      },
+      {
+        "event": 3,
+        "from": "escrow",
+        "to": "seller",
+        "amount": "180.00",
+        "code": "principal"
+      },
+      {
+        "event": 8,
+        "from": "fund",
+        "to": "challenger:did:web:watch.example#k1",
+        "amount": "0.50",
+        "code": "costs"
+      },
+      {
+        "event": 8,
+        "from": "bond",
+        "to": "buyer",
+        "amount": "18.00",
+        "code": "restitution"
+      }
+    ]
+  },
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5vdXRjb21lK2pzb24ifQ",
+      "signature": "eOufu8kaI-zRjU13rTVFSSJbn-zPC2QMn0QpHP4V65OpunfT2KNN3p-YESE7ht9tf2uUPHxWkDZuH1cgVJVsDQ"
+    }
+  ]
+}

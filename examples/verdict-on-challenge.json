@@ -3,13 +3,14 @@
   "type": "Verdict",
   "vtc_id": "vtc_9f2c11",
   "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8aaaf2f186702504fba242ffb",
-  "outcome": "PASS",
+  "challenge_hash": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df6cfef12d12d1340c15e5d85",
+  "outcome": "FAIL",
   "profile": "acceptance",
   "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b8351c9c55eb9316416265fc1b",
-  "results_hash": "sha256:28d334e0e0e0771eb5708452612ebcc6fbf848ebaca540214b4f6d2165688a51",
-  "evaluated_at": "2026-11-10T09:14:22Z",
+  "results_hash": "sha256:7f05a60223e24ca9393e0c241d0448cb5f39e5edb71c117fb7d3d593d5861b40",
+  "evaluated_at": "2026-11-10T09:57:40Z",
   "signature": {
     "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6YXVkaXQuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3ZuZC5wYWN0LnZlcmRpY3QranNvbiJ9",
-    "signature": "_Ze8kPxtnvnLGC7UYRvzv13wt6NDO_M9gGDopGbXryCn_E0R6N6Ejn5tTemPpte4SQaOAHG973ovIgjtgbHBAw"
+    "signature": "xOsLGEHXP3D9PzyxUjUNhKLLiWH4eNh-vPylihJkTBuPY9Oy7gHwP2_bsRx87yNDrG9MoRbXj1x1Bri7q6UmDg"
   }
 }

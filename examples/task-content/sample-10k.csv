@@ -1,0 +1,4 @@
+customer_id,email,country,updated_at
+c-000001,ana@example.net,de,2026-05-02T10:14:00Z
+c-000002,ana@example.net,DE,2026-06-11T08:00:00Z
+c-000003,bo@example.org,Germany,2026-01-20T17:45:30Z

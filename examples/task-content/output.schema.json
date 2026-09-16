@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Customer record (deliverable)",
+  "type": "object",
+  "required": ["customer_id", "email", "country", "updated_at"],
+  "properties": {
+    "customer_id": { "type": "string" },
+    "email": { "type": "string" },
+    "country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

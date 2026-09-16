@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "delivery.schema.json",
-  "title": "PACT Delivery",
+  "title": "PACT Delivery (0.2)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,7 +15,7 @@
   ],
   "properties": {
     "pact": {
-      "type": "string"
+      "const": "0.2"
     },
     "type": {
       "const": "Delivery"
@@ -35,10 +35,6 @@
     },
     "input_hash": {
       "$ref": "common.schema.json#/$defs/hash"
-    },
-    "delivered_at": {
-      "type": "string",
-      "format": "date-time"
     },
     "evidence": {
       "type": "object",
@@ -60,7 +56,7 @@
           "format": "uri"
         }
       },
-      "$comment": "Section 6. Tier-conditional members enforced in code.",
+      "$comment": "Section 6. Tier- and profile-conditional members are enforced in code. delivered_at is gone: the trace carries the Facilitator's time.",
       "additionalProperties": false
     },
     "signature": {

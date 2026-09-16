@@ -1,0 +1,40 @@
+{
+  "pact": "0.2",
+  "type": "ContractStatus",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2",
+  "state": "WINDOW_OPEN",
+  "trace": [
+    {
+      "event": "accepted",
+      "at": "2026-11-01T10:00:00Z",
+      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3225fbbd4ebace4fb980f1c2"
+    },
+    {
+      "event": "funded",
+      "at": "2026-11-01T10:00:00Z"
+    },
+    {
+      "event": "delivered",
+      "at": "2026-11-10T08:30:12Z",
+      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8aaaf2f186702504fba242ffb"
+    },
+    {
+      "event": "verdict",
+      "at": "2026-11-10T09:14:30Z",
+      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8e09452a74bac15e6752ca81",
+      "signer": "did:web:audit.example#k1",
+      "outcome": "PASS"
+    },
+    {
+      "event": "window-opened",
+      "at": "2026-11-10T09:14:30Z",
+      "closes_at": "2026-11-10T10:14:30Z"
+    }
+  ],
+  "issued_at": "2026-11-10T09:14:30Z",
+  "signature": {
+    "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5zdGF0dXMranNvbiJ9",
+    "signature": "LZOcBREP7-LMJ8iveBuuSzhuETdwERvf7nbA3adNdgzt8oQ_Udf9VV5D_rRpzjl_CDHvwmkZJ7tYxir5Qs9yAw"
+  }
+}

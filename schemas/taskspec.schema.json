@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pact-spec.github.io/spec/schemas/taskspec.schema.json",
-  "title": "PACT TaskSpec",
+  "title": "PACT TaskSpec (0.2)",
   "type": "object",
   "required": [
     "description",
@@ -12,9 +12,6 @@
     "description": {
       "type": "string",
       "minLength": 1
-    },
-    "skill": {
-      "type": "string"
     },
     "inputs": {
       "type": "object",
@@ -32,12 +29,17 @@
         },
         "sample_hash": {
           "$ref": "common.schema.json#/$defs/hash"
-        },
-        "size_hint": {
-          "type": "object"
         }
       },
-      "$comment": "A hash commitment covers only the octets hashed. spec_hash covers this URI string, not the bytes it dereferences to, so every URI whose content is consumed during bidding, execution, or verification needs a sibling hash. sample_hash and schema_hash are OPTIONAL in -00 and become REQUIRED alongside their URIs in -01; see https://github.com/pact-spec/spec/issues/1 entry 6.",
+      "dependentRequired": {
+        "schema_uri": [
+          "schema_hash"
+        ],
+        "sample_uri": [
+          "sample_hash"
+        ]
+      },
+      "$comment": "Section 5.1: every URI inside hash-committed content carries a sibling hash over the dereferenced bytes. The -01 schema required it only for the acceptance members and the -01 example broke the rule for the other three.",
       "additionalProperties": false
     },
     "deliverable": {
@@ -56,6 +58,11 @@
         "schema_hash": {
           "$ref": "common.schema.json#/$defs/hash"
         }
+      },
+      "dependentRequired": {
+        "schema_uri": [
+          "schema_hash"
+        ]
       },
       "additionalProperties": false
     },
@@ -105,7 +112,7 @@
           "minProperties": 1
         }
       },
-      "$comment": "Section 5.2. Closed per Section 2. Members for the attestation and proving tiers are named in the document's prose and not as member names, so a TaskSpec for those tiers does not validate in -01; recorded as a residual.",
+      "$comment": "Section 5.2. Members for the attestation and proving tiers are named in prose and not as member names, so a TaskSpec for those tiers does not validate; recorded as a residual.",
       "additionalProperties": false
     },
     "constraints": {

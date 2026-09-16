@@ -90,14 +90,14 @@ Table of Contents
      2.1.  Terminology . . . . . . . . . . . . . . . . . . . . . . .   9
    3.  Data Dictionary . . . . . . . . . . . . . . . . . . . . . . .  10
      3.1.  Members Common to Every Record  . . . . . . . . . . . . .  10
-     3.2.  Contract Members  . . . . . . . . . . . . . . . . . . . .  10
-     3.3.  TaskSpec Members  . . . . . . . . . . . . . . . . . . . .  11
+     3.2.  Contract Members  . . . . . . . . . . . . . . . . . . . .  11
+     3.3.  TaskSpec Members  . . . . . . . . . . . . . . . . . . . .  12
      3.4.  Delivery Members  . . . . . . . . . . . . . . . . . . . .  12
-     3.5.  Verdict Members . . . . . . . . . . . . . . . . . . . . .  12
+     3.5.  Verdict Members . . . . . . . . . . . . . . . . . . . . .  13
      3.6.  Challenge Members . . . . . . . . . . . . . . . . . . . .  13
-     3.7.  Contract Status Members . . . . . . . . . . . . . . . . .  13
+     3.7.  Contract Status Members . . . . . . . . . . . . . . . . .  14
      3.8.  Outcome Record Members  . . . . . . . . . . . . . . . . .  14
-     3.9.  Capability Document Members . . . . . . . . . . . . . . .  14
+     3.9.  Capability Document Members . . . . . . . . . . . . . . .  15
      3.10. Roles . . . . . . . . . . . . . . . . . . . . . . . . . .  15
    4.  Protocol Overview . . . . . . . . . . . . . . . . . . . . . .  16
      4.1.  States  . . . . . . . . . . . . . . . . . . . . . . . . .  17
@@ -117,32 +117,32 @@ Internet-Draft                    PACT                    September 2026
    6.  The Delivery Record . . . . . . . . . . . . . . . . . . . . .  25
    7.  Verdicts, Challenges and the Window . . . . . . . . . . . . .  26
      7.1.  Flows . . . . . . . . . . . . . . . . . . . . . . . . . .  26
-     7.2.  Verdicts  . . . . . . . . . . . . . . . . . . . . . . . .  26
+     7.2.  Verdicts  . . . . . . . . . . . . . . . . . . . . . . . .  27
      7.3.  Challenges  . . . . . . . . . . . . . . . . . . . . . . .  28
      7.4.  Disputes and Lapses . . . . . . . . . . . . . . . . . . .  29
-   8.  Facilitator Capability Discovery  . . . . . . . . . . . . . .  29
+   8.  Facilitator Capability Discovery  . . . . . . . . . . . . . .  30
    9.  Verification Profiles . . . . . . . . . . . . . . . . . . . .  31
      9.1.  Verifier Independence and Identifier Normalization  . . .  32
-   10. Contract Trees  . . . . . . . . . . . . . . . . . . . . . . .  32
+   10. Contract Trees  . . . . . . . . . . . . . . . . . . . . . . .  33
      10.1.  Binding a Child to Its Parent  . . . . . . . . . . . . .  33
-     10.2.  Registration and Children Final  . . . . . . . . . . . .  33
-     10.3.  Finality Is Bottom-Up  . . . . . . . . . . . . . . . . .  34
-   11. The Contract Status . . . . . . . . . . . . . . . . . . . . .  35
-   12. Outcome Records . . . . . . . . . . . . . . . . . . . . . . .  36
+     10.2.  Registration and Children Final  . . . . . . . . . . . .  34
+     10.3.  Finality Is Bottom-Up  . . . . . . . . . . . . . . . . .  35
+   11. The Contract Status . . . . . . . . . . . . . . . . . . . . .  36
+   12. Outcome Records . . . . . . . . . . . . . . . . . . . . . . .  38
      12.1.  The Terms Result . . . . . . . . . . . . . . . . . . . .  39
-     12.2.  The Children Merkle Root . . . . . . . . . . . . . . . .  39
-   13. Protocol Endpoints  . . . . . . . . . . . . . . . . . . . . .  40
-     13.1.  Proposing a Contract . . . . . . . . . . . . . . . . . .  41
-     13.2.  Idempotency  . . . . . . . . . . . . . . . . . . . . . .  41
-     13.3.  Error Responses  . . . . . . . . . . . . . . . . . . . .  42
-     13.4.  Exchange . . . . . . . . . . . . . . . . . . . . . . . .  42
-   14. Conformance . . . . . . . . . . . . . . . . . . . . . . . . .  43
-     14.1.  Signatures . . . . . . . . . . . . . . . . . . . . . . .  43
-       14.1.1.  Key Resolution . . . . . . . . . . . . . . . . . . .  44
+     12.2.  The Children Merkle Root . . . . . . . . . . . . . . . .  40
+   13. Protocol Endpoints  . . . . . . . . . . . . . . . . . . . . .  41
+     13.1.  Proposing a Contract . . . . . . . . . . . . . . . . . .  42
+     13.2.  Idempotency  . . . . . . . . . . . . . . . . . . . . . .  42
+     13.3.  Error Responses  . . . . . . . . . . . . . . . . . . . .  43
+     13.4.  Exchange . . . . . . . . . . . . . . . . . . . . . . . .  43
+   14. Conformance . . . . . . . . . . . . . . . . . . . . . . . . .  44
+     14.1.  Signatures . . . . . . . . . . . . . . . . . . . . . . .  44
+       14.1.1.  Key Resolution . . . . . . . . . . . . . . . . . . .  45
      14.2.  Rules Not Expressible in a Schema  . . . . . . . . . . .  45
      14.3.  Test Vectors . . . . . . . . . . . . . . . . . . . . . .  46
-   15. Worked Example  . . . . . . . . . . . . . . . . . . . . . . .  47
-   16. Implementation Status . . . . . . . . . . . . . . . . . . . .  48
+   15. Worked Example  . . . . . . . . . . . . . . . . . . . . . . .  48
+   16. Implementation Status . . . . . . . . . . . . . . . . . . . .  49
    17. Security Considerations . . . . . . . . . . . . . . . . . . .  49
      17.1.  Trust in the Facilitator . . . . . . . . . . . . . . . .  51
      17.2.  Verifier Capture . . . . . . . . . . . . . . . . . . . .  51
@@ -186,7 +186,7 @@ Internet-Draft                    PACT                    September 2026
      A.6.  Vectors . . . . . . . . . . . . . . . . . . . . . . . . .  69
    Appendix B.  Changes from -01 . . . . . . . . . . . . . . . . . .  70
    Acknowledgements  . . . . . . . . . . . . . . . . . . . . . . . .  71
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  71
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  72
 
 1.  Introduction
 
@@ -399,7 +399,15 @@ Internet-Draft                    PACT                    September 2026
    object keys by UTF-16 code unit as [RFC8785] Section 3.2.3 requires.
    Sorting by Unicode code point is a common substitution; it agrees
    with the required order throughout the Basic Multilingual Plane and
-   diverges above it.
+   diverges above it.  Numbers MUST be serialized as [RFC8785]
+   Section 3.2.2.3 requires, which is how ECMAScript prints them: the
+   number one is 1, whatever type held it, and never 1.0.
+
+   Figures.  A figure line that would exceed the page width is folded
+   with the single backslash strategy of [RFC8792], and a figure that
+   contains a fold begins with the header line that RFC requires.  The
+   figure is read after unfolding; the digests it prints are whole once
+   the fold is removed.
 
    Object digest.  The digest of an object is the string sha256:
    followed by the lowercase hexadecimal SHA-256 of the canonical form
@@ -429,6 +437,19 @@ Internet-Draft                    PACT                    September 2026
    this document reads none of them.  Extension is by a new version, not
    by adding members.
 
+
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                 [Page 8]
+
+Internet-Draft                    PACT                    September 2026
+
+
    Time.  Every timestamp is an RFC 3339 date-time [RFC3339] in UTC with
    the "Z" designator.  The Facilitator's clock governs every deadline
    and window in this document: the instant at which the Facilitator
@@ -442,14 +463,6 @@ Internet-Draft                    PACT                    September 2026
    namespace is defined by the settlement binding named in
    price.settlement, and need not be an ISO 4217 code.  A network is a
    ledger identifier in the form the same binding defines.  This
-
-
-
-Sharma                    Expires 20 March 2027                 [Page 8]
-
-Internet-Draft                    PACT                    September 2026
-
-
    document carries amounts; it does not say what any amount is for.
    Where a record produced under this document lists amounts, as
    terms_result does (Section 12.1), the meaning of every entry is the
@@ -485,6 +498,14 @@ Internet-Draft                    PACT                    September 2026
       gain in clarity that this note does not provide.
 
    Facilitator:  The party that runs the state machine of Section 4 for
+
+
+
+Sharma                    Expires 20 March 2027                 [Page 9]
+
+Internet-Draft                    PACT                    September 2026
+
+
       a contract: it accepts or refuses the records posted to it,
       records events in one order on its own clock, and signs the trace
       and the Outcome Record.  Nothing in this document says that a
@@ -493,18 +514,6 @@ Internet-Draft                    PACT                    September 2026
 
    The remaining roles are defined by what they sign and receive in
    Section 3.10, and the objects by their members in Section 3.
-
-
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                 [Page 9]
-
-Internet-Draft                    PACT                    September 2026
-
 
 3.  Data Dictionary
 
@@ -542,6 +551,17 @@ Internet-Draft                    PACT                    September 2026
       as that section says.  Commits, in the contract, to who agreed; in
       the Outcome Record, to which Facilitator issued it.
 
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 10]
+
+Internet-Draft                    PACT                    September 2026
+
+
 3.2.  Contract Members
 
    Carried in the Verifiable Task Contract (Section 5), media type
@@ -554,13 +574,6 @@ Internet-Draft                    PACT                    September 2026
       buyer (URI, required), seller (URI, required), facilitator (URI,
       required), verifier (URI, optional).  Commits to who plays each
       role for this contract.
-
-
-
-Sharma                    Expires 20 March 2027                [Page 10]
-
-Internet-Draft                    PACT                    September 2026
-
 
    task:  object, required. spec_hash (digest, required) commits to a
       TaskSpec (Section 5.2); spec_uri (URI, optional) says where its
@@ -594,6 +607,17 @@ Internet-Draft                    PACT                    September 2026
       named profile says.
 
    challenge:  object, required.  window_seconds (integer, required,
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 11]
+
+Internet-Draft                    PACT                    September 2026
+
+
       greater than zero) is the duration of the challenge window;
       max_dispute_seconds (integer, required) is the longest interval
       after a challenge event within which a Verdict on that Challenge
@@ -609,14 +633,6 @@ Internet-Draft                    PACT                    September 2026
    The TaskSpec is the content committed by task.spec_hash
    (Section 5.2).  It is not transmitted over the endpoints of this
    document.
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 11]
-
-Internet-Draft                    PACT                    September 2026
-
 
    description:  string, required.  A statement of the work in natural
       language.
@@ -650,6 +666,14 @@ Internet-Draft                    PACT                    September 2026
    work_hash:  digest, required.  Commits to the delivered bytes, or to
       a manifest per Section 5.1 where the deliverable is a bundle.
 
+
+
+
+Sharma                    Expires 20 March 2027                [Page 12]
+
+Internet-Draft                    PACT                    September 2026
+
+
    work_uri:  URI, optional.  Where the bytes may be fetched, subject to
       Section 17.5.
 
@@ -666,13 +690,6 @@ Internet-Draft                    PACT                    September 2026
 
    Carried in the Verdict (Section 7.2), media type application/
    vnd.pact.verdict+json.
-
-
-
-Sharma                    Expires 20 March 2027                [Page 12]
-
-Internet-Draft                    PACT                    September 2026
-
 
    vtc_id:  string, required.
 
@@ -706,6 +723,13 @@ Internet-Draft                    PACT                    September 2026
       for the acceptance profile, profile, instrument_hash,
       results_hash, results_uri and failing_checks (array of strings).
 
+
+
+Sharma                    Expires 20 March 2027                [Page 13]
+
+Internet-Draft                    PACT                    September 2026
+
+
    costs:  object, optional. amount and currency: a figure the
       Challenger asserts for producing the proof.  This document records
       it in the trace and reads it for nothing; its meaning is the named
@@ -722,14 +746,6 @@ Internet-Draft                    PACT                    September 2026
    state:  string, required.  A state name from Figure 2.
 
    trace:  array of objects, required.  The event trace so far, in the
-
-
-
-Sharma                    Expires 20 March 2027                [Page 13]
-
-Internet-Draft                    PACT                    September 2026
-
-
       order recorded (Section 4.2).  Each entry carries event (string,
       required), at (timestamp, required), object (digest, required
       where the event was caused by a posted record), and the event-
@@ -758,6 +774,18 @@ Internet-Draft                    PACT                    September 2026
       with the terminal event.
 
    terms_result:  object, required (Section 12.1). profile and
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 14]
+
+Internet-Draft                    PACT                    September 2026
+
+
       profile_hash (copied from the contract), currency (string), and
       transfers (array of objects), each with from (string), to
       (string), amount (amount) and code (string).  The entries are the
@@ -778,13 +806,6 @@ Internet-Draft                    PACT                    September 2026
 
    settlement_bindings:  array of objects, required.  Each with id
       (URI), networks and assets (arrays of strings).
-
-
-
-Sharma                    Expires 20 March 2027                [Page 14]
-
-Internet-Draft                    PACT                    September 2026
-
 
    flows:  array of strings, required.  The flows of Section 7.1 the
       Facilitator implements.
@@ -808,27 +829,6 @@ Internet-Draft                    PACT                    September 2026
 
    A role is defined by where its identifier appears, what it signs, and
    what it receives.  Nothing else about a role is defined here.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1010,54 +1010,54 @@ Sharma                    Expires 20 March 2027                [Page 18]
 Internet-Draft                    PACT                    September 2026
 
 
-   +==========+====================+===================================+
-   |Event     | Recorded in; then  | Members and condition             |
-   +==========+====================+===================================+
-   |accepted  | none; then         | object is vtc_hash.  The          |
-   |          | ACCEPTED           | contract passed Section 13.1.     |
-   +----------+--------------------+-----------------------------------+
-   |funded    | ACCEPTED; then     | ref (string, optional, in the     |
-   |          | FUNDED             | form the settlement binding       |
-   |          |                    | defines).  Recorded when every    |
-   |          |                    | account the named terms profile   |
-   |          |                    | requires shows finality on the    |
-   |          |                    | settlement binding named in       |
-   |          |                    | price.settlement; how a           |
-   |          |                    | Facilitator observes that is the  |
-   |          |                    | binding's to say, and this is     |
-   |          |                    | the only sentence in this         |
-   |          |                    | document that mentions an         |
-   |          |                    | account.                          |
-   +----------+--------------------+-----------------------------------+
-   |deadline- | ACCEPTED or        | task.deadline has passed with no  |
-   |passed    | FUNDED; then       | delivered entry.                  |
-   |          | AWAITING_CHILDREN  |                                   |
-   +----------+--------------------+-----------------------------------+
-   |delivered | FUNDED; then       | object is the Delivery's digest.  |
-   |          | DELIVERED          | The Delivery passed Section 6.    |
-   +----------+--------------------+-----------------------------------+
-   |window-   | DELIVERED; then    | Under delivery-first,             |
-   |opened    | WINDOW_OPEN        | immediately after delivered;      |
-   |          |                    | under verdict-first, immediately  |
-   |          |                    | after a PASS verdict or after     |
-   |          |                    | verdict-lapsed. closes_at         |
-   |          |                    | (timestamp, required) is at plus  |
-   |          |                    | challenge.window_seconds.         |
-   +----------+--------------------+-----------------------------------+
-   |verdict   | DELIVERED,         | object is the Verdict's digest;   |
-   |          | WINDOW_OPEN or     | outcome (PASS or FAIL); answers   |
-   |          | DISPUTED; then see | (digest of the Challenge, when    |
-   |          | the condition      | the Verdict carries               |
-   |          |                    | challenge_hash); supersedes       |
-   |          |                    | (digest of the Verdict it         |
-   |          |                    | replaces, when one stood).        |
-   |          |                    | Then: FAIL leads to               |
-   |          |                    | AWAITING_CHILDREN; PASS in        |
-   |          |                    | DELIVERED leads to window-        |
-   |          |                    | opened; PASS in WINDOW_OPEN       |
-   |          |                    | changes nothing; PASS in          |
-   |          |                    | DISPUTED leads to WINDOW_OPEN     |
-   |          |                    | once no Challenge is pending.     |
+   +==========+====================+==================================+
+   |Event     | Recorded in; then  | Members and condition            |
+   +==========+====================+==================================+
+   |accepted  | none; then         | object is vtc_hash.  The         |
+   |          | ACCEPTED           | contract passed Section 13.1.    |
+   +----------+--------------------+----------------------------------+
+   |funded    | ACCEPTED; then     | ref (string, optional, in the    |
+   |          | FUNDED             | form the settlement binding      |
+   |          |                    | defines).  Recorded when every   |
+   |          |                    | account the named terms profile  |
+   |          |                    | requires shows finality on the   |
+   |          |                    | settlement binding named in      |
+   |          |                    | price.settlement; how a          |
+   |          |                    | Facilitator observes that is the |
+   |          |                    | binding's to say, and this is    |
+   |          |                    | the only sentence in this        |
+   |          |                    | document that mentions an        |
+   |          |                    | account.                         |
+   +----------+--------------------+----------------------------------+
+   |deadline- | ACCEPTED or        | task.deadline has passed with no |
+   |passed    | FUNDED; then       | delivered entry.                 |
+   |          | AWAITING_CHILDREN  |                                  |
+   +----------+--------------------+----------------------------------+
+   |delivered | FUNDED; then       | object is the Delivery's digest. |
+   |          | DELIVERED          | The Delivery passed Section 6.   |
+   +----------+--------------------+----------------------------------+
+   |window-   | DELIVERED; then    | Under delivery-first,            |
+   |opened    | WINDOW_OPEN        | immediately after delivered;     |
+   |          |                    | under verdict-first, immediately |
+   |          |                    | after a PASS verdict or after    |
+   |          |                    | verdict-lapsed. closes_at        |
+   |          |                    | (timestamp, required) is at plus |
+   |          |                    | challenge.window_seconds.        |
+   +----------+--------------------+----------------------------------+
+   |verdict   | DELIVERED,         | object is the Verdict's digest;  |
+   |          | WINDOW_OPEN or     | signer (the kid of its           |
+   |          | DISPUTED; then see | signature); outcome (PASS or     |
+   |          | the condition      | FAIL); answers (digest of the    |
+   |          |                    | Challenge, when the Verdict      |
+   |          |                    | carries challenge_hash);         |
+   |          |                    | supersedes (digest of the        |
+   |          |                    | Verdict it replaces, when one    |
+   |          |                    | stood).  Then: FAIL leads to     |
+   |          |                    | AWAITING_CHILDREN; PASS in       |
+   |          |                    | DELIVERED leads to window-       |
+   |          |                    | opened; PASS in WINDOW_OPEN      |
+   |          |                    | changes nothing; PASS in         |
+   |          |                    | DISPUTED leads to WINDOW_OPEN    |
 
 
 
@@ -1066,54 +1066,54 @@ Sharma                    Expires 20 March 2027                [Page 19]
 Internet-Draft                    PACT                    September 2026
 
 
-   +----------+--------------------+-----------------------------------+
-   |verdict-  | DELIVERED; then    | Under verdict-first,              |
-   |lapsed    | WINDOW_OPEN        | verification.max_verdict_seconds  |
-   |          |                    | have passed since delivered with  |
-   |          |                    | no verdict. window-opened         |
-   |          |                    | follows.                          |
-   +----------+--------------------+-----------------------------------+
-   |challenge | WINDOW_OPEN or     | object is the Challenge's         |
-   |          | DISPUTED; then     | digest; costs copied from the     |
-   |          | DISPUTED           | Challenge when present.  The      |
-   |          |                    | Challenge passed Section 7.3      |
-   |          |                    | before closes_at.                 |
-   +----------+--------------------+-----------------------------------+
-   |dispute-  | DISPUTED; then     | object is the Challenge's         |
-   |lapsed    | WINDOW_OPEN        | digest.                           |
-   |          |                    | challenge.max_dispute_seconds     |
-   |          |                    | have passed since that challenge  |
-   |          |                    | entry with no Verdict answering   |
-   |          |                    | it.  Leads to WINDOW_OPEN once    |
-   |          |                    | no Challenge is pending; the      |
-   |          |                    | earlier Verdict, if any, stands.  |
-   +----------+--------------------+-----------------------------------+
-   |window-   | WINDOW_OPEN; then  | closes_at has passed and no       |
-   |closed    | AWAITING_CHILDREN  | Challenge is pending.  The        |
-   |          |                    | window is never extended: a       |
-   |          |                    | dispute that outlasts it delays   |
-   |          |                    | this entry and does not move      |
-   |          |                    | closes_at.                        |
-   +----------+--------------------+-----------------------------------+
-   |child-    | any non-terminal;  | object is the child contract's    |
-   |registered| unchanged          | digest; facilitator (URI).        |
-   |          |                    | Section 10.2.                     |
-   +----------+--------------------+-----------------------------------+
-   |child-    | any non-terminal;  | object is the child's Outcome     |
-   |final     | unchanged          | Record digest; child (the child   |
-   |          |                    | contract's digest).               |
-   +----------+--------------------+-----------------------------------+
-   |child-    | any non-terminal;  | child (the child contract's       |
-   |unresolved| unchanged          | digest).  The child's latest      |
-   |          |                    | finality instant (Section 10.3)   |
-   |          |                    | has passed and no Outcome Record  |
-   |          |                    | for it is held.                   |
-   +----------+--------------------+-----------------------------------+
-   |children- | AWAITING_CHILDREN; | Every registered child has a      |
-   |final     | then terminal      | child-final or child-unresolved   |
-   |          | follows            | entry.  A contract with no        |
-   |          |                    | registered children records this  |
-   |          |                    | entry on entering                 |
+   |          |                    | once no Challenge is pending.    |
+   +----------+--------------------+----------------------------------+
+   |verdict-  | DELIVERED; then    | Under verdict-first,             |
+   |lapsed    | WINDOW_OPEN        | verification.max_verdict_seconds |
+   |          |                    | have passed since delivered with |
+   |          |                    | no verdict. window-opened        |
+   |          |                    | follows.                         |
+   +----------+--------------------+----------------------------------+
+   |challenge | WINDOW_OPEN or     | object is the Challenge's        |
+   |          | DISPUTED; then     | digest; signer (the kid of its   |
+   |          | DISPUTED           | signature); costs copied from    |
+   |          |                    | the Challenge when present.  The |
+   |          |                    | Challenge passed Section 7.3     |
+   |          |                    | before closes_at.                |
+   +----------+--------------------+----------------------------------+
+   |dispute-  | DISPUTED; then     | object is the Challenge's        |
+   |lapsed    | WINDOW_OPEN        | digest.                          |
+   |          |                    | challenge.max_dispute_seconds    |
+   |          |                    | have passed since that challenge |
+   |          |                    | entry with no Verdict answering  |
+   |          |                    | it.  Leads to WINDOW_OPEN once   |
+   |          |                    | no Challenge is pending; the     |
+   |          |                    | earlier Verdict, if any, stands. |
+   +----------+--------------------+----------------------------------+
+   |window-   | WINDOW_OPEN; then  | closes_at has passed and no      |
+   |closed    | AWAITING_CHILDREN  | Challenge is pending.  The       |
+   |          |                    | window is never extended: a      |
+   |          |                    | dispute that outlasts it delays  |
+   |          |                    | this entry and does not move     |
+   |          |                    | closes_at.                       |
+   +----------+--------------------+----------------------------------+
+   |child-    | any non-terminal;  | object is the child contract's   |
+   |registered| unchanged          | digest; facilitator (URI).       |
+   |          |                    | Section 10.2.                    |
+   +----------+--------------------+----------------------------------+
+   |child-    | any non-terminal;  | object is the child's Outcome    |
+   |final     | unchanged          | Record digest; child (the child  |
+   |          |                    | contract's digest).              |
+   +----------+--------------------+----------------------------------+
+   |child-    | any non-terminal;  | child (the child contract's      |
+   |unresolved| unchanged          | digest).  The child's latest     |
+   |          |                    | finality instant (Section 10.3)  |
+   |          |                    | has passed and no Outcome Record |
+   |          |                    | for it is held.                  |
+   +----------+--------------------+----------------------------------+
+   |children- | AWAITING_CHILDREN; | Every registered child has a     |
+   |final     | then terminal      | child-final or child-unresolved  |
+   |          | follows            | entry.  A contract with no       |
 
 
 
@@ -1122,20 +1122,22 @@ Sharma                    Expires 20 March 2027                [Page 20]
 Internet-Draft                    PACT                    September 2026
 
 
-   |          |                    | AWAITING_CHILDREN.                |
-   +----------+--------------------+-----------------------------------+
-   |terminal  | AWAITING_CHILDREN; | state (the terminal state) and    |
-   |          | then FINAL,        | challenge_upheld (boolean).       |
-   |          | SETTLED or         | ABANDONED where deadline-passed   |
-   |          | ABANDONED          | was recorded; SETTLED where the   |
-   |          |                    | standing Verdict is FAIL, with    |
-   |          |                    | challenge_upheld true when that   |
-   |          |                    | Verdict answers a Challenge;      |
-   |          |                    | FINAL otherwise.                  |
-   +----------+--------------------+-----------------------------------+
+   |          |                    | registered children records this |
+   |          |                    | entry on entering                |
+   |          |                    | AWAITING_CHILDREN.               |
+   +----------+--------------------+----------------------------------+
+   |terminal  | AWAITING_CHILDREN; | state (the terminal state) and   |
+   |          | then FINAL,        | challenge_upheld (boolean).      |
+   |          | SETTLED or         | ABANDONED where deadline-passed  |
+   |          | ABANDONED          | was recorded; SETTLED where the  |
+   |          |                    | standing Verdict is FAIL, with   |
+   |          |                    | challenge_upheld true when that  |
+   |          |                    | Verdict answers a Challenge;     |
+   |          |                    | FINAL otherwise.                 |
+   +----------+--------------------+----------------------------------+
 
-       Table 2: Events: the state each is recorded in, the state that
-                    follows, and what the entry carries
+      Table 2: Events: the state each is recorded in, the state that
+                   follows, and what the entry carries
 
    The standing Verdict is the last verdict entry in the trace that no
    later entry supersedes.  A Challenge is pending from its challenge
@@ -1171,12 +1173,12 @@ Internet-Draft                    PACT                    September 2026
 
 
 
-
-
 Sharma                    Expires 20 March 2027                [Page 21]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
 
    {
      "pact": "0.2",
@@ -1189,7 +1191,8 @@ Internet-Draft                    PACT                    September 2026
        "verifier":    "did:web:audit.example"
      },
      "task": {
-       "spec_hash": "sha256:<spec_hash>",
+       "spec_hash": "sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef11\
+      1d27ff6bee37f05531823b72",
        "deadline":  "2026-11-14T00:00:00Z"
      },
      "price": {
@@ -1201,14 +1204,16 @@ Internet-Draft                    PACT                    September 2026
      "verification": {
        "tier":                "T0-reexec",
        "profile":             "acceptance",
-       "criteria_hash":       "sha256:<criteria_hash>",
+       "criteria_hash":       "sha256:0bdde1ab6b081d2b4bda580c539375\
+      6ae95c10b8351c9c55eb9316416265fc1b",
        "max_verdict_seconds": 86400
      },
      "flow": "verdict-first",
      "terms": {
        "profile":
          "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-       "profile_hash": "sha256:<profile_hash>",
+       "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5f\
+      c1147743326dabd45bda546dc62",
        "parameters":   { "...": "the profile's; not read here" }
      },
      "challenge": {
@@ -1221,11 +1226,6 @@ Internet-Draft                    PACT                    September 2026
 
         Figure 3: A Verifiable Task Contract, signatures abbreviated
 
-   Digests are elided here; the reference repository's values are in
-   Section 15.  The parameters object is shown elided on purpose:
-   nothing in this document depends on what is in it.
-
-
 
 
 
@@ -1233,6 +1233,10 @@ Sharma                    Expires 20 March 2027                [Page 22]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   Digests are elided here; the reference repository's values are in
+   Section 15.  The parameters object is shown elided on purpose:
+   nothing in this document depends on what is in it.
 
 5.1.  Hash Commitments and Content Conveyance
 
@@ -1277,10 +1281,6 @@ Internet-Draft                    PACT                    September 2026
    millions; a completeness condition relative to the committed input is
    therefore required wherever the deliverable is a transformation of
    that input.
-
-
-
-
 
 
 
@@ -1375,24 +1375,24 @@ Internet-Draft                    PACT                    September 2026
    entry, the Facilitator records deadline-passed (Section 4.2).  No
    window opens, because there is nothing to challenge.
 
-   {
-     "pact": "0.2",
-     "type": "Delivery",
-     "vtc_id":   "vtc_7f3a91",
-     "vtc_hash": "sha256:<vtc_hash>",
-     "work_hash":  "sha256:9c1f...",
-     "work_uri":   "https://cdn.dataforge.example/o/9c1f",
-     "input_hash": "sha256:41ab...",
-     "evidence": {
-       "profile":        "acceptance",
-       "instrument_hash":"sha256:<criteria_hash>",
-       "results_hash":   "sha256:7e02...",
-       "results_uri":    "https://cdn.dataforge.example/o/7e02"
-     },
-     "signature": { "protected": "...", "signature": "..." }
-   }
 
-     Figure 4: A Delivery for a T0-reexec contract, acceptance profile
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1401,6 +1401,29 @@ Sharma                    Expires 20 March 2027                [Page 25]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+   {
+     "pact": "0.2",
+     "type": "Delivery",
+     "vtc_id":   "vtc_7f3a91",
+     "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+      5fbbd4ebace4fb980f1c2",
+     "work_hash":  "sha256:9c1f...",
+     "work_uri":   "https://cdn.dataforge.example/o/9c1f",
+     "input_hash": "sha256:41ab...",
+     "evidence": {
+       "profile":        "acceptance",
+       "instrument_hash":"sha256:0bdde1ab6b081d2b4bda580c5393756ae95\
+      c10b8351c9c55eb9316416265fc1b",
+       "results_hash":   "sha256:7e02...",
+       "results_uri":    "https://cdn.dataforge.example/o/7e02"
+     },
+     "signature": { "protected": "...", "signature": "..." }
+   }
+
+     Figure 4: A Delivery for a T0-reexec contract, acceptance profile
 
    The -01 revision said that a Buyer countersignature over the Delivery
    constituted a receipt.  The Delivery's signing member is a single
@@ -1427,6 +1450,14 @@ Internet-Draft                    PACT                    September 2026
       contract, a PASS changes nothing.
 
    no-window:  No window opens and no Verdict is accepted; delivered is
+
+
+
+Sharma                    Expires 20 March 2027                [Page 26]
+
+Internet-Draft                    PACT                    September 2026
+
+
       followed by the terminal path.
 
    The -01 revision had four release modes, named for when value moved.
@@ -1447,25 +1478,18 @@ Internet-Draft                    PACT                    September 2026
    object, media type application/vnd.pact.verdict+json, with the
    members in Section 3.5, signed once.
 
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 26]
-
-Internet-Draft                    PACT                    September 2026
-
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
 
    {
      "pact": "0.2",
      "type": "Verdict",
      "vtc_id":        "vtc_7f3a91",
-     "delivery_hash": "sha256:<delivery_hash>",
+     "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2\
+      f8aaaf2f186702504fba242ffb",
      "outcome":       "PASS",
      "profile":       "acceptance",
-     "instrument_hash": "sha256:<criteria_hash>",
+     "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c\
+      10b8351c9c55eb9316416265fc1b",
      "results_hash":    "sha256:7e02...",
      "evaluated_at":  "2026-11-10T09:14:22Z",
      "signature": { "protected": "...", "signature": "..." }
@@ -1482,6 +1506,14 @@ Internet-Draft                    PACT                    September 2026
    not match that entry, or whose profile or instrument_hash does not
    match the contract (verdict-nonconformant); one received in a state
    the table in Section 4.2 does not list for it, or under the no-window
+
+
+
+Sharma                    Expires 20 March 2027                [Page 27]
+
+Internet-Draft                    PACT                    September 2026
+
+
    flow (wrong-state); and one carrying challenge_hash that names no
    pending Challenge, or omitting it while the contract is DISPUTED
    (verdict-nonconformant).  A Verdict that answers a Challenge
@@ -1500,19 +1532,6 @@ Internet-Draft                    PACT                    September 2026
    with no Verdict, the Facilitator records verdict-lapsed and opens the
    window, so that the contract can still be challenged and can still
    end.  What a lapsed Verdict costs anyone is the profile's.
-
-
-
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 27]
-
-Internet-Draft                    PACT                    September 2026
-
 
 7.3.  Challenges
 
@@ -1542,14 +1561,27 @@ Internet-Draft                    PACT                    September 2026
    document says nothing further about it.  Section 17.14 discusses what
    a deposit does and does not prevent.
 
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 28]
+
+Internet-Draft                    PACT                    September 2026
+
+
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
+
    {
      "pact": "0.2",
      "type": "Challenge",
      "vtc_id":        "vtc_7f3a91",
-     "delivery_hash": "sha256:<delivery_hash>",
+     "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2\
+      f8aaaf2f186702504fba242ffb",
      "proof": {
        "profile":         "acceptance",
-       "instrument_hash": "sha256:<criteria_hash>",
+       "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae9\
+      5c10b8351c9c55eb9316416265fc1b",
        "results_hash":    "sha256:a91e...",
        "results_uri":     "https://watch.example/o/a91e",
        "failing_checks":  ["schema_valid_rate", "row_count_min"]
@@ -1559,16 +1591,6 @@ Internet-Draft                    PACT                    September 2026
    }
 
              Figure 6: A Challenge under the acceptance profile
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 28]
-
-Internet-Draft                    PACT                    September 2026
-
 
 7.4.  Disputes and Lapses
 
@@ -1580,6 +1602,29 @@ Internet-Draft                    PACT                    September 2026
    accept further Challenges while DISPUTED, each of which is pending on
    its own account, and MUST NOT record window-closed until none is
    pending.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 29]
+
+Internet-Draft                    PACT                    September 2026
+
 
      Buyer        Facilitator       Verifier      Challenger
        |              |                 |               |
@@ -1616,16 +1661,6 @@ Internet-Draft                    PACT                    September 2026
    discovered is one service's capabilities, not an agent's identity,
    skills or endpoints.
 
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 29]
-
-Internet-Draft                    PACT                    September 2026
-
-
    A Facilitator SHOULD publish a JSON document, media type application/
    vnd.pact.facilitator+json, with the members in Section 3.9, at the
    path /.well-known/pact-facilitator of its origin.  The document MUST
@@ -1634,6 +1669,20 @@ Internet-Draft                    PACT                    September 2026
    unsigned capability document is not usable for contract formation,
    because terms_profiles determines which terms a party can name and
    expect to be evaluated.
+
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 30]
+
+Internet-Draft                    PACT                    September 2026
+
+
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
 
    {
      "pact": "0.2",
@@ -1649,7 +1698,8 @@ Internet-Draft                    PACT                    September 2026
      "terms_profiles": [
        { "id":
            "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-         "profile_hash": "sha256:<profile_hash>" }
+         "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f\
+      5fc1147743326dabd45bda546dc62" }
      ],
      "max_contract_value":    { "amount": "50000.00",
                                 "currency": "USDC" },
@@ -1672,16 +1722,6 @@ Internet-Draft                    PACT                    September 2026
    whose vectors (Section 12.1) its own implementation does not
    reproduce.
 
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 30]
-
-Internet-Draft                    PACT                    September 2026
-
-
 9.  Verification Profiles
 
    A contract names both a tier, which says what class of evidence is
@@ -1690,6 +1730,14 @@ Internet-Draft                    PACT                    September 2026
    deterministic re-execution; T1-tee, hardware attestation per
    [RFC9334]; T2-zkml, a proof of inference; and T3-jury, staked
    arbitration.  Tiers are a vocabulary.  Three profiles are defined
+
+
+
+Sharma                    Expires 20 March 2027                [Page 31]
+
+Internet-Draft                    PACT                    September 2026
+
+
    below by name; any other is identified by a URI under its definer's
    control, and this document creates no registry for them.  The
    distinction matters because the tier name does not determine how much
@@ -1725,19 +1773,6 @@ Internet-Draft                    PACT                    September 2026
       the computation is deterministic and the environment is pinned;
       see Section 17.10.  Cost: approximately the work.
 
-
-
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 31]
-
-Internet-Draft                    PACT                    September 2026
-
-
 9.1.  Verifier Independence and Identifier Normalization
 
    Independence is a relation between the party that signs a Verdict and
@@ -1749,6 +1784,15 @@ Internet-Draft                    PACT                    September 2026
    (verifier-not-independent).  The last case is the rule the -01
    revision stated as a prohibition on the Facilitator's conduct; it is
    an identifier comparison and is stated as one.
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 32]
+
+Internet-Draft                    PACT                    September 2026
+
 
    Party identifiers MUST be normalized before comparison, and the
    normalization MUST fold toward identifying the same party: strip
@@ -1785,15 +1829,6 @@ Internet-Draft                    PACT                    September 2026
 
        Figure 9: A contract tree.  B is Seller above and Buyer below.
 
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 32]
-
-Internet-Draft                    PACT                    September 2026
-
-
 10.1.  Binding a Child to Its Parent
 
    A subcontract carries parent, a top-level member with the parent's
@@ -1802,6 +1837,18 @@ Internet-Draft                    PACT                    September 2026
    authorisation to attach that child to that parent.  The -01 revision
    carried this member inside the member it has since removed; it is
    structural and is now where structure is.
+
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 33]
+
+Internet-Draft                    PACT                    September 2026
+
 
    The child's Facilitator need not resolve the parent, and across
    Facilitators it often cannot.  It MUST record parent as signed, and
@@ -1840,16 +1887,6 @@ Internet-Draft                    PACT                    September 2026
       child.parties.buyer  ==  parent.parties.seller
       child.parent.vtc_hash  ==  digest(parent)
 
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 33]
-
-Internet-Draft                    PACT                    September 2026
-
-
    Without the first check any party may name any contract as its
    parent.  The attack is cheap and asymmetric: name a competitor's
    contract as parent, subcontract a trivial task to yourself, fail it,
@@ -1861,6 +1898,14 @@ Internet-Draft                    PACT                    September 2026
    holds the child's Outcome Record.  It may obtain that record itself,
    by retrieving it from the child's Facilitator, or receive it from the
    parent's Seller by a POST to the same resource (Section 13).  Either
+
+
+
+Sharma                    Expires 20 March 2027                [Page 34]
+
+Internet-Draft                    PACT                    September 2026
+
+
    way the Facilitator MUST verify the record's Facilitator signature
    against a key bound to the identifier the registration recorded, and
    MUST verify that its vtc_hash is the registered child's digest,
@@ -1898,14 +1943,6 @@ Internet-Draft                    PACT                    September 2026
    Challenge can only be received before closes_at, so no sequence of
    events carries a contract past its L except waiting for its own
    children.  A Facilitator MUST refuse to register a child unless
-
-
-
-Sharma                    Expires 20 March 2027                [Page 34]
-
-Internet-Draft                    PACT                    September 2026
-
-
    L(child) is earlier than L(parent), and MUST record child-unresolved
    for a registered child no later than the first opportunity after
    L(child) if it holds no Outcome Record for it by then.
@@ -1916,6 +1953,14 @@ Internet-Draft                    PACT                    September 2026
    guaranteed nothing. max_verdict_seconds is what makes L finite, and
    the waiting state is what makes the rule honest about the case where
    a child is late anyway.
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 35]
+
+Internet-Draft                    PACT                    September 2026
+
 
     parent |== work ==|= verdict =|= window =|= dispute =|
                                                          ^ L(parent)
@@ -1957,25 +2002,42 @@ Internet-Draft                    PACT                    September 2026
 
 
 
-Sharma                    Expires 20 March 2027                [Page 35]
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 36]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
 
    {
      "pact": "0.2",
      "type": "ContractStatus",
      "vtc_id":   "vtc_7f3a91",
-     "vtc_hash": "sha256:<vtc_hash>",
+     "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+      5fbbd4ebace4fb980f1c2",
      "state":    "WINDOW_OPEN",
      "trace": [
        { "event": "accepted",  "at": "2026-11-01T10:00:00Z",
-         "object": "sha256:<vtc_hash>" },
+         "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+      225fbbd4ebace4fb980f1c2" },
        { "event": "funded",    "at": "2026-11-01T10:00:00Z" },
        { "event": "delivered", "at": "2026-11-10T08:30:12Z",
-         "object": "sha256:<delivery_hash>" },
+         "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+      aaf2f186702504fba242ffb" },
        { "event": "verdict",   "at": "2026-11-10T09:14:30Z",
-         "object": "sha256:<verdict_hash>", "outcome": "PASS" },
+         "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8\
+      e09452a74bac15e6752ca81", "outcome": "PASS" },
        { "event": "window-opened", "at": "2026-11-10T09:14:30Z",
          "closes_at": "2026-11-10T10:14:30Z" }
      ],
@@ -1999,68 +2061,6 @@ Internet-Draft                    PACT                    September 2026
    replaces that: the posted object is not echoed, and everything in the
    response is inside the Facilitator's signature.
 
-12.  Outcome Records
-
-   An Outcome Record records what a contract did.  It is a JSON object,
-   media type application/vnd.pact.outcome+json, with the members in
-   Section 3.8.  It is the input to any reputation system built on PACT,
-   though this document defines no such system and takes no position on
-   how the records should be weighed.
-
-   A Facilitator MUST issue exactly one Outcome Record for every
-   contract that reaches a terminal state, including SETTLED and
-   ABANDONED, MUST sign it, and MUST NOT require the signature of any
-
-
-
-Sharma                    Expires 20 March 2027                [Page 36]
-
-Internet-Draft                    PACT                    September 2026
-
-
-   other party on it.  The -00 revision's record needed the signature of
-   the party it recorded against, which made a reputation layer built on
-   it structurally incapable of recording a loss.  The Facilitator
-   signature is what makes the record evidence: without it the record is
-   a claim by interested parties about themselves, and with it a
-   fabricated history requires a Facilitator's key rather than two
-   identities.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2074,11 +2074,33 @@ Sharma                    Expires 20 March 2027                [Page 37]
 Internet-Draft                    PACT                    September 2026
 
 
+12.  Outcome Records
+
+   An Outcome Record records what a contract did.  It is a JSON object,
+   media type application/vnd.pact.outcome+json, with the members in
+   Section 3.8.  It is the input to any reputation system built on PACT,
+   though this document defines no such system and takes no position on
+   how the records should be weighed.
+
+   A Facilitator MUST issue exactly one Outcome Record for every
+   contract that reaches a terminal state, including SETTLED and
+   ABANDONED, MUST sign it, and MUST NOT require the signature of any
+   other party on it.  The -00 revision's record needed the signature of
+   the party it recorded against, which made a reputation layer built on
+   it structurally incapable of recording a loss.  The Facilitator
+   signature is what makes the record evidence: without it the record is
+   a claim by interested parties about themselves, and with it a
+   fabricated history requires a Facilitator's key rather than two
+   identities.
+
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
+
    {
      "pact": "0.2",
      "type": "OutcomeRecord",
      "vtc_id":   "vtc_7f3a91",
-     "vtc_hash": "sha256:<vtc_hash>",
+     "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+      5fbbd4ebace4fb980f1c2",
      "parties": {
        "buyer":       "did:web:acme.example",
        "seller":      "did:web:dataforge.example",
@@ -2089,19 +2111,34 @@ Internet-Draft                    PACT                    September 2026
      "work_hash": "sha256:9c1f...",
      "trace": [
        { "event": "accepted",  "at": "...",
-         "object": "sha256:<vtc_hash>" },
+         "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+      225fbbd4ebace4fb980f1c2" },
        { "event": "funded",    "at": "..." },
        { "event": "delivered", "at": "...",
-         "object": "sha256:<delivery_hash>" },
+         "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+      aaf2f186702504fba242ffb" },
        { "event": "verdict",   "at": "...",
-         "object": "sha256:<verdict_hash>", "outcome": "PASS" },
+         "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8\
+      e09452a74bac15e6752ca81", "outcome": "PASS" },
        { "event": "window-opened", "at": "...", "closes_at": "..." },
        { "event": "challenge", "at": "...",
-         "object": "sha256:<challenge_hash>" },
+
+
+
+Sharma                    Expires 20 March 2027                [Page 38]
+
+Internet-Draft                    PACT                    September 2026
+
+
+         "object": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df\
+      6cfef12d12d1340c15e5d85" },
        { "event": "verdict",   "at": "...",
-         "object": "sha256:<verdict2_hash>", "outcome": "FAIL",
-         "answers": "sha256:<challenge_hash>",
-         "supersedes": "sha256:<verdict_hash>" },
+         "object": "sha256:012bab194f444012f87ff8986419537f9de9f3dfe\
+      845c6623ac6a7488fb98b73", "outcome": "FAIL",
+         "answers": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4d\
+      f6cfef12d12d1340c15e5d85",
+         "supersedes": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51\
+      cee8e09452a74bac15e6752ca81" },
        { "event": "children-final", "at": "..." },
        { "event": "terminal",  "at": "...", "state": "SETTLED",
          "challenge_upheld": true }
@@ -2109,7 +2146,8 @@ Internet-Draft                    PACT                    September 2026
      "terms_result": {
        "profile":
          "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-       "profile_hash": "sha256:<profile_hash>",
+       "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5f\
+      c1147743326dabd45bda546dc62",
        "currency":     "USDC",
        "transfers": [
          { "event": 8, "from": "...", "to": "...", "amount": "...",
@@ -2121,14 +2159,6 @@ Internet-Draft                    PACT                    September 2026
 
       Figure 12: An Outcome Record for a contract that reached SETTLED
                            on an upheld Challenge
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 38]
-
-Internet-Draft                    PACT                    September 2026
-
 
    The record carries one signature, the Facilitator's.  The Seller did
    not consent to this record and its consent is not required.  The
@@ -2145,6 +2175,16 @@ Internet-Draft                    PACT                    September 2026
    from and to (account names as the profile defines them), amount, and
    code (a string the profile defines, naming the schedule line that
    produced the entry).
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 39]
+
+Internet-Draft                    PACT                    September 2026
+
 
    This document defines the form of the list and two arithmetic facts
    about it, and nothing about what any entry means.  Over the accounts
@@ -2179,13 +2219,6 @@ Internet-Draft                    PACT                    September 2026
    therefore fixed by n alone, and two implementations that agree on D
    agree on the root.
 
-
-
-Sharma                    Expires 20 March 2027                [Page 39]
-
-Internet-Draft                    PACT                    September 2026
-
-
    The domain separation is not optional.  Without distinct prefixes an
    attacker can present an interior node as though it were a leaf, and
    so claim an inclusion proof for a subtree that never existed.
@@ -2199,6 +2232,15 @@ Internet-Draft                    PACT                    September 2026
    not cover.  The -01 revision computed leaves over records with their
    signatures removed, which let a record be re-signed without changing
    the root.
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 40]
+
+Internet-Draft                    PACT                    September 2026
+
 
 13.  Protocol Endpoints
 
@@ -2234,14 +2276,6 @@ Internet-Draft                    PACT                    September 2026
    All requests and responses use the media types defined in Section 19.
    All requests MUST be made over HTTPS, following the recommendations
    of [RFC9325].  Status codes are as defined in [RFC9110].  A Delivery
-
-
-
-Sharma                    Expires 20 March 2027                [Page 40]
-
-Internet-Draft                    PACT                    September 2026
-
-
    and a Challenge are answered 202 (Accepted) rather than 201 because
    acceptance of the bytes is not acceptance of the work; what follows
    depends on a Verdict the Facilitator does not itself produce.
@@ -2254,6 +2288,15 @@ Internet-Draft                    PACT                    September 2026
    does not verify as Section 10.2 requires.  A Facilitator MAY require
    an HTTP-layer authentication in addition.  Retrieval is discussed in
    Section 17.12.
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 41]
+
+Internet-Draft                    PACT                    September 2026
+
 
 13.1.  Proposing a Contract
 
@@ -2291,17 +2334,25 @@ Internet-Draft                    PACT                    September 2026
    resource, and MUST respond 200 (OK) with the current Status rather
    than creating a second resource or reporting a conflict.
 
-
-
-Sharma                    Expires 20 March 2027                [Page 41]
-
-Internet-Draft                    PACT                    September 2026
-
-
    Where a POST carries the same object id as an existing resource but a
    different digest, the Facilitator MUST respond 409 (Conflict)
    (object-conflict).  Retrying a submission is therefore always safe,
    and altering one never is.
+
+
+
+
+
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 42]
+
+Internet-Draft                    PACT                    September 2026
+
 
 13.3.  Error Responses
 
@@ -2331,29 +2382,6 @@ Internet-Draft                    PACT                    September 2026
 
 13.4.  Exchange
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 42]
-
-Internet-Draft                    PACT                    September 2026
-
-
     Buyer/Seller            Facilitator             Verifier
          |                       |                      |
          |-- POST {contract} --->|                      |
@@ -2373,6 +2401,14 @@ Internet-Draft                    PACT                    September 2026
          |<-- 200 Outcome -------|                      |
 
              Figure 13: HTTP exchange for the flow in Figure 1
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 43]
+
+Internet-Draft                    PACT                    September 2026
+
 
 14.  Conformance
 
@@ -2400,16 +2436,6 @@ Internet-Draft                    PACT                    September 2026
 
    *  The protected header MUST carry alg, kid and typ.
 
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 43]
-
-Internet-Draft                    PACT                    September 2026
-
-
    *  alg MUST be ES256 or ES384 [RFC7518], or EdDSA [RFC8037] with an
       Ed25519 key; a verifier MAY also accept Ed448.  A verifier MUST
       reject any other value, and MUST reject none.  Absent an allowlist
@@ -2429,6 +2455,16 @@ Internet-Draft                    PACT                    September 2026
       the full form so that typ equals the registered media type
       character for character.  Explicit typing follows Section 3.11 of
       [RFC8725].
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 44]
+
+Internet-Draft                    PACT                    September 2026
+
 
    *  A signatures array MUST be sorted by the normalized kid of its
       entries (Section 9.1), ties broken by the unnormalized kid, both
@@ -2458,14 +2494,6 @@ Internet-Draft                    PACT                    September 2026
       the verification method its fragment identifies.  Examples in this
       document use did:web [DID-WEB]; no method is required or excluded.
 
-
-
-
-Sharma                    Expires 20 March 2027                [Page 44]
-
-Internet-Draft                    PACT                    September 2026
-
-
    *  An https: identifier dereferences, over TLS, to a JWK Set
       [RFC7517]; the verifier selects the key whose kid member equals
       the fragment.
@@ -2483,6 +2511,16 @@ Internet-Draft                    PACT                    September 2026
 
    *  parties.buyer and parties.seller MUST be distinct after the
       normalization in Section 9.1 (parties-not-distinct).
+
+
+
+
+
+
+Sharma                    Expires 20 March 2027                [Page 45]
+
+Internet-Draft                    PACT                    September 2026
+
 
    *  A contract MUST carry exactly one verifying signature whose kid
       covers parties.buyer, exactly one whose kid covers parties.seller,
@@ -2511,17 +2549,6 @@ Internet-Draft                    PACT                    September 2026
       every object MUST validate against the schema published for its
       media type (schema-invalid).
 
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 45]
-
-Internet-Draft                    PACT                    September 2026
-
-
 14.3.  Test Vectors
 
    Each rule above has an accepting and a rejecting form.  A conformance
@@ -2529,47 +2556,20 @@ Internet-Draft                    PACT                    September 2026
    implementation, should reach the same verdicts.  Rejecting vectors
    name the rule they violate.
 
-   +======+=================================================+==========+
-   | ID   | Mutation from a valid object                    | Expect   |
-   +======+=================================================+==========+
-   | V-01 | unmodified valid VTC                            | accept   |
-   +------+-------------------------------------------------+----------+
-   | V-02 | alg set to none                                 | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-03 | alg set to HS256                                | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-04 | kid moved outside the protected header          | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-05 | typ of a Delivery on a VTC signature            | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-06 | buyer and seller set to the same identifier     | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-07 | buyer and seller differing only by trailing     | reject   |
-   |      | "/"                                             |          |
-   +------+-------------------------------------------------+----------+
-   | V-08 | two signatures, both from the buyer             | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-09 | window_seconds of 0                             | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-10 | acceptance as an empty object                   | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-11 | harness_uri with harness_hash removed           | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-12 | terms.profile_hash not advertised by the        | reject   |
-   |      | Facilitator                                     |          |
-   +------+-------------------------------------------------+----------+
-   | V-13 | terms.parameters failing the profile's          | reject   |
-   |      | schema                                          |          |
-   +------+-------------------------------------------------+----------+
-   | V-14 | Delivery with evidence absent                   | reject,  |
-   |      |                                                 | no entry |
-   +------+-------------------------------------------------+----------+
-   | V-15 | child whose buyer is not the parent's           | reject   |
-   |      | seller                                          |          |
-   +------+-------------------------------------------------+----------+
-   | V-16 | child with L(child) not earlier than            | reject   |
-   |      | L(parent)                                       |          |
-   +------+-------------------------------------------------+----------+
+       +======+=========================================+==========+
+       | ID   | Mutation from a valid object            | Expect   |
+       +======+=========================================+==========+
+       | V-01 | unmodified valid VTC                    | accept   |
+       +------+-----------------------------------------+----------+
+       | V-02 | alg set to none                         | reject   |
+       +------+-----------------------------------------+----------+
+       | V-03 | alg set to HS256                        | reject   |
+       +------+-----------------------------------------+----------+
+       | V-04 | kid moved outside the protected header  | reject   |
+       +------+-----------------------------------------+----------+
+       | V-05 | typ of a Delivery on a VTC signature    | reject   |
+       +------+-----------------------------------------+----------+
+       | V-06 | buyer and seller set to the same        | reject   |
 
 
 
@@ -2578,27 +2578,67 @@ Sharma                    Expires 20 March 2027                [Page 46]
 Internet-Draft                    PACT                    September 2026
 
 
-   | V-17 | Verdict signed by the seller                    | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-18 | object keys ordered by code point, with a       | digest   |
-   |      | supplementary-plane key                         | mismatch |
-   +------+-------------------------------------------------+----------+
-   | V-19 | buyer and seller differing only in the case     | accept   |
-   |      | of a did:web path                               |          |
-   +------+-------------------------------------------------+----------+
-   | V-20 | object carrying a member this document does     | reject   |
-   |      | not define for it                               |          |
-   +------+-------------------------------------------------+----------+
-   | V-21 | signatures not sorted by normalized kid         | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-22 | ECDSA signature with s above n/2                | reject   |
-   +------+-------------------------------------------------+----------+
-   | V-23 | Verdict with delivery_hash computed over        | reject   |
-   |      | the Delivery without its signature              |          |
-   +------+-------------------------------------------------+----------+
-   | V-24 | Outcome Record whose transfers overdraw an      | reject   |
-   |      | account of the profile                          |          |
-   +------+-------------------------------------------------+----------+
+       |      | identifier                              |          |
+       +------+-----------------------------------------+----------+
+       | V-07 | buyer and seller differing only by      | reject   |
+       |      | trailing "/"                            |          |
+       +------+-----------------------------------------+----------+
+       | V-08 | two signatures, both from the buyer     | reject   |
+       +------+-----------------------------------------+----------+
+       | V-09 | window_seconds of 0                     | reject   |
+       +------+-----------------------------------------+----------+
+       | V-10 | acceptance as an empty object           | reject   |
+       +------+-----------------------------------------+----------+
+       | V-11 | harness_uri with harness_hash removed   | reject   |
+       +------+-----------------------------------------+----------+
+       | V-12 | terms.profile_hash not advertised by    | reject   |
+       |      | the Facilitator                         |          |
+       +------+-----------------------------------------+----------+
+       | V-13 | terms.parameters failing the profile's  | reject   |
+       |      | schema                                  |          |
+       +------+-----------------------------------------+----------+
+       | V-14 | Delivery with evidence absent           | reject,  |
+       |      |                                         | no entry |
+       +------+-----------------------------------------+----------+
+       | V-15 | child whose buyer is not the parent's   | reject   |
+       |      | seller                                  |          |
+       +------+-----------------------------------------+----------+
+       | V-16 | child with L(child) not earlier than    | reject   |
+       |      | L(parent)                               |          |
+       +------+-----------------------------------------+----------+
+       | V-17 | Verdict signed by the seller            | reject   |
+       +------+-----------------------------------------+----------+
+       | V-18 | object keys ordered by code point, with | digest   |
+       |      | a supplementary-plane key               | mismatch |
+       +------+-----------------------------------------+----------+
+       | V-19 | buyer and seller differing only in the  | accept   |
+       |      | case of a did:web path                  |          |
+       +------+-----------------------------------------+----------+
+       | V-20 | object carrying a member this document  | reject   |
+       |      | does not define for it                  |          |
+       +------+-----------------------------------------+----------+
+       | V-21 | signatures not sorted by normalized kid | reject   |
+       +------+-----------------------------------------+----------+
+       | V-22 | ECDSA signature with s above n/2        | reject   |
+       +------+-----------------------------------------+----------+
+       | V-23 | Verdict with delivery_hash computed     | reject   |
+       |      | over the Delivery without its signature |          |
+       +------+-----------------------------------------+----------+
+       | V-24 | Outcome Record whose transfers overdraw | reject   |
+       |      | an account of the profile               |          |
+
+
+
+Sharma                    Expires 20 March 2027                [Page 47]
+
+Internet-Draft                    PACT                    September 2026
+
+
+       +------+-----------------------------------------+----------+
+       | V-25 | a number serialized by the host         | digest   |
+       |      | language's default formatter, such as   | mismatch |
+       |      | 1.0 for the float one                   |          |
+       +------+-----------------------------------------+----------+
 
                         Table 3: Conformance vectors
 
@@ -2608,7 +2648,11 @@ Internet-Draft                    PACT                    September 2026
    point, which agrees with the required UTF-16 order for every ASCII
    key and so passes every vector an implementer would think to write.
    V-19 is the opposite mistake, folding more than Section 9.1 allows,
-   and the -01 reference validator made it.
+   and the -01 reference validator made it.  V-25 is the number half of
+   the V-18 mistake: [RFC8785] prints numbers as ECMAScript does, so the
+   float one is 1 and never 1.0.  The -02 reference canonicalizer
+   printed 1.0 until this vector caught it, and every digest in
+   Section 15 changed when it was fixed.
 
 15.  Worked Example
 
@@ -2626,19 +2670,25 @@ Internet-Draft                    PACT                    September 2026
    The digests carried by the reference TaskSpec, contract and profile
    are:
 
+   ========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+    spec_hash       sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef111\
+      d27ff6bee37f05531823b72
+    criteria_hash   sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b83\
+      51c9c55eb9316416265fc1b
+    profile_hash    sha256:00d71829f6f9192b43b929d0154a6eb409f5fc114\
+      7743326dabd45bda546dc62
+    vtc_hash        sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+      225fbbd4ebace4fb980f1c2
+    delivery_hash   sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+      aaf2f186702504fba242ffb
 
 
 
-Sharma                    Expires 20 March 2027                [Page 47]
+Sharma                    Expires 20 March 2027                [Page 48]
 
 Internet-Draft                    PACT                    September 2026
 
-
-    spec_hash       sha256:<spec_hash>
-    criteria_hash   sha256:<criteria_hash>
-    profile_hash    sha256:<profile_hash>
-    vtc_hash        sha256:<vtc_hash>
-    delivery_hash   sha256:<delivery_hash>
 
    criteria_hash is the manifest digest of Section 5.1 over the
    acceptance instrument bundle, and the same value appears as
@@ -2670,7 +2720,7 @@ Internet-Draft                    PACT                    September 2026
    One implementation is known to the author, and the author wrote it:
    https://github.com/pact-spec/spec, under the Revised BSD licence.  At
    tag v0.2.0 it comprises the object schemas, the examples whose
-   digests Section 15 prints, a conformance validator that runs <NN>
+   digests Section 15 prints, a conformance validator that runs 103
    checks including every vector of Section 14.3, a Facilitator serving
    the endpoints of Section 13 with the profile of Appendix A, and
    clients for the other roles.  Its previous tag, v0.1.0, implemented
@@ -2678,17 +2728,6 @@ Internet-Draft                    PACT                    September 2026
    published about it.  No second implementation exists, so nothing in
    Section 1.4 has been tested, and this document claims no
    interoperability.
-
-
-
-
-
-
-
-Sharma                    Expires 20 March 2027                [Page 48]
-
-Internet-Draft                    PACT                    September 2026
-
 
 17.  Security Considerations
 
@@ -2699,45 +2738,6 @@ Internet-Draft                    PACT                    September 2026
    rather than closed, that is said.  The table first: for each party,
    what the protocol enforces against it, what it records about it, and
    who can check the record without trusting the Facilitator.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3505,6 +3505,11 @@ Internet-Draft                    PACT                    September 2026
               RFC 7942, DOI 10.17487/RFC7942, July 2016,
               <https://www.rfc-editor.org/info/rfc7942>.
 
+   [RFC8792]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
+              "Handling Long Lines in Content of Internet-Drafts and
+              RFCs", RFC 8792, DOI 10.17487/RFC8792, June 2020,
+              <https://www.rfc-editor.org/info/rfc8792>.
+
    [RFC8555]  Barnes, R., Hoffman-Andrews, J., McCarney, D., and J.
               Kasten, "Automatic Certificate Management Environment
               (ACME)", RFC 8555, DOI 10.17487/RFC8555, March 2019,
@@ -3516,11 +3521,6 @@ Internet-Draft                    PACT                    September 2026
               (CRL) Profile", RFC 5280, DOI 10.17487/RFC5280, May 2008,
               <https://www.rfc-editor.org/info/rfc5280>.
 
-   [RFC3647]  Chokhani, S., Ford, W., Sabett, R., Merrill, C., and S.
-              Wu, "Internet X.509 Public Key Infrastructure Certificate
-              Policy and Certification Practices Framework", RFC 3647,
-              DOI 10.17487/RFC3647, November 2003,
-              <https://www.rfc-editor.org/info/rfc3647>.
 
 
 
@@ -3529,6 +3529,12 @@ Sharma                    Expires 20 March 2027                [Page 63]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   [RFC3647]  Chokhani, S., Ford, W., Sabett, R., Merrill, C., and S.
+              Wu, "Internet X.509 Public Key Infrastructure Certificate
+              Policy and Certification Practices Framework", RFC 3647,
+              DOI 10.17487/RFC3647, November 2003,
+              <https://www.rfc-editor.org/info/rfc3647>.
 
    [RFC2801]  Burdett, D., "Internet Open Trading Protocol - IOTP
               Version 1.0", RFC 2801, DOI 10.17487/RFC2801, April 2000,
@@ -3572,12 +3578,6 @@ Internet-Draft                    PACT                    September 2026
               <https://datatracker.ietf.org/doc/html/draft-stone-vcap-
               ap2-binding-01>.
 
-   [I-D.sahu-agent-action-receipts]
-              sahu, N., "Signed, Hash-Chained Action Receipts for AI
-              Agents", Work in Progress, Internet-Draft, draft-sahu-
-              agent-action-receipts-00, 16 August 2026,
-              <https://datatracker.ietf.org/doc/html/draft-sahu-agent-
-              action-receipts-00>.
 
 
 
@@ -3585,6 +3585,13 @@ Sharma                    Expires 20 March 2027                [Page 64]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   [I-D.sahu-agent-action-receipts]
+              sahu, N., "Signed, Hash-Chained Action Receipts for AI
+              Agents", Work in Progress, Internet-Draft, draft-sahu-
+              agent-action-receipts-00, 16 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-sahu-agent-
+              action-receipts-00>.
 
    [I-D.mih-sato-agent-accountability-composition]
               Mih, S., Sato, Schrock, I., Bu, S., and A. Sokolov, "Agent
@@ -3628,19 +3635,18 @@ Internet-Draft                    PACT                    September 2026
               pp. 85-90, 2008,
               <https://doi.org/10.1145/1403027.1403046>.
 
-   [POLINSKY99]
-              Polinsky, A.M. and S. Shavell, "Public Enforcement of
-              Law", Encyclopedia of Law and Economics, entry 8000,
-              Edward Elgar. The result is attributed therein to Bentham
-              (1789), 1999.
-
-
 
 
 Sharma                    Expires 20 March 2027                [Page 65]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   [POLINSKY99]
+              Polinsky, A.M. and S. Shavell, "Public Enforcement of
+              Law", Encyclopedia of Law and Economics, entry 8000,
+              Edward Elgar. The result is attributed therein to Bentham
+              (1789), 1999.
 
    [SP800-186]
               National Institute of Standards and Technology,
@@ -3684,12 +3690,6 @@ A.2.  Parameters
    cap:  amount, required.  The most that leaves the Seller's accounts
       under this contract.
 
-   restitution_basis:  string, required.  released or price.
-
-   remainder_to:  string, optional.  buyer or sink; sink when absent.
-
-   verifier_fee:  amount, optional.  Paid from the fund at each Verdict;
-      0.00 when absent.
 
 
 
@@ -3697,6 +3697,13 @@ Sharma                    Expires 20 March 2027                [Page 66]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   restitution_basis:  string, required.  released or price.
+
+   remainder_to:  string, optional.  buyer or sink; sink when absent.
+
+   verifier_fee:  amount, optional.  Paid from the fund at each Verdict;
+      0.00 when absent.
 
    principal_on:  string, required.  The event at which the price moves
       to the Seller: verdict (a PASS Verdict), delivered, or window-
@@ -3740,19 +3747,18 @@ A.5.  Schedule
    contract and the trace prefix; "released" is the sum of principal
    entries emitted so far.
 
-   funded:  buyer to escrow, P, lock; seller to bond, B, bond; buyer to
-      fund, verification_fund, fund.
-
-   delivered:  if principal_on is delivered: escrow to seller, the
-      escrow balance, principal.
-
-
 
 
 Sharma                    Expires 20 March 2027                [Page 67]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   funded:  buyer to escrow, P, lock; seller to bond, B, bond; buyer to
+      fund, verification_fund, fund.
+
+   delivered:  if principal_on is delivered: escrow to seller, the
+      escrow balance, principal.
 
    verdict:  fund to verifier, the lesser of verifier_fee and the fund
       balance, verification; then if the outcome is PASS, no Challenge
@@ -3794,12 +3800,6 @@ Internet-Draft                    PACT                    September 2026
    revision forbade capping it at a fraction chosen for tidiness and
    fixed no figure; a profile owner who wants a different rule changes
    this line and the vectors with it.
-
-
-
-
-
-
 
 
 
@@ -3877,7 +3877,12 @@ Appendix B.  Changes from -01
    first.
 
    *  The pact version is 0.2 and every committed digest changed
-      (Section 15).
+      (Section 15).  The -01 digests were computed by a canonicalizer
+      that serialized the number one as 1.0, which [RFC8785] does not
+      allow, so the spec_hash and vtc_hash the -01 revision printed are
+      not what a conforming implementation computes over the -01 example
+      objects.  V-25 in Section 14.3 pins the rule and the -02 examples
+      were minted after the correction.
 
    *  The liability member is gone.  A contract carries terms: a profile
       URI, a digest over the profile's bundle, and an opaque parameter
@@ -3909,11 +3914,6 @@ Appendix B.  Changes from -01
       (Section 4.2); RELEASING and PROPOSED are gone, AWAITING_CHILDREN
       is added.
 
-   *  delivery_hash covers the Delivery's signature; every digest covers
-      the signature set (Section 2).  Signature sets are sorted and
-      ECDSA is low-S (Section 14.1).  Merkle leaves cover signatures
-      (Section 12.2).
-
 
 
 
@@ -3921,6 +3921,11 @@ Sharma                    Expires 20 March 2027                [Page 70]
 
 Internet-Draft                    PACT                    September 2026
 
+
+   *  delivery_hash covers the Delivery's signature; every digest covers
+      the signature set (Section 2).  Signature sets are sorted and
+      ECDSA is low-S (Section 14.1).  Merkle leaves cover signatures
+      (Section 12.2).
 
    *  A nonconformant Delivery is refused and recorded nowhere; the -01
       revision treated it as a FAIL Verdict (Section 6).  The Buyer
@@ -3965,11 +3970,6 @@ Acknowledgements
    verification tiers say how work is checked and never who checks it
    came from msaleme on the same thread.  Rich Smith's A2A Settlement
    Extension was the clearest instance of the pattern the -01 revision
-   corrected, and he engaged with the critique on a2aproject/A2A
-   discussion 1576.
-
-Author's Address
-
 
 
 
@@ -3978,14 +3978,14 @@ Sharma                    Expires 20 March 2027                [Page 71]
 Internet-Draft                    PACT                    September 2026
 
 
+   corrected, and he engaged with the critique on a2aproject/A2A
+   discussion 1576.
+
+Author's Address
+
    Laxmikant Sharma
    Independent
    Email: laxsharma79@gmail.com
-
-
-
-
-
 
 
 

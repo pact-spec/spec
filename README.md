@@ -1,132 +1,135 @@
-# PACT: a contract layer for autonomous agent commerce
+# PACT: a task contract record for autonomous agents
 
 **Propose · Agree · Complete · Trust**
 
-Today's agent protocols move tasks (A2A, unpriced), money (x402,
-unconditional) and payment authorization (AP2, unverified). Nothing binds
-work to money to proof. PACT is a proposed contract layer that closes that
-gap, and it specifies exactly four things:
+By late 2026 an agent can prove who it is, act under a delegated authority,
+discover another agent, call it, receipt the call and pay for it. None of
+those records what one agent asked another to do, what came back, or
+whether the one met the other. PACT specifies exactly four things to close
+that gap:
 
-- **liability** as a required member of a co-signed Verifiable Task
-  Contract (VTC): a seller bond, a verification fund, a cap and a
-  restitution basis, agreed before any work starts;
-- a **Delivery** object against which the contract is judged;
-- a **settlement** procedure whose release of escrow is conditioned on a
-  declared assurance level, with a challenge path that pays the challenger
-  from a fund the contract itself provisions;
-- a **subcontract tree** through which liability cascades upward as
-  recovery and never downward as discharge.
+- a co-signed **Verifiable Task Contract** whose digest covers its
+  signature set, naming its settlement terms by reference (a profile
+  identifier, a digest over the profile's bundle, and an opaque parameter
+  object the document never reads);
+- a **Delivery** record and the **Verdict** record bound to it by digest,
+  with a challenge window in which a **Challenge** can be answered by a
+  second Verdict;
+- an **event trace**, signed by a Facilitator, from which one **Outcome
+  Record** per contract is produced and against which any party can check
+  what the named terms profile computed;
+- a **Merkle commitment** from a parent contract's Outcome Record to its
+  children's, so a tree of subcontracts settles in a verifiable order.
 
-Everything else PACT needs (identity, delegation, discovery, transport,
-audit, the payment rail, reputation, a dispute forum) it composes from
-existing work and cites. Settlement emits a Work Attestation signed by the
-Facilitator, so a seller cannot veto its own negative record.
+What the terms mean, and everything about who holds or moves value under
+them, is the profile's to say and is outside this document. An example
+profile is printed as an appendix so that the protocol can be exercised,
+and it is normative nowhere.
 
 ## Status
 
-- **Revision -01 is current.** Posted to the IETF Datatracker on
-  4 September 2026, expires 8 March 2027:
-  [draft-laxsharma-pact](https://datatracker.ietf.org/doc/draft-laxsharma-pact/).
-- Read it: [rendered HTML](https://www.ietf.org/archive/id/draft-laxsharma-pact-01.html)
-  · [plain text](draft/draft-laxsharma-pact-01.txt)
-  · [XML source](draft/draft-laxsharma-pact-01.xml)
+- Source of record for **revision -02** is `draft/draft-laxsharma-pact-02.*`
+  at tag `v0.2.0`. The revision the IETF Datatracker shows as current is at
+  [draft-laxsharma-pact](https://datatracker.ietf.org/doc/draft-laxsharma-pact/);
+  -01 was posted 4 September 2026 and stays checkable at its archive URL.
 - An individual submission with no formal standing in the standards
-  process. Not endorsed by the IETF.
-- The -00 of 27 July 2026 is superseded. Its sources stay in `draft/` so
-  that citations of it remain checkable. The review that led from -00 to
-  -01, with dispositions, is in
-  [issue #1](https://github.com/pact-spec/spec/issues/1).
+  process. Not adopted by any working group, not endorsed by the IETF.
+- The -00 (27 July 2026) and -01 sources stay in `draft/` so that citations
+  remain checkable. The review that led from -00 to -01, with dispositions,
+  is in [issue #1](https://github.com/pact-spec/spec/issues/1).
 
-### What -01 changed
+### What -02 changed
 
-External review and two adversarial audit rounds found that the -00's
-settlement economics did not close. A defrauded buyer recovered nothing
-from the bond, optimistic release let a seller walk away with more than
-the bond, and challenger reimbursement was capped by a bond too small to
-cover re-execution. The -01 reworks the settlement core around those
-findings and narrows the document to what only PACT can specify:
+Two readers on the IETF dispatch list observed in September 2026 that the
+-01 made who owed whom the subject of the document, which placed it outside
+what the IETF is placed to evaluate. They were right, and -02 separates the
+protocol from the meaning of its terms. Appendix B of the draft lists every
+change; the ones with wire consequences:
 
-- The sealed-bid award procedure and contract channels are gone. How a
-  contract is awarded is out of scope.
-- Release is no longer optimistic by default. A contract declares an
-  assurance mode and a release mode, and a Facilitator must refuse a
-  contract whose bond cannot cover the declared detection probability.
-- Recovery follows a five-rank waterfall that pays the buyer's restitution
-  before anything is burned.
-- A Delivery object and a Verifier role are defined; the Challenge object
-  the -00 named but never specified now exists.
-- `vtc_hash` is computed over the contract including its signature set,
-  so the digest proves who agreed and not only what was written.
-- The A2A and AP2 bindings are gone. The -00 carried an AP2 mandate binding
-  and an A2A skill identifier; -01 removes both, and the contract schema has
-  no member for an external task or mandate reference. Section 1.3 says only
-  that PACT is designed to be usable alongside the adjacent drafts that do
-  carry them. `price.settlement` names a settlement binding instead, and the
-  draft reserves one identifier, `pact-escrow`, in a registry it asks IANA to
-  create. The x402 scheme itself, its payload and its verify and settle
-  procedures, is not written and is the first item of future work.
+- `pact` is `0.2` and every committed digest changed.
+- The `liability` member is gone. A contract carries `terms`: a profile
+  URI, `profile_hash` over the profile's bundle, and `parameters` the
+  document does not read. The -01 figures are the parameters of the example
+  profile in `profiles/bonded-restitution/`.
+- The four release modes are replaced by three flows (`verdict-first`,
+  `delivery-first`, `no-window`) and a profile parameter.
+- `verification.max_verdict_seconds` is added, with a `verdict-lapsed`
+  event, so a silent Verifier cannot hold a contract forever.
+- The Work Attestation is the **Outcome Record**: parties, an outcome
+  object, the full trace, and `terms_result`. One per contract, signed by
+  the Facilitator alone.
+- Every accepted request is answered with a signed **Contract Status**
+  carrying the trace, and every later Status extends it as a prefix, so a
+  Facilitator that reorders or rewrites events is attributable.
+- `delivery_hash` covers the Delivery's signature; signature sets are
+  sorted; ECDSA is low-S; Merkle leaves cover signatures.
+- A nonconformant Delivery is refused and recorded nowhere; a Seller-signed
+  Challenge is refused; a Buyer's Challenge cannot be refused.
+- Contract trees work across Facilitators, with a finite latest finality
+  instant per contract and the rule L(child) before L(parent).
+- Media types move to the vendor tree; the two registries the -01 requested
+  are withdrawn; problem types use a `tag:` URI namespace.
+- The -01 digests were computed by a canonicalizer that printed the float
+  one as `1.0`, which RFC 8785 does not allow, so the `spec_hash` and `vtc_hash` the -01
+  printed are not what a conforming implementation computes. The -02
+  examples were minted after the fix and vector V-25 pins the rule.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `draft/` | The Internet-Draft, -01 and -00 (XML source, plain text, HTML) |
-| `schemas/` | JSON Schema (2020-12) for every -01 protocol object |
-| `examples/` | Worked examples whose hash commitments verify (see below) |
+| `draft/` | The Internet-Draft, -02, -01 and -00 (XML source, plain text, HTML) |
+| `schemas/` | JSON Schema (2020-12) for every -02 object |
+| `examples/` | The worked example the draft prints: contract, Delivery, two Verdicts, Challenge, Status, Outcome Record, capability document, with real signatures |
+| `examples/keys/` | The public keys that verify those signatures; the private keys derive from public seeds and are not secrets |
+| `examples/task-content/` | The three files the TaskSpec commits to by sibling hash |
+| `examples/acceptance-harness/` | The instrument `criteria_hash` commits to, as a manifest |
 | `examples/legacy-00/` | The -00 call-for-bids, bid and capability objects, kept so the published -00 stays checkable; not part of the conformance surface |
-| `tools/validate.py` | Validates the examples against the schemas and checks every rule the draft states |
+| `profiles/bonded-restitution/` | The example terms profile bundle: README, parameter schema, vectors. `profile_hash` is the manifest digest over these three files |
+| `tools/` | The validator, the example minter, and the reference implementation; see `tools/README.md` |
 | `diagrams/` | Protocol diagrams |
 
-## The examples are self-consistent
+## The examples are what the draft prints, and they recompute
 
-`examples/` is not illustrative pseudo-JSON. The commitments verify:
+Every digest in the draft's worked example (Section 15) is read out of
+`examples/` by the build, and `tools/validate.py` recomputes each one:
 
-- `vtc.json` `spec_hash` is SHA-256 over the JCS-canonicalized (RFC 8785)
-  `taskspec.json`;
-- `criteria_hash`, and `taskspec.acceptance.harness_hash`, is SHA-256 over
-  the JCS-canonicalized manifest of `examples/acceptance-harness/`, which
-  maps each file's relative path to the SHA-256 of its bytes;
-- `vtc_hash` in `delivery.json`, `verdict.json`, `challenge.json` and
-  `attestation.json` is SHA-256 over the JCS-canonicalized contract
-  **including** its `signatures` member (-01 Section 6);
-- the Merkle root of the subcontract tree follows RFC 9162: leaves hashed
-  with a `0x00` prefix, nodes with `0x01`, split at the largest power of
-  two less than the count.
+- `spec_hash` is the digest over `taskspec.json`; the three URIs inside it
+  carry sibling hashes over `examples/task-content/`;
+- `criteria_hash` is the manifest digest over `examples/acceptance-harness/`;
+- `profile_hash` is the manifest digest over `profiles/bonded-restitution/`;
+- `vtc_hash` is the digest over the signed contract, `delivery_hash` over
+  the signed Delivery, and every trace entry's `object` over the signed
+  object it names;
+- the transfers in the Outcome Record are the profile's schedule over its
+  own trace, and satisfy no-overdraft and closure.
 
-The validator runs 71 checks: 7 schema, 2 canonicalization, 10 hash,
-11 rule, 9 assurance-constraint, 6 Merkle, 22 negative vectors from
-the draft's conformance table, and 4 on signature sets and ECDSA
-encoding (two prove the curve orders behind the low-S rule, two are
-the vectors V-21 and V-22). The rules JSON Schema cannot express are
-checked in code: parties distinct after normalization, one signature per
-named party, protected headers carrying `alg`, `kid` and `typ` with an
-allowed algorithm, and the assurance constraint of -01 Section 7.2 against
-the worked figures of Section 14.
+The signatures are real Ed25519 over the Section 14.1 signing input, minted
+by `tools/mint_examples.py` from public seeds so that anyone can reproduce
+the bytes. The validator verifies all of them with `examples/keys/`.
 
 ```
-pip install jsonschema referencing
+pip install jsonschema referencing cryptography
 python3 tools/validate.py
 ```
 
-Two honest caveats. Signature values are illustrative placeholders, since
-producing real JWS signatures requires party keys. And `jcs()` in
-`tools/validate.py` is a restricted RFC 8785 implementation that is
-correct for the value types these examples use but is not a conforming
-general one, so a green run evidences self-consistency of these examples
-rather than canonicalization interoperability with another
-implementation. What it does get right, and pins with a vector, is the
-key order: RFC 8785 section 3.2.3 sorts object keys by UTF-16 code unit,
-which `json.dumps(sort_keys=True)` does not, the two agreeing throughout
-the Basic Multilingual Plane and diverging above it. What remains
-unimplemented is the ECMAScript number serialization over the full float
-range.
+103 checks: 10 schema, 4 canonicalization, 18 hash commitments, 20 rules
+the schemas cannot express, 9 signature verifications, 10 on the terms
+profile including the two transfer lists printed in Appendix A.6, 6 Merkle
+per RFC 9162, and 26 conformance vectors of Section 14.3 run through the
+reference Facilitator. `pactcore.jcs` is a full RFC 8785 canonicalizer for
+the JSON value types, including UTF-16 key order and ECMAScript number
+formatting; both are pinned by vectors because both were got wrong once.
 
 ## Building the draft
 
 ```
 pip install xml2rfc
-xml2rfc --text --html draft/draft-laxsharma-pact-01.xml
+xml2rfc --text --html draft/draft-laxsharma-pact-02.xml
 ```
+
+Figures wider than the page are folded per RFC 8792 and say so in their
+first line; the digests in them are whole once the fold is removed.
 
 ## Relationship to other work
 
@@ -134,16 +137,13 @@ PACT composes JWS (RFC 7515) with keys resolved through DID Core, did:web
 or a JWK Set, JCS (RFC 8785), the RFC 9162 Merkle tree, RATS/EAT evidence
 formats (RFC 9334/9711) for the TEE verification tier, and RFC 9457 problem
 details for errors. It names a settlement binding rather than assuming a
-rail, so it is chain-agnostic, and it is designed to sit alongside the agent
-transport and payment protocols rather than to bind them: -01 specifies no
-binding to any of them. Its settlement is an optimistic fair exchange
-in the sense of Asokan, Shoup and Waidner (1998). The bond-sizing rule it
-relies on is prior art (Polinsky and Shavell; Belenkiy et al.;
-Mamageishvili and Felten) that the draft cites rather than reintroduces.
-The introduction relates PACT to the adjacent drafts on AP2 binding,
-transport negotiation, action receipts, accountability composition,
-delegation chains and contestability. Lineage: the Contract Net Protocol
-(Smith, 1980), finally runnable among untrusting parties.
+rail, and it binds none of the agent transport or payment protocols; the
+introduction relates it to the adjacent drafts on AP2 binding, transport
+negotiation, action receipts, accountability composition, delegation chains
+and contestability. Carrying terms by reference follows ACME's
+terms-of-service URL, X.509 policy identifiers and the Internet Open
+Trading Protocol. Lineage: the Contract Net Protocol (Smith, 1980),
+finally runnable among untrusting parties.
 
 ## License
 

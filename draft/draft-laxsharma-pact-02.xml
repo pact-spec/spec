@@ -223,7 +223,16 @@
       MUST order object keys by UTF-16 code unit as
       <xref target="RFC8785"/> Section 3.2.3 requires. Sorting by Unicode code
       point is a common substitution; it agrees with the required order
-      throughout the Basic Multilingual Plane and diverges above it.</t>
+      throughout the Basic Multilingual Plane and diverges above it. Numbers
+      MUST be serialized as <xref target="RFC8785"/> Section 3.2.2.3
+      requires, which is how ECMAScript prints them: the number one is
+      <tt>1</tt>, whatever type held it, and never <tt>1.0</tt>.</t>
+
+      <t>Figures. A figure line that would exceed the page width is folded
+      with the single backslash strategy of <xref target="RFC8792"/>, and a
+      figure that contains a fold begins with the header line that RFC
+      requires. The figure is read after unfolding; the digests it prints
+      are whole once the fold is removed.</t>
 
       <t>Object digest. The digest of an object is the string
       <tt>sha256:</tt> followed by the lowercase hexadecimal SHA-256 of the
@@ -735,11 +744,11 @@
             <tr><td><tt>window-opened</tt></td><td>DELIVERED; then WINDOW_OPEN</td>
                 <td>Under <tt>delivery-first</tt>, immediately after <tt>delivered</tt>; under <tt>verdict-first</tt>, immediately after a PASS <tt>verdict</tt> or after <tt>verdict-lapsed</tt>. <tt>closes_at</tt> (timestamp, required) is <tt>at</tt> plus <tt>challenge.window_seconds</tt>.</td></tr>
             <tr><td><tt>verdict</tt></td><td>DELIVERED, WINDOW_OPEN or DISPUTED; then see the condition</td>
-                <td><tt>object</tt> is the Verdict's digest; <tt>outcome</tt> (PASS or FAIL); <tt>answers</tt> (digest of the Challenge, when the Verdict carries <tt>challenge_hash</tt>); <tt>supersedes</tt> (digest of the Verdict it replaces, when one stood). Then: FAIL leads to AWAITING_CHILDREN; PASS in DELIVERED leads to <tt>window-opened</tt>; PASS in WINDOW_OPEN changes nothing; PASS in DISPUTED leads to WINDOW_OPEN once no Challenge is pending.</td></tr>
+                <td><tt>object</tt> is the Verdict's digest; <tt>signer</tt> (the <tt>kid</tt> of its signature); <tt>outcome</tt> (PASS or FAIL); <tt>answers</tt> (digest of the Challenge, when the Verdict carries <tt>challenge_hash</tt>); <tt>supersedes</tt> (digest of the Verdict it replaces, when one stood). Then: FAIL leads to AWAITING_CHILDREN; PASS in DELIVERED leads to <tt>window-opened</tt>; PASS in WINDOW_OPEN changes nothing; PASS in DISPUTED leads to WINDOW_OPEN once no Challenge is pending.</td></tr>
             <tr><td><tt>verdict-lapsed</tt></td><td>DELIVERED; then WINDOW_OPEN</td>
                 <td>Under <tt>verdict-first</tt>, <tt>verification.max_verdict_seconds</tt> have passed since <tt>delivered</tt> with no <tt>verdict</tt>. <tt>window-opened</tt> follows.</td></tr>
             <tr><td><tt>challenge</tt></td><td>WINDOW_OPEN or DISPUTED; then DISPUTED</td>
-                <td><tt>object</tt> is the Challenge's digest; <tt>costs</tt> copied from the Challenge when present. The Challenge passed <xref target="challenges"/> before <tt>closes_at</tt>.</td></tr>
+                <td><tt>object</tt> is the Challenge's digest; <tt>signer</tt> (the <tt>kid</tt> of its signature); <tt>costs</tt> copied from the Challenge when present. The Challenge passed <xref target="challenges"/> before <tt>closes_at</tt>.</td></tr>
             <tr><td><tt>dispute-lapsed</tt></td><td>DISPUTED; then WINDOW_OPEN</td>
                 <td><tt>object</tt> is the Challenge's digest. <tt>challenge.max_dispute_seconds</tt> have passed since that <tt>challenge</tt> entry with no Verdict answering it. Leads to WINDOW_OPEN once no Challenge is pending; the earlier Verdict, if any, stands.</td></tr>
             <tr><td><tt>window-closed</tt></td><td>WINDOW_OPEN; then AWAITING_CHILDREN</td>
@@ -792,6 +801,8 @@
       <figure anchor="fig-vtc">
         <name>A Verifiable Task Contract, signatures abbreviated</name>
         <sourcecode type="json" name="vtc.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "VerifiableTaskContract",
@@ -803,7 +814,8 @@
     "verifier":    "did:web:audit.example"
   },
   "task": {
-    "spec_hash": "sha256:<spec_hash>",
+    "spec_hash": "sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef11\
+   1d27ff6bee37f05531823b72",
     "deadline":  "2026-11-14T00:00:00Z"
   },
   "price": {
@@ -815,14 +827,16 @@
   "verification": {
     "tier":                "T0-reexec",
     "profile":             "acceptance",
-    "criteria_hash":       "sha256:<criteria_hash>",
+    "criteria_hash":       "sha256:0bdde1ab6b081d2b4bda580c539375\
+   6ae95c10b8351c9c55eb9316416265fc1b",
     "max_verdict_seconds": 86400
   },
   "flow": "verdict-first",
   "terms": {
     "profile":
       "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-    "profile_hash": "sha256:<profile_hash>",
+    "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5f\
+   c1147743326dabd45bda546dc62",
     "parameters":   { "...": "the profile's; not read here" }
   },
   "challenge": {
@@ -974,17 +988,21 @@
       <figure anchor="fig-delivery">
         <name>A Delivery for a T0-reexec contract, acceptance profile</name>
         <sourcecode type="json" name="delivery.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "Delivery",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:<vtc_hash>",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+   5fbbd4ebace4fb980f1c2",
   "work_hash":  "sha256:9c1f...",
   "work_uri":   "https://cdn.dataforge.example/o/9c1f",
   "input_hash": "sha256:41ab...",
   "evidence": {
     "profile":        "acceptance",
-    "instrument_hash":"sha256:<criteria_hash>",
+    "instrument_hash":"sha256:0bdde1ab6b081d2b4bda580c5393756ae95\
+   c10b8351c9c55eb9316416265fc1b",
     "results_hash":   "sha256:7e02...",
     "results_uri":    "https://cdn.dataforge.example/o/7e02"
   },
@@ -1045,14 +1063,18 @@
         <figure anchor="fig-verdict">
           <name>A Verdict</name>
           <sourcecode type="json" name="verdict.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "Verdict",
   "vtc_id":        "vtc_7f3a91",
-  "delivery_hash": "sha256:<delivery_hash>",
+  "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2\
+   f8aaaf2f186702504fba242ffb",
   "outcome":       "PASS",
   "profile":       "acceptance",
-  "instrument_hash": "sha256:<criteria_hash>",
+  "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c\
+   10b8351c9c55eb9316416265fc1b",
   "results_hash":    "sha256:7e02...",
   "evaluated_at":  "2026-11-10T09:14:22Z",
   "signature": { "protected": "...", "signature": "..." }
@@ -1127,14 +1149,18 @@
         <figure anchor="fig-challenge">
           <name>A Challenge under the acceptance profile</name>
           <sourcecode type="json" name="challenge.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "Challenge",
   "vtc_id":        "vtc_7f3a91",
-  "delivery_hash": "sha256:<delivery_hash>",
+  "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2\
+   f8aaaf2f186702504fba242ffb",
   "proof": {
     "profile":         "acceptance",
-    "instrument_hash": "sha256:<criteria_hash>",
+    "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae9\
+   5c10b8351c9c55eb9316416265fc1b",
     "results_hash":    "sha256:a91e...",
     "results_uri":     "https://watch.example/o/a91e",
     "failing_checks":  ["schema_valid_rate", "row_count_min"]
@@ -1208,6 +1234,8 @@
       <figure anchor="fig-wellknown">
         <name>https://settle.example/.well-known/pact-facilitator</name>
         <sourcecode type="json" name="pact-facilitator.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "FacilitatorCapabilities",
@@ -1222,7 +1250,8 @@
   "terms_profiles": [
     { "id":
         "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-      "profile_hash": "sha256:<profile_hash>" }
+      "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f\
+   5fc1147743326dabd45bda546dc62" }
   ],
   "max_contract_value":    { "amount": "50000.00",
                              "currency": "USDC" },
@@ -1488,20 +1517,26 @@
       <figure anchor="fig-status">
         <name>A Contract Status after the Verdict of Figure 1</name>
         <sourcecode type="json" name="status.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "ContractStatus",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:<vtc_hash>",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+   5fbbd4ebace4fb980f1c2",
   "state":    "WINDOW_OPEN",
   "trace": [
     { "event": "accepted",  "at": "2026-11-01T10:00:00Z",
-      "object": "sha256:<vtc_hash>" },
+      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+   225fbbd4ebace4fb980f1c2" },
     { "event": "funded",    "at": "2026-11-01T10:00:00Z" },
     { "event": "delivered", "at": "2026-11-10T08:30:12Z",
-      "object": "sha256:<delivery_hash>" },
+      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+   aaf2f186702504fba242ffb" },
     { "event": "verdict",   "at": "2026-11-10T09:14:30Z",
-      "object": "sha256:<verdict_hash>", "outcome": "PASS" },
+      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8\
+   e09452a74bac15e6752ca81", "outcome": "PASS" },
     { "event": "window-opened", "at": "2026-11-10T09:14:30Z",
       "closes_at": "2026-11-10T10:14:30Z" }
   ],
@@ -1548,11 +1583,14 @@
       <figure anchor="fig-outcome">
         <name>An Outcome Record for a contract that reached SETTLED on an upheld Challenge</name>
         <sourcecode type="json" name="outcome.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "OutcomeRecord",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:<vtc_hash>",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+   5fbbd4ebace4fb980f1c2",
   "parties": {
     "buyer":       "did:web:acme.example",
     "seller":      "did:web:dataforge.example",
@@ -1563,19 +1601,26 @@
   "work_hash": "sha256:9c1f...",
   "trace": [
     { "event": "accepted",  "at": "...",
-      "object": "sha256:<vtc_hash>" },
+      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+   225fbbd4ebace4fb980f1c2" },
     { "event": "funded",    "at": "..." },
     { "event": "delivered", "at": "...",
-      "object": "sha256:<delivery_hash>" },
+      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+   aaf2f186702504fba242ffb" },
     { "event": "verdict",   "at": "...",
-      "object": "sha256:<verdict_hash>", "outcome": "PASS" },
+      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8\
+   e09452a74bac15e6752ca81", "outcome": "PASS" },
     { "event": "window-opened", "at": "...", "closes_at": "..." },
     { "event": "challenge", "at": "...",
-      "object": "sha256:<challenge_hash>" },
+      "object": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df\
+   6cfef12d12d1340c15e5d85" },
     { "event": "verdict",   "at": "...",
-      "object": "sha256:<verdict2_hash>", "outcome": "FAIL",
-      "answers": "sha256:<challenge_hash>",
-      "supersedes": "sha256:<verdict_hash>" },
+      "object": "sha256:012bab194f444012f87ff8986419537f9de9f3dfe\
+   845c6623ac6a7488fb98b73", "outcome": "FAIL",
+      "answers": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4d\
+   f6cfef12d12d1340c15e5d85",
+      "supersedes": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51\
+   cee8e09452a74bac15e6752ca81" },
     { "event": "children-final", "at": "..." },
     { "event": "terminal",  "at": "...", "state": "SETTLED",
       "challenge_upheld": true }
@@ -1583,7 +1628,8 @@
   "terms_result": {
     "profile":
       "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-    "profile_hash": "sha256:<profile_hash>",
+    "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5f\
+   c1147743326dabd45bda546dc62",
     "currency":     "USDC",
     "transfers": [
       { "event": 8, "from": "...", "to": "...", "amount": "...",
@@ -1995,6 +2041,9 @@ Content-Type: application/problem+json
                 <td>reject</td></tr>
             <tr><td>V-24</td><td>Outcome Record whose <tt>transfers</tt>
                 overdraw an account of the profile</td><td>reject</td></tr>
+            <tr><td>V-25</td><td>a number serialized by the host language's
+                default formatter, such as <tt>1.0</tt> for the float
+                one</td><td>digest mismatch</td></tr>
           </tbody>
         </table>
 
@@ -2004,7 +2053,12 @@ Content-Type: application/problem+json
         which agrees with the required UTF-16 order for every ASCII key and so
         passes every vector an implementer would think to write. V-19 is the
         opposite mistake, folding more than <xref target="independence"/>
-        allows, and the -01 reference validator made it.</t>
+        allows, and the -01 reference validator made it. V-25 is the number
+        half of the V-18 mistake: <xref target="RFC8785"/> prints numbers as
+        ECMAScript does, so the float one is <tt>1</tt> and never
+        <tt>1.0</tt>. The -02 reference canonicalizer printed <tt>1.0</tt>
+        until this vector caught it, and every digest in
+        <xref target="example"/> changed when it was fixed.</t>
       </section>
     </section>
 
@@ -2025,11 +2079,18 @@ Content-Type: application/problem+json
       are:</t>
 
       <artwork type="ascii-art"><![CDATA[
- spec_hash       sha256:<spec_hash>
- criteria_hash   sha256:<criteria_hash>
- profile_hash    sha256:<profile_hash>
- vtc_hash        sha256:<vtc_hash>
- delivery_hash   sha256:<delivery_hash>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+ spec_hash       sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef111\
+   d27ff6bee37f05531823b72
+ criteria_hash   sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b83\
+   51c9c55eb9316416265fc1b
+ profile_hash    sha256:00d71829f6f9192b43b929d0154a6eb409f5fc114\
+   7743326dabd45bda546dc62
+ vtc_hash        sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+   225fbbd4ebace4fb980f1c2
+ delivery_hash   sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+   aaf2f186702504fba242ffb
       ]]></artwork>
 
       <t><tt>criteria_hash</tt> is the manifest digest of
@@ -2065,7 +2126,7 @@ Content-Type: application/problem+json
       https://github.com/pact-spec/spec, under the Revised BSD licence. At
       tag v0.2.0 it comprises the object schemas, the examples whose digests
       <xref target="example"/> prints, a conformance validator that runs
-      <tt>&lt;NN&gt;</tt> checks including every vector of
+      103 checks including every vector of
       <xref target="conf-vectors"/>, a Facilitator serving the endpoints of
       <xref target="endpoints"/> with the profile of
       <xref target="appendix-profile"/>, and clients for the other roles. Its
@@ -2612,6 +2673,7 @@ Content-Type: application/problem+json
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9942.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8725.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7942.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8792.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8555.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.5280.xml"/>
       <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.3647.xml"/>
@@ -2878,7 +2940,14 @@ Content-Type: application/problem+json
       first.</t>
       <ul>
         <li>The <tt>pact</tt> version is 0.2 and every committed digest
-        changed (<xref target="example"/>).</li>
+        changed (<xref target="example"/>).
+        The -01 digests were computed by a canonicalizer that serialized
+        the number one as <tt>1.0</tt>, which <xref target="RFC8785"/>
+        does not allow, so the <tt>spec_hash</tt> and <tt>vtc_hash</tt>
+        the -01 revision printed are not what a conforming implementation
+        computes over the -01 example objects. V-25 in
+        <xref target="conf-vectors"/> pins the rule and the -02 examples
+        were minted after the correction.</li>
         <li>The <tt>liability</tt> member is gone. A contract carries
         <tt>terms</tt>: a profile URI, a digest over the profile's bundle,
         and an opaque parameter object (<xref target="terms"/>). The -01

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "challenge.schema.json",
-  "title": "PACT Challenge",
+  "title": "PACT Challenge (0.2)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,7 +14,7 @@
   ],
   "properties": {
     "pact": {
-      "type": "string"
+      "const": "0.2"
     },
     "type": {
       "const": "Challenge"
@@ -51,8 +51,12 @@
           }
         }
       },
-      "$comment": "Section 7.5. Profile-conditional members enforced in code.",
+      "$comment": "Section 7.3. Profile-conditional members enforced in code.",
       "additionalProperties": false
+    },
+    "costs": {
+      "$ref": "common.schema.json#/$defs/amount_with_currency",
+      "$comment": "Section 3.6: a figure the Challenger asserts; recorded in the trace and read by the terms profile only."
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"

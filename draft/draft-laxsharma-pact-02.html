@@ -1867,8 +1867,16 @@ li > p:last-of-type:only-child {
       MUST order object keys by UTF-16 code unit as
       <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> Section 3.2.3 requires. Sorting by Unicode code
       point is a common substitution; it agrees with the required order
-      throughout the Basic Multilingual Plane and diverges above it.<a href="#section-2-2" class="pilcrow">¶</a></p>
-<p id="section-2-3">Object digest. The digest of an object is the string
+      throughout the Basic Multilingual Plane and diverges above it. Numbers
+      MUST be serialized as <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> Section 3.2.2.3
+      requires, which is how ECMAScript prints them: the number one is
+      <code>1</code>, whatever type held it, and never <code>1.0</code>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-3">Figures. A figure line that would exceed the page width is folded
+      with the single backslash strategy of <span>[<a href="#RFC8792" class="cite xref">RFC8792</a>]</span>, and a
+      figure that contains a fold begins with the header line that RFC
+      requires. The figure is read after unfolding; the digests it prints
+      are whole once the fold is removed.<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4">Object digest. The digest of an object is the string
       <code>sha256:</code> followed by the lowercase hexadecimal SHA-256 of the
       canonical form of the whole object, including every signature member it
       carries. Every hash member in this document that names another object
@@ -1878,14 +1886,14 @@ li > p:last-of-type:only-child {
       excluded signatures would prove what was written and not who agreed to
       it; the -00 revision had that defect and the -01 revision fixed it for
       the contract only. This revision applies one construction
-      everywhere.<a href="#section-2-3" class="pilcrow">¶</a></p>
-<p id="section-2-4">Signing input. A signature over an object is computed over the
+      everywhere.<a href="#section-2-4" class="pilcrow">¶</a></p>
+<p id="section-2-5">Signing input. A signature over an object is computed over the
       canonical form of the object with the signing member (<code>signature</code>
       or <code>signatures</code>) removed, as <a href="#conf-sig" class="auto internal xref">Section 14.1</a>
       specifies. The digest of an object and the signing input of an object
       are therefore different byte strings, and the difference is the
-      signature set.<a href="#section-2-4" class="pilcrow">¶</a></p>
-<p id="section-2-5">Version. The <code>pact</code> member carries a version of the form
+      signature set.<a href="#section-2-5" class="pilcrow">¶</a></p>
+<p id="section-2-6">Version. The <code>pact</code> member carries a version of the form
       major.minor; this document defines 0.2. Every object defined here is
       hash-committed and signed, so a member an implementation does not
       recognise is inside the commitment and cannot be ignored safely. An
@@ -1894,16 +1902,16 @@ li > p:last-of-type:only-child {
       document does not define for it, with one exception: the contents of
       <code>terms.parameters</code> (<a href="#terms" class="auto internal xref">Section 5.3</a>) are defined by the
       named profile and this document reads none of them. Extension is by a
-      new version, not by adding members.<a href="#section-2-5" class="pilcrow">¶</a></p>
-<p id="section-2-6">Time. Every timestamp is an RFC 3339 date-time
+      new version, not by adding members.<a href="#section-2-6" class="pilcrow">¶</a></p>
+<p id="section-2-7">Time. Every timestamp is an RFC 3339 date-time
       <span>[<a href="#RFC3339" class="cite xref">RFC3339</a>]</span> in UTC with the "Z" designator. The
       Facilitator's clock governs every deadline and window in this
       document: the instant at which the Facilitator records an event is the
       instant that counts, that instant is what the trace carries, and
       parties should allow for skew when acting near a boundary.
       <a href="#sec-facilitator" class="auto internal xref">Section 17.1</a> says what that clock can and cannot
-      prove.<a href="#section-2-6" class="pilcrow">¶</a></p>
-<p id="section-2-7">Amounts. An amount is a decimal string with no exponent and a
+      prove.<a href="#section-2-7" class="pilcrow">¶</a></p>
+<p id="section-2-8">Amounts. An amount is a decimal string with no exponent and a
       fractional part of two to eighteen digits; comparisons are exact and
       no rounding is implied. A currency is an asset identifier whose
       namespace is defined by the settlement binding named in
@@ -1912,11 +1920,11 @@ li > p:last-of-type:only-child {
       document carries amounts; it does not say what any amount is for. Where
       a record produced under this document lists amounts, as
       <code>terms_result</code> does (<a href="#terms-result" class="auto internal xref">Section 12.1</a>), the meaning
-      of every entry is the named profile's.<a href="#section-2-7" class="pilcrow">¶</a></p>
-<p id="section-2-8">Identifiers. A party identifier is a URI. Two identifiers name the
+      of every entry is the named profile's.<a href="#section-2-8" class="pilcrow">¶</a></p>
+<p id="section-2-9">Identifiers. A party identifier is a URI. Two identifiers name the
       same party when they are equal after the normalization in
       <a href="#independence" class="auto internal xref">Section 9.1</a>, and every comparison of identifiers in
-      this document is made after that normalization.<a href="#section-2-8" class="pilcrow">¶</a></p>
+      this document is made after that normalization.<a href="#section-2-9" class="pilcrow">¶</a></p>
 <div id="terminology">
 <section id="section-2.1">
         <h3 id="name-terminology">
@@ -2727,7 +2735,7 @@ li > p:last-of-type:only-child {
 </td>
               <td class="text-left" rowspan="1" colspan="1">DELIVERED, WINDOW_OPEN or DISPUTED; then see the condition</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>object</code> is the Verdict's digest; <code>outcome</code> (PASS or FAIL); <code>answers</code> (digest of the Challenge, when the Verdict carries <code>challenge_hash</code>); <code>supersedes</code> (digest of the Verdict it replaces, when one stood). Then: FAIL leads to AWAITING_CHILDREN; PASS in DELIVERED leads to <code>window-opened</code>; PASS in WINDOW_OPEN changes nothing; PASS in DISPUTED leads to WINDOW_OPEN once no Challenge is pending.</td>
+                <code>object</code> is the Verdict's digest; <code>signer</code> (the <code>kid</code> of its signature); <code>outcome</code> (PASS or FAIL); <code>answers</code> (digest of the Challenge, when the Verdict carries <code>challenge_hash</code>); <code>supersedes</code> (digest of the Verdict it replaces, when one stood). Then: FAIL leads to AWAITING_CHILDREN; PASS in DELIVERED leads to <code>window-opened</code>; PASS in WINDOW_OPEN changes nothing; PASS in DISPUTED leads to WINDOW_OPEN once no Challenge is pending.</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">
@@ -2742,7 +2750,7 @@ li > p:last-of-type:only-child {
 </td>
               <td class="text-left" rowspan="1" colspan="1">WINDOW_OPEN or DISPUTED; then DISPUTED</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>object</code> is the Challenge's digest; <code>costs</code> copied from the Challenge when present. The Challenge passed <a href="#challenges" class="auto internal xref">Section 7.3</a> before <code>closes_at</code>.</td>
+                <code>object</code> is the Challenge's digest; <code>signer</code> (the <code>kid</code> of its signature); <code>costs</code> copied from the Challenge when present. The Challenge passed <a href="#challenges" class="auto internal xref">Section 7.3</a> before <code>closes_at</code>.</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">
@@ -2840,6 +2848,8 @@ li > p:last-of-type:only-child {
 <figure id="figure-3">
         <div class="lang-json sourcecode" id="section-5-3.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "VerifiableTaskContract",
@@ -2851,7 +2861,8 @@ li > p:last-of-type:only-child {
     "verifier":    "did:web:audit.example"
   },
   "task": {
-    "spec_hash": "sha256:&lt;spec_hash&gt;",
+    "spec_hash": "sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef11\
+   1d27ff6bee37f05531823b72",
     "deadline":  "2026-11-14T00:00:00Z"
   },
   "price": {
@@ -2863,14 +2874,16 @@ li > p:last-of-type:only-child {
   "verification": {
     "tier":                "T0-reexec",
     "profile":             "acceptance",
-    "criteria_hash":       "sha256:&lt;criteria_hash&gt;",
+    "criteria_hash":       "sha256:0bdde1ab6b081d2b4bda580c539375\
+   6ae95c10b8351c9c55eb9316416265fc1b",
     "max_verdict_seconds": 86400
   },
   "flow": "verdict-first",
   "terms": {
     "profile":
       "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-    "profile_hash": "sha256:&lt;profile_hash&gt;",
+    "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5f\
+   c1147743326dabd45bda546dc62",
     "parameters":   { "...": "the profile's; not read here" }
   },
   "challenge": {
@@ -3033,17 +3046,21 @@ li > p:last-of-type:only-child {
 <figure id="figure-4">
         <div class="lang-json sourcecode" id="section-6-4.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "Delivery",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:&lt;vtc_hash&gt;",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+   5fbbd4ebace4fb980f1c2",
   "work_hash":  "sha256:9c1f...",
   "work_uri":   "https://cdn.dataforge.example/o/9c1f",
   "input_hash": "sha256:41ab...",
   "evidence": {
     "profile":        "acceptance",
-    "instrument_hash":"sha256:&lt;criteria_hash&gt;",
+    "instrument_hash":"sha256:0bdde1ab6b081d2b4bda580c5393756ae95\
+   c10b8351c9c55eb9316416265fc1b",
     "results_hash":   "sha256:7e02...",
     "results_uri":    "https://cdn.dataforge.example/o/7e02"
   },
@@ -3129,14 +3146,18 @@ li > p:last-of-type:only-child {
 <figure id="figure-5">
           <div class="lang-json sourcecode" id="section-7.2-2.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "Verdict",
   "vtc_id":        "vtc_7f3a91",
-  "delivery_hash": "sha256:&lt;delivery_hash&gt;",
+  "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2\
+   f8aaaf2f186702504fba242ffb",
   "outcome":       "PASS",
   "profile":       "acceptance",
-  "instrument_hash": "sha256:&lt;criteria_hash&gt;",
+  "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c\
+   10b8351c9c55eb9316416265fc1b",
   "results_hash":    "sha256:7e02...",
   "evaluated_at":  "2026-11-10T09:14:22Z",
   "signature": { "protected": "...", "signature": "..." }
@@ -3214,14 +3235,18 @@ li > p:last-of-type:only-child {
 <figure id="figure-6">
           <div class="lang-json sourcecode" id="section-7.3-4.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "Challenge",
   "vtc_id":        "vtc_7f3a91",
-  "delivery_hash": "sha256:&lt;delivery_hash&gt;",
+  "delivery_hash": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2\
+   f8aaaf2f186702504fba242ffb",
   "proof": {
     "profile":         "acceptance",
-    "instrument_hash": "sha256:&lt;criteria_hash&gt;",
+    "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae9\
+   5c10b8351c9c55eb9316416265fc1b",
     "results_hash":    "sha256:a91e...",
     "results_uri":     "https://watch.example/o/a91e",
     "failing_checks":  ["schema_valid_rate", "row_count_min"]
@@ -3309,6 +3334,8 @@ li > p:last-of-type:only-child {
 <figure id="figure-8">
         <div class="lang-json sourcecode" id="section-8-4.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "FacilitatorCapabilities",
@@ -3323,7 +3350,8 @@ li > p:last-of-type:only-child {
   "terms_profiles": [
     { "id":
         "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-      "profile_hash": "sha256:&lt;profile_hash&gt;" }
+      "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f\
+   5fc1147743326dabd45bda546dc62" }
   ],
   "max_contract_value":    { "amount": "50000.00",
                              "currency": "USDC" },
@@ -3628,20 +3656,26 @@ li > p:last-of-type:only-child {
 <figure id="figure-11">
         <div class="lang-json sourcecode" id="section-11-2.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "ContractStatus",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:&lt;vtc_hash&gt;",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+   5fbbd4ebace4fb980f1c2",
   "state":    "WINDOW_OPEN",
   "trace": [
     { "event": "accepted",  "at": "2026-11-01T10:00:00Z",
-      "object": "sha256:&lt;vtc_hash&gt;" },
+      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+   225fbbd4ebace4fb980f1c2" },
     { "event": "funded",    "at": "2026-11-01T10:00:00Z" },
     { "event": "delivered", "at": "2026-11-10T08:30:12Z",
-      "object": "sha256:&lt;delivery_hash&gt;" },
+      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+   aaf2f186702504fba242ffb" },
     { "event": "verdict",   "at": "2026-11-10T09:14:30Z",
-      "object": "sha256:&lt;verdict_hash&gt;", "outcome": "PASS" },
+      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8\
+   e09452a74bac15e6752ca81", "outcome": "PASS" },
     { "event": "window-opened", "at": "2026-11-10T09:14:30Z",
       "closes_at": "2026-11-10T10:14:30Z" }
   ],
@@ -3691,13 +3725,16 @@ li > p:last-of-type:only-child {
       identities.<a href="#section-12-2" class="pilcrow">¶</a></p>
 <span id="name-an-outcome-record-for-a-con"></span><div id="fig-outcome">
 <figure id="figure-12">
-        <div class="lang-json sourcecode" id="section-12-3.1">
+        <div class="breakable lang-json sourcecode" id="section-12-3.1">
 <pre>
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
 {
   "pact": "0.2",
   "type": "OutcomeRecord",
   "vtc_id":   "vtc_7f3a91",
-  "vtc_hash": "sha256:&lt;vtc_hash&gt;",
+  "vtc_hash": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a322\
+   5fbbd4ebace4fb980f1c2",
   "parties": {
     "buyer":       "did:web:acme.example",
     "seller":      "did:web:dataforge.example",
@@ -3708,19 +3745,26 @@ li > p:last-of-type:only-child {
   "work_hash": "sha256:9c1f...",
   "trace": [
     { "event": "accepted",  "at": "...",
-      "object": "sha256:&lt;vtc_hash&gt;" },
+      "object": "sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+   225fbbd4ebace4fb980f1c2" },
     { "event": "funded",    "at": "..." },
     { "event": "delivered", "at": "...",
-      "object": "sha256:&lt;delivery_hash&gt;" },
+      "object": "sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+   aaf2f186702504fba242ffb" },
     { "event": "verdict",   "at": "...",
-      "object": "sha256:&lt;verdict_hash&gt;", "outcome": "PASS" },
+      "object": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51cee8\
+   e09452a74bac15e6752ca81", "outcome": "PASS" },
     { "event": "window-opened", "at": "...", "closes_at": "..." },
     { "event": "challenge", "at": "...",
-      "object": "sha256:&lt;challenge_hash&gt;" },
+      "object": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4df\
+   6cfef12d12d1340c15e5d85" },
     { "event": "verdict",   "at": "...",
-      "object": "sha256:&lt;verdict2_hash&gt;", "outcome": "FAIL",
-      "answers": "sha256:&lt;challenge_hash&gt;",
-      "supersedes": "sha256:&lt;verdict_hash&gt;" },
+      "object": "sha256:012bab194f444012f87ff8986419537f9de9f3dfe\
+   845c6623ac6a7488fb98b73", "outcome": "FAIL",
+      "answers": "sha256:2393288d1fba2d966a7c66767935e40b06c2cc4d\
+   f6cfef12d12d1340c15e5d85",
+      "supersedes": "sha256:2e74fdf948aca2d610aa9a3b3ac90e7f72d51\
+   cee8e09452a74bac15e6752ca81" },
     { "event": "children-final", "at": "..." },
     { "event": "terminal",  "at": "...", "state": "SETTLED",
       "challenge_upheld": true }
@@ -3728,7 +3772,8 @@ li > p:last-of-type:only-child {
   "terms_result": {
     "profile":
       "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-    "profile_hash": "sha256:&lt;profile_hash&gt;",
+    "profile_hash": "sha256:00d71829f6f9192b43b929d0154a6eb409f5f\
+   c1147743326dabd45bda546dc62",
     "currency":     "USDC",
     "transfers": [
       { "event": 8, "from": "...", "to": "...", "amount": "...",
@@ -4344,6 +4389,13 @@ Content-Type: application/problem+json
                 overdraw an account of the profile</td>
               <td class="text-left" rowspan="1" colspan="1">reject</td>
             </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">V-25</td>
+              <td class="text-left" rowspan="1" colspan="1">a number serialized by the host language's
+                default formatter, such as <code>1.0</code> for the float
+                one</td>
+              <td class="text-left" rowspan="1" colspan="1">digest mismatch</td>
+            </tr>
           </tbody>
         </table>
 </div>
@@ -4353,7 +4405,12 @@ Content-Type: application/problem+json
         which agrees with the required UTF-16 order for every ASCII key and so
         passes every vector an implementer would think to write. V-19 is the
         opposite mistake, folding more than <a href="#independence" class="auto internal xref">Section 9.1</a>
-        allows, and the -01 reference validator made it.<a href="#section-14.3-3" class="pilcrow">¶</a></p>
+        allows, and the -01 reference validator made it. V-25 is the number
+        half of the V-18 mistake: <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> prints numbers as
+        ECMAScript does, so the float one is <code>1</code> and never
+        <code>1.0</code>. The -02 reference canonicalizer printed <code>1.0</code>
+        until this vector caught it, and every digest in
+        <a href="#example" class="auto internal xref">Section 15</a> changed when it was fixed.<a href="#section-14.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -4378,11 +4435,18 @@ Content-Type: application/problem+json
       are:<a href="#section-15-2" class="pilcrow">¶</a></p>
 <div class="alignLeft art-ascii-art art-text artwork" id="section-15-3">
 <pre>
- spec_hash       sha256:&lt;spec_hash&gt;
- criteria_hash   sha256:&lt;criteria_hash&gt;
- profile_hash    sha256:&lt;profile_hash&gt;
- vtc_hash        sha256:&lt;vtc_hash&gt;
- delivery_hash   sha256:&lt;delivery_hash&gt;
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+ spec_hash       sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef111\
+   d27ff6bee37f05531823b72
+ criteria_hash   sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b83\
+   51c9c55eb9316416265fc1b
+ profile_hash    sha256:00d71829f6f9192b43b929d0154a6eb409f5fc114\
+   7743326dabd45bda546dc62
+ vtc_hash        sha256:3e755194b949b7327db8bb6a716add3b40828d9a3\
+   225fbbd4ebace4fb980f1c2
+ delivery_hash   sha256:2c0df3c3b39181641300c765a7a94bd6d883a2f8a\
+   aaf2f186702504fba242ffb
 </pre><a href="#section-15-3" class="pilcrow">¶</a>
 </div>
 <p id="section-15-4"><code>criteria_hash</code> is the manifest digest of
@@ -4420,7 +4484,7 @@ Content-Type: application/problem+json
       https://github.com/pact-spec/spec, under the Revised BSD licence. At
       tag v0.2.0 it comprises the object schemas, the examples whose digests
       <a href="#example" class="auto internal xref">Section 15</a> prints, a conformance validator that runs
-      <code>&lt;NN&gt;</code> checks including every vector of
+      103 checks including every vector of
       <a href="#conf-vectors" class="auto internal xref">Section 14.3</a>, a Facilitator serving the endpoints of
       <a href="#endpoints" class="auto internal xref">Section 13</a> with the profile of
       <a href="#appendix-profile" class="auto internal xref">Appendix A</a>, and clients for the other roles. Its
@@ -5415,6 +5479,10 @@ Content-Type: application/problem+json
       <dd>
 <span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7942">https://www.rfc-editor.org/info/rfc7942</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC8792">[RFC8792]</dt>
+      <dd>
+<span class="refAuthor">Watsen, K.</span>, <span class="refAuthor">Auerswald, E.</span>, <span class="refAuthor">Farrel, A.</span>, and <span class="refAuthor">Q. Wu</span>, <span class="refTitle">"Handling Long Lines in Content of Internet-Drafts and RFCs"</span>, <span class="seriesInfo">RFC 8792</span>, <span class="seriesInfo">DOI 10.17487/RFC8792</span>, <time datetime="2020-06" class="refDate">June 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8792">https://www.rfc-editor.org/info/rfc8792</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC8555">[RFC8555]</dt>
       <dd>
 <span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Hoffman-Andrews, J.</span>, <span class="refAuthor">McCarney, D.</span>, and <span class="refAuthor">J. Kasten</span>, <span class="refTitle">"Automatic Certificate Management Environment (ACME)"</span>, <span class="seriesInfo">RFC 8555</span>, <span class="seriesInfo">DOI 10.17487/RFC8555</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8555">https://www.rfc-editor.org/info/rfc8555</a>&gt;</span>. </dd>
@@ -5793,7 +5861,14 @@ Content-Type: application/problem+json
       first.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="appendix-B-2.1">The <code>pact</code> version is 0.2 and every committed digest
-        changed (<a href="#example" class="auto internal xref">Section 15</a>).<a href="#appendix-B-2.1" class="pilcrow">¶</a>
+        changed (<a href="#example" class="auto internal xref">Section 15</a>).
+        The -01 digests were computed by a canonicalizer that serialized
+        the number one as <code>1.0</code>, which <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span>
+        does not allow, so the <code>spec_hash</code> and <code>vtc_hash</code>
+        the -01 revision printed are not what a conforming implementation
+        computes over the -01 example objects. V-25 in
+        <a href="#conf-vectors" class="auto internal xref">Section 14.3</a> pins the rule and the -02 examples
+        were minted after the correction.<a href="#appendix-B-2.1" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="appendix-B-2.2">The <code>liability</code> member is gone. A contract carries
         <code>terms</code>: a profile URI, a digest over the profile's bundle,

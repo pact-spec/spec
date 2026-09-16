@@ -1,7 +1,7 @@
 """Acceptance instrument for the worked example (T0-reexec).
 
 This is the executable instrument committed by `verification.criteria_hash`
-in cfb.json and vtc.json. It is deliberately real code rather than a
+in vtc.json. It is deliberately real code rather than a
 description of code: the commitment must cover the bytes a verifier will
 run, not a sentence about them.
 

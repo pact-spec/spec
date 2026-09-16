@@ -1,25 +1,29 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "facilitator.schema.json",
-  "title": "PACT Facilitator Capability Document",
+  "title": "PACT Facilitator Capability Document (0.2)",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "pact",
+    "type",
     "facilitator",
     "settlement_bindings",
-    "release_modes",
+    "flows",
     "verification_profiles",
-    "assurance_modes",
+    "terms_profiles",
     "endpoints",
     "signature"
   ],
   "properties": {
     "pact": {
-      "type": "string"
+      "const": "0.2"
+    },
+    "type": {
+      "const": "FacilitatorCapabilities"
     },
     "facilitator": {
-      "$ref": "common.schema.json#/$defs/did"
+      "$ref": "common.schema.json#/$defs/party"
     },
     "settlement_bindings": {
       "type": "array",
@@ -31,7 +35,8 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "networks": {
             "type": "array",
@@ -49,48 +54,52 @@
         "additionalProperties": false
       }
     },
-    "release_modes": {
+    "flows": {
       "type": "array",
       "minItems": 1,
       "contains": {
-        "const": "on-verification"
+        "const": "verdict-first"
       },
       "items": {
-        "$ref": "common.schema.json#/$defs/release_mode"
+        "$ref": "common.schema.json#/$defs/flow"
       },
-      "$comment": "Section 7.3: on-verification is REQUIRED to implement."
+      "$comment": "Section 7.1: verdict-first is REQUIRED to implement."
     },
     "verification_profiles": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "string"
       }
     },
-    "assurance_modes": {
+    "terms_profiles": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "enum": [
-          "certain",
-          "committed-sample",
-          "open"
-        ]
-      }
+        "type": "object",
+        "required": [
+          "id",
+          "profile_hash"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "profile_hash": {
+            "$ref": "common.schema.json#/$defs/hash"
+          }
+        },
+        "additionalProperties": false
+      },
+      "$comment": "Section 8: the terms profiles, at the revisions named, whose schedules this Facilitator evaluates and whose vectors it reproduces."
     },
     "max_contract_value": {
-      "type": "object",
-      "required": [
-        "amount",
-        "currency"
-      ],
-      "properties": {
-        "amount": {
-          "$ref": "common.schema.json#/$defs/money"
-        },
-        "currency": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
+      "$ref": "common.schema.json#/$defs/amount_with_currency"
+    },
+    "challenge_deposit": {
+      "$ref": "common.schema.json#/$defs/amount_with_currency",
+      "$comment": "Section 7.3. Absent means no deposit is required."
     },
     "endpoints": {
       "type": "object",
@@ -99,7 +108,7 @@
         "delivery",
         "verdict",
         "challenge",
-        "attestation"
+        "outcome"
       ],
       "additionalProperties": {
         "type": "string",
@@ -108,23 +117,6 @@
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"
-    },
-    "challenge_deposit": {
-      "type": "object",
-      "required": [
-        "amount",
-        "currency"
-      ],
-      "properties": {
-        "amount": {
-          "$ref": "common.schema.json#/$defs/money"
-        },
-        "currency": {
-          "type": "string"
-        }
-      },
-      "$comment": "Section 8. Absent means no deposit is required.",
-      "additionalProperties": false
     }
   }
 }

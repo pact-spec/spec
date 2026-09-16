@@ -84,10 +84,63 @@ def _utf16_key_order(obj: Any) -> Any:
     return obj
 
 
+def _es6_number(f: float) -> str:
+    """Serialize a float the way ECMAScript Number::toString does, which is
+    what RFC 8785 section 3.2.2.3 requires. Python's own repr gives the same
+    shortest round-trip digits but places them differently: 1.0 becomes
+    "1.0", 1e20 becomes "1e+20" and 1e-7 becomes "1e-07", and each of those
+    is a different byte string, so a different digest, from what a conformant
+    canonicalizer produces. An earlier revision of this file used repr and
+    every digest it printed over an object with a float was wrong."""
+    if f != f or f in (float("inf"), float("-inf")):
+        raise ValueError("RFC 8785 does not serialize NaN or Infinity")
+    if f == 0:
+        return "0"
+    d = Decimal(repr(f))
+    sign = "-" if d < 0 else ""
+    t = abs(d).as_tuple()
+    digits = "".join(map(str, t.digits))
+    n = t.exponent + len(digits)          # value = 0.digits x 10^n
+    digits = digits.rstrip("0")
+    k = len(digits)
+    if k <= n <= 21:
+        s = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        s = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        s = "0." + "0" * (-n) + digits
+    else:
+        e = n - 1
+        s = digits[0] + ("." + digits[1:] if k > 1 else "") + "e" + ("+" if e >= 0 else "-") + str(abs(e))
+    return sign + s
+
+
+def _emit(obj: Any) -> str:
+    if obj is None:
+        return "null"
+    if obj is True:
+        return "true"
+    if obj is False:
+        return "false"
+    if isinstance(obj, int):
+        return str(obj)
+    if isinstance(obj, float):
+        return _es6_number(obj)
+    if isinstance(obj, str):
+        return json.dumps(obj, ensure_ascii=False)
+    if isinstance(obj, (list, tuple)):
+        return "[" + ",".join(_emit(v) for v in obj) + "]"
+    if isinstance(obj, dict):
+        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + _emit(obj[k])
+                              for k in sorted(obj, key=lambda s: s.encode("utf-16-be"))) + "}"
+    raise TypeError(f"not JSON: {type(obj).__name__}")
+
+
 def jcs(obj: Any) -> bytes:
-    """Restricted RFC 8785 canonical serialization. See the module docstring."""
-    return json.dumps(_utf16_key_order(obj), separators=(",", ":"),
-                      ensure_ascii=False).encode("utf-8")
+    """RFC 8785 canonical serialization: keys in UTF-16 code unit order,
+    numbers as ECMAScript prints them, strings escaped as JSON requires and
+    nothing else, no whitespace. See the module docstring."""
+    return _emit(obj).encode("utf-8")
 
 
 def h(b: bytes) -> str:
@@ -104,24 +157,36 @@ def digest_over(obj: Any) -> str:
 
 
 # PACT objects carry their signatures two ways, and both are in the schemas.
-# The contract and the Work Attestation take an array, because more than one
-# party signs them. Delivery, Verdict and Challenge take a single object,
-# because exactly one party does.
+# The contract and the Outcome Record take an array, because more than one
+# party may sign them. Delivery, Verdict, Challenge, Status and the capability
+# document take a single object, because exactly one party does.
 SIGNING_MEMBERS = ("signatures", "signature")
-
-# The Facilitator adds `state` to a response body. Section 12 says it is not
-# part of the signed object and MUST NOT be included when the object is
-# canonicalized or hashed, so it is stripped everywhere alongside signatures.
-UNSIGNED_MEMBERS = SIGNING_MEMBERS + ("state",)
 
 
 def signable(obj: dict) -> dict:
-    return {k: v for k, v in obj.items() if k not in UNSIGNED_MEMBERS}
+    """The signing input's object: everything but the signing member."""
+    return {k: v for k, v in obj.items() if k not in SIGNING_MEMBERS}
 
 
 def hashable(obj: dict) -> dict:
-    """The object as it is committed to: signatures kept, transport state dropped."""
-    return {k: v for k, v in obj.items() if k != "state"}
+    """The object as it is committed to: everything, signatures included.
+
+    -02 Section 2 defines one digest construction over the whole object. The
+    -01 response bodies carried an unsigned `state` member that had to be
+    stripped here; the -02 Status object replaced it and nothing is stripped.
+    """
+    return dict(obj)
+
+
+def manifest_digest(dirpath) -> str:
+    """The bundle commitment of Section 5.1: SHA-256(JCS(M)) where M maps each
+    file's path, relative to the bundle root with "/" separators, to the
+    SHA-256 of its bytes, over every file in the bundle."""
+    import pathlib
+    root = pathlib.Path(dirpath)
+    manifest = {p.relative_to(root).as_posix(): h(p.read_bytes())
+                for p in sorted(root.rglob("*")) if p.is_file()}
+    return h(jcs(manifest))
 
 
 def signature_entries(obj: dict) -> list[dict]:
@@ -203,21 +268,6 @@ def signatures_ordered(obj: dict) -> tuple[bool, str]:
 # The assurance constraint, Section 7.2
 # --------------------------------------------------------------------------
 
-def required_bond(price: float, q: float, released: float = 0.0) -> float:
-    """B >= P(1-q)/q + E.
-
-    E, the amount already paid out before a Verdict is recorded, is the only
-    term this specification contributes; the rest is the classical deterrence
-    bound (Polinsky and Shavell; Belenkiy et al. Theorem 1; Mamageishvili and
-    Felten for rollup validators). Optimistic release both pays a defecting
-    Seller and puts that payment beyond recovery, so the required Bond rises
-    with it one for one.
-    """
-    if q <= 0:
-        raise ValueError("q must be greater than zero")
-    return price * (1.0 - q) / q + released
-
-
 def assurance_holds(price: str | float, bond: str | float, q_min: str | float,
                     released: str | float = "0") -> bool:
     """B >= P(1-q)/q + E, evaluated exactly.
@@ -269,6 +319,30 @@ class Key:
     alg: str
     private: Any = None
     public: Any = None
+
+    @classmethod
+    def from_seed(cls, kid: str, seed: bytes) -> "Key":
+        """An Ed25519 key from 32 seed bytes. Used only to mint the committed
+        examples reproducibly; the seeds are public and so are the keys."""
+        if not HAVE_CRYPTO:
+            raise RuntimeError("signing needs the `cryptography` package")
+        sk = Ed25519PrivateKey.from_private_bytes(seed)
+        return cls(kid=kid, alg="EdDSA", private=sk, public=sk.public_key())
+
+    @classmethod
+    def from_public_bytes(cls, kid: str, alg: str, raw: bytes) -> "Key":
+        """A verify-only key from the raw public bytes public_bytes() emits."""
+        if not HAVE_CRYPTO:
+            raise RuntimeError("verification needs the `cryptography` package")
+        if alg == "EdDSA":
+            pub = Ed25519PublicKey.from_public_bytes(raw)
+        elif alg == "ES256":
+            pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), raw)
+        elif alg == "ES384":
+            pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP384R1(), raw)
+        else:
+            raise ValueError(f"unsupported alg {alg}")
+        return cls(kid=kid, alg=alg, private=None, public=pub)
 
     @classmethod
     def generate(cls, kid: str, alg: str = "EdDSA") -> "Key":
@@ -504,30 +578,3 @@ def money(c: int) -> str:
     return f"{c / 100:.2f}"
 
 
-@dataclass
-class Pools:
-    """The three pools of Section 7.1, in cents.
-
-    Keeping the Verification Fund separate from the Bond is not tidiness. Under
-    the -00 a Challenger was reimbursed from the slashed Bond, so reimbursement
-    was capped by the Bond, and for any re-execution profile the cost of
-    producing a fraud proof approximates the cost of the work itself. That MUST
-    was unsatisfiable in the ordinary case.
-    """
-    escrow: int = 0
-    bond: int = 0
-    fund: int = 0
-    bond_initial: int = 0
-    bond_returned: int = 0
-    fund_returned: int = 0
-    cap: int = 0       # liability.cap: the most the Facilitator may move from the Seller
-    released: int = 0  # E in the constraint of Section 7.2
-    paid_to_buyer: int = 0
-    restituted: int = 0
-    paid_to_seller: int = 0
-    paid_to_challenger: int = 0
-    remainder: int = 0
-    ledger: list[str] = field(default_factory=list)
-
-    def note(self, line: str) -> None:
-        self.ledger.append(line)

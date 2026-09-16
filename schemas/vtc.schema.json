@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pact-spec.github.io/spec/schemas/vtc.schema.json",
-  "title": "PACT Verifiable Task Contract",
+  "title": "PACT Verifiable Task Contract (0.2)",
   "type": "object",
   "required": [
     "pact",
@@ -11,45 +11,24 @@
     "task",
     "price",
     "verification",
-    "assurance",
-    "release",
-    "liability",
+    "flow",
+    "terms",
     "challenge",
     "signatures"
   ],
   "properties": {
     "pact": {
-      "type": "string"
+      "const": "0.2"
     },
     "type": {
       "const": "VerifiableTaskContract"
     },
     "id": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "parties": {
-      "type": "object",
-      "required": [
-        "buyer",
-        "seller",
-        "facilitator"
-      ],
-      "properties": {
-        "buyer": {
-          "$ref": "common.schema.json#/$defs/did"
-        },
-        "seller": {
-          "$ref": "common.schema.json#/$defs/did"
-        },
-        "facilitator": {
-          "$ref": "common.schema.json#/$defs/did"
-        },
-        "verifier": {
-          "$ref": "common.schema.json#/$defs/did"
-        }
-      },
-      "$comment": "buyer and seller MUST be distinct. JSON Schema cannot compare sibling values, so tools/validate.py enforces it: a self-dealt contract otherwise validates and satisfies the two-signature rule with one key signing twice.",
-      "additionalProperties": false
+      "$ref": "common.schema.json#/$defs/parties"
     },
     "task": {
       "type": "object",
@@ -66,8 +45,7 @@
           "format": "uri"
         },
         "deadline": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "common.schema.json#/$defs/timestamp"
         }
       },
       "additionalProperties": false
@@ -88,11 +66,12 @@
           "type": "string"
         },
         "settlement": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "$comment": "A URI naming a settlement binding (Section 3.2). No registry."
         },
         "network": {
-          "type": "string",
-          "$comment": "Section 2: form defined by the settlement binding; pact-escrow uses CAIP-2."
+          "type": "string"
         }
       },
       "additionalProperties": false
@@ -101,30 +80,43 @@
       "type": "object",
       "required": [
         "tier",
+        "profile",
         "criteria_hash",
-        "profile"
+        "max_verdict_seconds"
       ],
       "properties": {
         "tier": {
           "$ref": "common.schema.json#/$defs/tier"
         },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
         "criteria_hash": {
           "$ref": "common.schema.json#/$defs/hash"
         },
-        "arbiter": {
-          "$ref": "common.schema.json#/$defs/did"
+        "max_verdict_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "$comment": "Section 7.2: bounds the wait for a first Verdict under verdict-first; makes L finite (Section 10.3)."
         },
-        "profile": {
-          "type": "string"
+        "arbiter": {
+          "$ref": "common.schema.json#/$defs/party"
         }
       },
       "additionalProperties": false
     },
-    "liability": {
-      "$ref": "common.schema.json#/$defs/liability"
+    "flow": {
+      "$ref": "common.schema.json#/$defs/flow"
+    },
+    "terms": {
+      "$ref": "common.schema.json#/$defs/terms"
     },
     "challenge": {
       "$ref": "common.schema.json#/$defs/challenge"
+    },
+    "parent": {
+      "$ref": "common.schema.json#/$defs/parent"
     },
     "signatures": {
       "type": "array",
@@ -132,13 +124,7 @@
       "items": {
         "$ref": "common.schema.json#/$defs/signature"
       },
-      "$comment": "minItems does not express the actual rule, which is one signature per party named in parties. Two buyer signatures and no seller signature satisfy this schema; tools/validate.py enforces the real rule."
-    },
-    "assurance": {
-      "$ref": "common.schema.json#/$defs/assurance"
-    },
-    "release": {
-      "$ref": "common.schema.json#/$defs/release_mode"
+      "$comment": "Exactly one entry covering parties.buyer and one covering parties.seller, sorted by normalized kid; minItems cannot say that, code does (Section 14.1, 14.2)."
     }
   },
   "additionalProperties": false

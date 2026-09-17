@@ -8,7 +8,7 @@
 
 - [ ] `python3 tools/validate.py` passes (required if you touched
       `examples/` or `schemas/`)
-- [ ] `xml2rfc --text draft/draft-laxsharma-pact-00.xml` builds, if you
+- [ ] `xml2rfc --text draft/draft-laxsharma-pact-02.xml` builds, if you
       touched the draft
 
 By submitting text you intend for the Internet-Draft, you accept the

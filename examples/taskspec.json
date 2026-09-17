@@ -1,25 +1,23 @@
 {
   "description": "Deduplicate a 2,100,000-row customer CSV; normalize country fields to ISO-3166 alpha-2; merge conflicting records by most-recent timestamp.",
-  "skill": "data-cleaning/dedupe",
   "inputs": {
     "schema_uri": "https://buyer.example/specs/customers.schema.json",
+    "schema_hash": "sha256:c1fe8d8eaca3a82a0c11112284b8b8649044360b4b093e23a124071dbef7118d",
     "sample_uri": "https://buyer.example/specs/sample-10k.csv",
-    "size_hint": {
-      "rows": 2100000,
-      "bytes": 480000000
-    }
+    "sample_hash": "sha256:d7f43b3a51c28274adc4ebe535cc9de80f0b6d6c975a1d1ce519d582306338b1"
   },
   "deliverable": {
     "format": "csv",
-    "schema_uri": "https://buyer.example/specs/output.schema.json"
+    "schema_uri": "https://buyer.example/specs/output.schema.json",
+    "schema_hash": "sha256:219975fe37de3d388a32e28e7cd5efde7fa736a29ea8cec17b1b7bcfb71fee79"
   },
   "acceptance": {
     "harness_uri": "https://buyer.example/specs/acceptance-tests.tar",
+    "harness_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b8351c9c55eb9316416265fc1b",
     "thresholds": {
       "dup_rate_max": 0.001,
       "schema_valid_rate": 1.0
-    },
-    "harness_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7"
+    }
   },
   "constraints": {
     "tools_prohibited": [

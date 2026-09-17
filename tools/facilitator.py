@@ -1,22 +1,22 @@
-"""A reference Facilitator: the six operations of Section 12 over five paths.
+"""A reference Facilitator for draft-laxsharma-pact-02: the eight operations of
+Section 13, the state machine of Section 4 over a signed event trace, and an
+Outcome Record per contract.
 
-This is the first implementation that speaks the protocol. Section 15 of the
--01 records that no Facilitator, Buyer or Seller exchanging messages over
-these endpoints was known to the author when the draft was posted; this file
-and agents.py are the answer to that, and the count of independent
-implementations is still one, which is not the falsifiable experiment of
-Section 1.4. Two independent implementations settling each other's contracts
-is that experiment. This is the first half of it.
+This is the first implementation that speaks the -02 protocol, written by the
+author of the draft, which is the weakest evidence that a specification is
+implementable. Two independent Facilitators producing the same trace from the
+same posted records, and the same transfer list from the same trace and
+profile, is the experiment of Section 1.4; this is the first half of it.
 
 What it enforces, with the section each rule comes from, is listed in RULES.
-Where the draft is silent an implementer has to choose; every such choice is
+Where the draft leaves a choice to the implementer, every such choice is
 listed in CHOICES and repeated in tools/README.md, because a choice presented
 as a rule is how a second implementer ends up disagreeing with the first.
 
-Storage is in memory. Money is an integer number of cents in three pools. No
-payment rail is touched: Section 1.2 puts the rail out of scope, and a
-settlement binding names one. What is real here is the object flow, the state
-machine, the signature verification and the arithmetic.
+Nothing here decides anything about value. Every event is handed to the terms
+profile the contract names (tools/profile.py), which returns the entries it
+emits, and the Facilitator records them and signs the result. It holds no
+account and moves nothing; the -01 pools are gone with the -01 text.
 
 Run it:
 
@@ -29,124 +29,123 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import pathlib
 import re
 import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import pactcore as pc
+import profile as terms
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 RULES = """
-Section 5     a VTC is valid only if buyer and seller each signed it once; nobody else signs it
-Section 5.3   liability is REQUIRED, and a contract without it is not a PACT contract
-Section 6     evidence absent or nonconformant: refuse the Delivery AND apply 7.4 as though FAIL;
-              input_hash REQUIRED where the tier re-executes; deadline with no Delivery: ABANDONED
-Section 7.1   cumulative release before a recorded Verdict never exceeds the Bond (on-verification
-              releases nothing before a Verdict, so the cap is satisfied by construction)
-Section 7.2   the assurance constraint is evaluated exactly, BEFORE funds lock; failure is refused
-Section 7.3   release modes this Facilitator does not advertise are refused at propose
-Section 7.4   the five-rank remedy waterfall, restitution before bounty or remainder; a bounty is
-              paid only to a Challenger that exists; nothing above liability.cap leaves the Seller
-Section 7.5   a Challenge is a fraud proof submitted for evaluation, accepted only inside the
-              window, only with a proof conformant to the profile, and it settles nothing itself;
-              a Verdict on a Challenge supersedes the earlier one and both are kept
-Section 7.6   the Bond is returned when the contract reaches FINAL or SETTLED, less what 7.4 took
-Section 8     the capability document is signed and validates against facilitator.schema.json
-Section 9.1   verifier independence is DERIVED by comparing normalized party identifiers, at
-              propose for a named verifier and at Verdict for the signer; never read from a field
-Section 3     a Facilitator MUST NOT act as Verifier for a contract it settles
-Section 10.1  a contract carrying liability.parent is refused: subcontracts are NOT implemented
-Section 11    an attestation is issued for every terminal contract, signed by the Facilitator,
-              never requiring the signature of the party whose loss it records
-Section 12.1  every posted object validates against its published schema and the 13.2 checks
-Section 12.2  a POST whose body canonicalizes to a known digest returns 200 and the CURRENT
-              resource; the same id with a different digest returns 409
-Section 12.3  every failure is an RFC 9457 problem document naming the rule
-Section 12.4  a Verdict signer MUST satisfy 9.1 (or be the named verifier); no Verdict without
-              a recorded Delivery; a Verdict commits to the contract's instrument and profile
-Section 13.1  JWS with a detached payload over the TRANSMITTED protected header, an algorithm
-              allowlist, kid inside the protected header, typ compared to the media type
-Section 16.7  a contract naming another Facilitator, or a settlement, network or asset this one
-              does not advertise, is refused
-Section 16.11 the public key resolved for every accepted signature is recorded with the object
+Section 2     pact 0.2 only; an undefined member is refused everywhere except inside terms.parameters
+Section 4.2   events are recorded in one order on the Facilitator's clock; an entry issued in a
+              Status is never reordered, removed or altered
+Section 5     a contract carries exactly one verifying signature covering parties.buyer and one
+              covering parties.seller, sorted by normalized kid, and no other
+Section 5.3   terms.profile and profile_hash match an advertised profile; parameters validate
+              against that profile's schema; the profile's admission rule runs at accepted
+Section 6     a Delivery is accepted in FUNDED only, signed by the Seller, with evidence conformant
+              to the verification profile; a nonconformant one is refused and recorded nowhere
+Section 7.1   flows this Facilitator does not advertise are refused; the window is never extended
+Section 7.2   a Verdict is accepted in DELIVERED (verdict-first) or WINDOW_OPEN (delivery-first)
+              only while none stands, and in DISPUTED only answering a pending Challenge; its
+              signer is the named verifier, or independent by Section 9.1, never the Facilitator;
+              verdict-lapsed after max_verdict_seconds
+Section 7.3   a Challenger's own Verdict on its Challenge is refused unless it is the named verifier
+Section 7.3   a Challenge is accepted before closes_at only, with a conformant proof, never from
+              the Seller, always from the Buyer if otherwise valid
+Section 7.4   a pending Challenge lapses after max_dispute_seconds and the earlier Verdict stands
+Section 8     the capability document is signed and lists only profiles whose vectors reproduce
+Section 9.1   verifier independence is derived from normalized identifiers, never read from a field
+Section 10    a child is registered by a POST of its contract to the parent's resource, checked
+              against the parent's own bytes and the timing rule L(child) < L(parent); a child's
+              outcome is taken from this venue when the child lives here, else supplied by POST;
+              child-unresolved at L(child); the terminal entry waits for children-final
+Section 11    every accepted request is answered with a signed Status carrying the entry it caused
+Section 12    exactly one Outcome Record per terminal contract, signed by the Facilitator alone;
+              terms_result is the profile's output and satisfies no-overdraft and closure
+Section 13.2  a POST whose body has a known digest returns 200 and the current Status; the same id
+              with a different digest returns 409
+Section 13.3  every failure is an RFC 9457 problem document naming the rule, with section for a
+              rule in the document and profile plus profile_section for a rule in a profile
+Section 14.1  JWS with a detached payload over the transmitted protected header, an algorithm
+              allowlist, kid inside the protected header, typ equal to the media type, sorted
+              signature sets, low-S ECDSA
+Section 17.13 the public key resolved for every accepted signature is recorded with the record
 """
 
 CHOICES = """
-Where the -01 text is silent or inconsistent this implementation chose, and says so:
-C1  ABANDONED: the Bond is slashed to the extent of restitution_basis (zero under `released`
-    with nothing released) and the rest is RETURNED. Section 7.6 returns the Bond only on
-    FINAL or SETTLED and says nothing about ABANDONED.
-C2  Rank 3 restores the Buyer's LOSS up to the basis, net of what rank 1 already returned.
-    Read literally, basis `price` would pay the Bond on top of a reversed escrow.
-C3  Rank 4 pays the whole remaining Bond as the bounty, split equally among the successful
-    Challengers. The draft bounds the bounty and does not fix it; with K discoverers the
-    non-exclusive full bounty is not fundable from one Bond.
-C4  Rank 2 pays 0.00: the Challenge object has no member for documented costs.
-C5  A Challenge that receives no Verdict within max_dispute_seconds lapses and the contract
-    returns to RELEASING; the window it interrupted is not extended.
-C6  PROPOSED is never observable: with no rail the pools are debited in memory the moment a
-    co-signed contract is accepted, so the 201 reports FUNDED.
-C7  Amounts are settled in whole cents; a contract with more decimal places is refused.
-C8  Not implemented: subcontracts (Section 10), release modes other than on-verification,
-    challenge deposits, committed-sample assurance, network key resolution, any rail.
+Where the -02 text leaves a choice to the implementer this implementation chose, and says so:
+C1  funded is recorded in the same call as accepted: there is no rail, so nothing can be
+    observed and the Status of a 201 already reads FUNDED.
+C2  Retrieval (GET) is open on the loopback interface. Section 17.12 restricts it by default
+    and leaves the mechanism to the deployment; a deployment puts HTTP-layer authentication in
+    front of this process. retrieval-restricted is never emitted here.
+C3  Trees are implemented within one venue: a registered child that lives in this process is
+    noticed when it reaches a terminal state, and any other child's Outcome Record must be
+    supplied by POST. No cross-venue GET is made.
+C4  Amounts are settled in whole cents by the profile's own arithmetic; a contract whose
+    price has more decimal places is refused as amount-invalid.
+C5  Not implemented: the no-window flow, challenge deposits, network key resolution, any rail,
+    the committed-sample draw. A contract that needs any of them is refused, not stranded.
 """
 
-# Section 18.5: identifiers are appended to this prefix, which the draft owns.
-PROBLEM_BASE = "https://pact-spec.github.io/problem/"
+PROBLEM_BASE = "tag:laxsharma79@gmail.com,2026:pact:problem:"
 
-# Table 9 entries first, with the status and section the draft assigns; then the
-# document-local types this implementation needs, each naming the section whose
-# rule it reports. Section 18.5 permits a document-local namespace.
+# Every type this implementation emits, with the HTTP status and the -02 section
+# stating the rule. Section 19.3 of the draft is generated from this table.
 PROBLEMS = {
-    "assurance-constraint-unsatisfied": (422, "Section 7.2"),
-    "evidence-nonconformant": (422, "Section 6"),
-    "parent-unresolvable": (422, "Section 10.1"),
-    "finality-ordering-violation": (422, "Section 10.3"),
-    "parties-not-distinct": (422, "Section 13.2"),
-    "algorithm-not-permitted": (400, "Section 13.1"),
-    "verifier-not-independent": (422, "Section 9.1"),
-    "release-exceeds-bond": (409, "Section 7.1"),
-    # document-local
-    "schema-invalid": (422, "Section 13.2"),
-    "liability-missing": (422, "Section 5.3"),
-    "signature-invalid": (401, "Section 13.1"),
-    "signature-missing": (401, "Section 13.1"),
-    "unexpected-signer": (422, "Section 5"),
-    "facilitator-cannot-verify": (422, "Section 3"),
-    "facilitator-mismatch": (422, "Section 16.7"),
-    "settlement-unsupported": (422, "Section 8"),
-    "release-mode-unsupported": (422, "Section 7.3"),
-    "assurance-unsupported": (422, "Section 7.2"),
-    "deadline-invalid": (422, "Section 13.2"),
-    "amount-invalid": (422, "Section 13.2"),
-    "no-recorded-delivery": (409, "Section 12.4"),
-    "verdict-nonconformant": (422, "Section 12.4"),
-    "proof-nonconformant": (422, "Section 7.5"),
-    "challenge-window-closed": (409, "Section 7.5"),
-    "wrong-state": (409, "Section 12"),
-    "object-conflict": (409, "Section 12.2"),
-    "unknown-contract": (404, "Section 12"),
-    "payload-too-large": (413, "Section 12"),
-    "internal-error": (500, "Section 12"),
+    "algorithm-not-permitted": (400, "14.1"),
+    "amount-invalid": (422, "14.2"),
+    "challenge-window-closed": (409, "7.3"),
+    "child-outcome-invalid": (422, "10.2"),
+    "deadline-invalid": (422, "14.2"),
+    "evidence-nonconformant": (422, "6"),
+    "facilitator-mismatch": (422, "13.1"),
+    "finality-ordering-violation": (422, "10.3"),
+    "flow-unsupported": (422, "7.1"),
+    "internal-error": (500, "13"),
+    "no-recorded-delivery": (409, "7.2"),
+    "object-conflict": (409, "13.2"),
+    "parent-unresolvable": (422, "10.2"),
+    "parties-not-distinct": (422, "14.2"),
+    "payload-too-large": (413, "13"),
+    "proof-nonconformant": (422, "7.3"),
+    "retrieval-restricted": (403, "17.12"),
+    "schema-invalid": (422, "14.2"),
+    "settlement-unsupported": (422, "13.1"),
+    "signature-invalid": (400, "14.1"),
+    "signature-missing": (400, "14.2"),
+    "signatures-unordered": (422, "14.1"),
+    "terms-parameters-invalid": (422, "5.3"),
+    "terms-unsupported": (422, "5.3"),
+    "unexpected-signer": (422, "14.2"),
+    "unknown-contract": (404, "13"),
+    "verdict-nonconformant": (422, "7.2"),
+    "verifier-not-independent": (422, "9.1"),
+    "wrong-state": (409, "4.2"),
 }
 
 TERMINAL = ("FINAL", "SETTLED", "ABANDONED")
 
-MEDIA_CONTRACT = "application/pact-contract+json"
-MEDIA_DELIVERY = "application/pact-delivery+json"
-MEDIA_VERDICT = "application/pact-verdict+json"
-MEDIA_CHALLENGE = "application/pact-challenge+json"
-MEDIA_ATTESTATION = "application/pact-attestation+json"
-MEDIA_FACILITATOR = "application/pact-facilitator+json"
+MEDIA_CONTRACT = "application/vnd.pact.contract+json"
+MEDIA_DELIVERY = "application/vnd.pact.delivery+json"
+MEDIA_VERDICT = "application/vnd.pact.verdict+json"
+MEDIA_CHALLENGE = "application/vnd.pact.challenge+json"
+MEDIA_STATUS = "application/vnd.pact.status+json"
+MEDIA_OUTCOME = "application/vnd.pact.outcome+json"
+MEDIA_FACILITATOR = "application/vnd.pact.facilitator+json"
 
-MAX_BODY = 1 << 20  # one MiB; a contract is under two KB
+MAX_BODY = 1 << 20  # one MiB; a contract is under three KB
 
 
 class Refuse(Exception):
@@ -159,8 +158,8 @@ class Refuse(Exception):
 
 # --------------------------------------------------------------------------
 # Schemas. The published ones, loaded once. The Facilitator refuses to start
-# without jsonschema because Section 12.1 makes schema conformance a MUST at
-# Propose and a Facilitator that skips it is not one.
+# without jsonschema because Section 14.2 makes schema conformance a MUST and
+# a Facilitator that skips it is not one.
 # --------------------------------------------------------------------------
 
 class Schemas:
@@ -176,6 +175,8 @@ class Schemas:
                 for p in (ROOT / "schemas").glob("*.schema.json")}
         registry = Registry().with_resources(
             [(name, Resource.from_contents(s)) for name, s in docs.items()])
+        registry = registry.with_resources(
+            [(s["$id"], Resource.from_contents(s)) for s in docs.values()])
         self._v = {name: Draft202012Validator(s, registry=registry)
                    for name, s in docs.items()}
 
@@ -191,21 +192,16 @@ class Schemas:
 
 # --------------------------------------------------------------------------
 
-def parse_rfc3339(s: str) -> float:
-    """RFC 3339 to a POSIX timestamp, UTC. Accepts Z, an offset, fractions.
-
-    An earlier version used time.mktime(strptime(...)), which interprets the
-    string in the host's local zone and accepts one fixed format, so ABANDONED
-    fired hours early or late depending on where the Facilitator ran.
-    """
+def parse_rfc3339(s: str, label: str = "task.deadline") -> float:
+    """RFC 3339 to a POSIX timestamp, UTC. Accepts Z, an offset, fractions."""
     try:
         if s.endswith("Z") or s.endswith("z"):
             s = s[:-1] + "+00:00"
         dt = datetime.fromisoformat(s)
     except (ValueError, TypeError) as exc:
-        raise Refuse("deadline-invalid", f"task.deadline {s!r} is not RFC 3339") from exc
+        raise Refuse("deadline-invalid", f"{label} {s!r} is not RFC 3339") from exc
     if dt.tzinfo is None:
-        raise Refuse("deadline-invalid", f"task.deadline {s!r} carries no zone")
+        raise Refuse("deadline-invalid", f"{label} {s!r} carries no zone")
     return dt.astimezone(timezone.utc).timestamp()
 
 
@@ -213,29 +209,60 @@ def iso(ts: float) -> str:
     return datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def money_cents(label: str, amount: Any) -> int:
-    try:
-        return pc.cents(amount)
-    except (ValueError, InvalidOperation, TypeError) as exc:
-        raise Refuse("amount-invalid",
-                     f"{label} {amount!r}: this Facilitator settles in whole cents "
-                     f"and refuses amounts it cannot represent") from exc
+def latest_finality(vtc: dict) -> float:
+    """L of Section 10.3, a POSIX timestamp."""
+    deadline = parse_rfc3339(vtc["task"]["deadline"])
+    flow = vtc["flow"]
+    if flow == "no-window":
+        return deadline
+    total = vtc["challenge"]["window_seconds"] + vtc["challenge"]["max_dispute_seconds"]
+    if flow == "verdict-first":
+        total += vtc["verification"]["max_verdict_seconds"]
+    return deadline + total
+
+
+def _sig_kind(why: str) -> str:
+    if why.startswith("algorithm"):
+        return "algorithm-not-permitted"
+    if "no signature" in why or "carries no signatures" in why:
+        return "signature-missing"
+    if "more than one signature" in why:
+        return "unexpected-signer"
+    return "signature-invalid"
+
+
+def _kid_of(entry: dict) -> str:
+    return json.loads(pc.b64u_decode(entry["protected"]))["kid"]
+
+
+@dataclass
+class Child:
+    vtc: dict
+    digest: str
+    facilitator: str
+    latest: float
+    record: dict | None = None
+    unresolved: bool = False
 
 
 @dataclass
 class Contract:
     vtc: dict
-    state: str = "PROPOSED"
-    pools: pc.Pools = field(default_factory=pc.Pools)
+    state: str = "ACCEPTED"
+    trace: list[dict] = field(default_factory=list)
+    transfers: list[dict] = field(default_factory=list)
     delivery: dict | None = None
-    verdicts: list[dict] = field(default_factory=list)
-    challenges: list[dict] = field(default_factory=list)
-    attestation: dict | None = None
-    window_opened_at: float | None = None
-    disputed_at: float | None = None
+    delivered_at: float | None = None
+    window_closes_at: float | None = None
+    verdicts: list[dict] = field(default_factory=list)      # trace entries, in order
+    challenges: dict[str, dict] = field(default_factory=dict)  # digest -> object
+    challenge_at: dict[str, float] = field(default_factory=dict)
+    pending: list[str] = field(default_factory=list)        # challenge digests
+    children: dict[str, Child] = field(default_factory=dict)  # child digest -> Child
+    outcome: dict | None = None
     created_at: float = 0.0
     deadline: float = 0.0
-    keys: dict[str, str] = field(default_factory=dict)  # Section 16.11 record
+    keys: dict[str, str] = field(default_factory=dict)      # Section 17.13 record
 
     @property
     def id(self) -> str:
@@ -250,27 +277,20 @@ class Contract:
         return self.vtc["parties"]["seller"]
 
     @property
-    def verdict(self) -> dict | None:
+    def flow(self) -> str:
+        return self.vtc["flow"]
+
+    @property
+    def standing(self) -> dict | None:
         return self.verdicts[-1] if self.verdicts else None
 
-    @property
-    def challenge(self) -> dict | None:
-        return self.challenges[-1] if self.challenges else None
-
-    @property
-    def window_seconds(self) -> int:
-        return int(self.vtc["challenge"]["window_seconds"])
-
-    @property
-    def max_dispute_seconds(self) -> int:
-        return int(self.vtc["challenge"].get("max_dispute_seconds", 0))
-
     def digest(self) -> str:
-        return pc.digest_over(pc.hashable(self.vtc))
+        return pc.digest_over(self.vtc)
 
 
 class Facilitator:
-    """The settlement service. Thread safe under the threading HTTP server."""
+    """Runs the state machine and signs the records. Thread safe under the
+    threading HTTP server."""
 
     def __init__(self, identity: str, key: pc.Key, resolver: pc.KeyResolver,
                  now: Any = time.time, base_url: str = "http://127.0.0.1:8402") -> None:
@@ -284,80 +304,218 @@ class Facilitator:
         self.seen: dict[tuple[str, str], str] = {}  # (kind, digest) -> vtc_id
         self.lock = threading.RLock()
         self.message_count = 0
+        self._op: float | None = None   # one clock reading per operation (Section 4.2)
         # What this Facilitator advertises, Section 8. Contracts outside it are
         # refused at propose rather than accepted and stranded.
         self.settlement_bindings = [
-            {"id": "pact-escrow", "networks": ["eip155:8453"], "assets": ["USDC"]}]
-        self.release_modes = ["on-verification"]
+            {"id": "https://settle.example/bindings/ledger-1",
+             "networks": ["eip155:8453"], "assets": ["USDC"]}]
+        self.flows = ["verdict-first", "delivery-first"]
         self.verification_profiles = ["acceptance"]
-        self.assurance_modes = ["certain"]
         self.max_contract_value = {"amount": "50000.00", "currency": "USDC"}
+        prof = terms.BondedRestitution()
+        ok, why = prof.reproduces()
+        if not ok:  # Section 8: never list a profile whose vectors do not reproduce
+            raise RuntimeError(f"terms profile {terms.ID} does not reproduce its vectors: {why}")
+        self.profiles: dict[tuple[str, str], terms.BondedRestitution] = {
+            (terms.ID, prof.profile_hash): prof}
 
-    # -- Section 12.2 ------------------------------------------------------
-    def _digest(self, obj: dict) -> str:
-        return pc.digest_over(pc.hashable(obj))
-
+    # -- Section 13.2 ------------------------------------------------------
     def _remember(self, kind: str, obj: dict, vid: str) -> None:
-        self.seen[(kind, self._digest(obj))] = vid
+        self.seen[(kind, pc.digest_over(obj))] = vid
 
     def _replay(self, kind: str, obj: dict) -> tuple[int, dict] | None:
-        """200 with the CURRENT resource, not a snapshot taken at creation."""
-        vid = self.seen.get((kind, self._digest(obj)))
+        """200 with the CURRENT Status, not a snapshot taken at creation."""
+        vid = self.seen.get((kind, pc.digest_over(obj)))
         if vid is None:
             return None
         c = self.contracts[vid]
         self._tick(c)
-        if kind == "contract":
-            return 200, self._with_state(c, c.vtc)
-        if kind == "delivery":
-            return 200, self._with_state(c, c.delivery)
-        if kind == "verdict":
-            return 200, self._with_state(c, obj)
-        return 200, self._with_state(c, obj)
+        return 200, self._status(c)
 
-    def _with_state(self, c: Contract, obj: dict) -> dict:
-        out = dict(obj)
-        out["state"] = c.state  # Section 12: added here, never signed or hashed
-        return out
+    # -- the trace, Section 4.2 -------------------------------------------
+    def _profile(self, c: Contract) -> terms.BondedRestitution:
+        return self.profiles[(c.vtc["terms"]["profile"], c.vtc["terms"]["profile_hash"])]
 
-    # -- time ----------------------------------------------------------------
-    def _tick(self, c: Contract) -> None:
-        """Advance the contract along every clock-driven edge that is due."""
-        self._expire_if_due(c)
-        self._lapse_dispute_if_due(c)
-        self._close_window_if_due(c)
+    def _begin(self) -> float:
+        # whole seconds: what the trace prints is what the comparisons use (Section 4.2)
+        self._op = float(math.floor(self.now()))
+        return self._op
+
+    def _op_now(self) -> float:
+        return self._op if self._op is not None else float(math.floor(self.now()))
+
+    def _record(self, c: Contract, event: str, **members: Any) -> dict:
+        entry = {"event": event, "at": iso(self._op_now())}
+        entry.update({k: v for k, v in members.items() if v is not None})
+        c.trace.append(entry)
+        # Section 5.3: the profile's schedule is invoked with the event and
+        # nothing else; what it emits is recorded, never decided here.
+        c.transfers.extend(self._profile(c).step(c.vtc, c.trace))
+        return entry
+
+    def _status(self, c: Contract) -> dict:
+        st = {
+            "pact": "0.2", "type": "ContractStatus",
+            "vtc_id": c.id, "vtc_hash": c.digest(), "state": c.state,
+            "trace": list(c.trace), "issued_at": iso(self._op_now()),
+        }
+        st["signature"] = pc.sign(st, self.key, MEDIA_STATUS)
+        self.schemas.check(st, "status.schema.json")
+        return st
 
     def _record_keys(self, c: Contract, obj: dict) -> None:
-        # Section 16.11: record the key material resolved at acceptance, so a
-        # later rotation or revocation does not orphan a signature already
-        # accepted. The resolver here is in-process; the record is real.
+        # Section 17.13: the key material resolved at acceptance is recorded, so
+        # a later rotation or revocation does not orphan an accepted signature.
         for kid in pc.signer_kids(obj):
             key = self.resolver.resolve(kid)
             if key is not None and kid not in c.keys:
                 c.keys[kid] = pc.b64u(pc.public_bytes(key))
 
-    # -- Propose, Section 12.1 --------------------------------------------
+    # -- clock-driven edges, Table 2 ---------------------------------------
+    def _tick(self, c: Contract) -> None:
+        """Advance the contract along every clock-driven edge that is due, in
+        the order of Table 2, until nothing more is due."""
+        for _ in range(16):
+            before = len(c.trace)
+            now = self._op_now()
+            if c.state in ("ACCEPTED", "FUNDED") and now >= c.deadline:
+                self._record(c, "deadline-passed")
+                c.state = "AWAITING_CHILDREN"
+            elif (c.state == "DELIVERED" and c.flow == "verdict-first"
+                  and c.delivered_at is not None
+                  and now >= c.delivered_at + c.vtc["verification"]["max_verdict_seconds"]):
+                self._record(c, "verdict-lapsed")
+                self._open_window(c)
+            elif c.state == "DISPUTED":
+                limit = c.vtc["challenge"]["max_dispute_seconds"]
+                for digest in list(c.pending):
+                    if now >= c.challenge_at[digest] + limit:
+                        self._record(c, "dispute-lapsed", object=digest)
+                        c.pending.remove(digest)
+                if not c.pending:
+                    c.state = "WINDOW_OPEN"
+            elif (c.state == "WINDOW_OPEN" and c.window_closes_at is not None
+                  and now >= c.window_closes_at and not c.pending):
+                self._record(c, "window-closed")
+                c.state = "AWAITING_CHILDREN"
+            self._children_tick(c)
+            if c.state == "AWAITING_CHILDREN":
+                self._children_final_if_ready(c)
+            if len(c.trace) == before:
+                return
+
+    def _children_tick(self, c: Contract) -> None:
+        if c.state in TERMINAL:
+            return
+        now = self._op_now()
+        for child in c.children.values():
+            if child.record is not None or child.unresolved:
+                continue
+            local = self.contracts.get(child.vtc["id"])
+            if local is not None and local.outcome is not None and local.digest() == child.digest:
+                child.record = local.outcome   # CHOICES C3: obtained from this venue
+                self._record(c, "child-final", object=pc.digest_over(local.outcome),
+                             child=child.digest)
+            elif now >= child.latest:
+                child.unresolved = True
+                self._record(c, "child-unresolved", child=child.digest)
+
+    def _children_final_if_ready(self, c: Contract) -> None:
+        if any(ch.record is None and not ch.unresolved for ch in c.children.values()):
+            return
+        self._record(c, "children-final")
+        self._terminal(c)
+
+    def _open_window(self, c: Contract) -> None:
+        closes = self._op_now() + c.vtc["challenge"]["window_seconds"]
+        c.window_closes_at = closes
+        self._record(c, "window-opened", closes_at=iso(closes))
+        c.state = "WINDOW_OPEN"
+
+    # -- Section 12: the terminal entry and the Outcome Record --------------
+    def _terminal(self, c: Contract) -> None:
+        st = c.standing
+        if any(e["event"] == "deadline-passed" for e in c.trace):
+            state, upheld = "ABANDONED", False
+        elif st is not None and st["outcome"] == "FAIL":
+            state, upheld = "SETTLED", "answers" in st
+        else:
+            state, upheld = "FINAL", False
+        n_trace, n_transfers, prior = len(c.trace), len(c.transfers), c.state
+        self._record(c, "terminal", state=state, challenge_upheld=upheld)
+        prof = self._profile(c)
+        ok, why = prof.check(c.vtc, c.transfers, terminal=True)
+        if not ok:  # the profile broke its own arithmetic; never sign that, and record nothing
+            del c.trace[n_trace:]
+            del c.transfers[n_transfers:]
+            c.state = prior
+            raise Refuse("internal-error", f"terms result fails an invariant: {why}")
+        c.state = state
+        record = {
+            "pact": "0.2", "type": "OutcomeRecord",
+            "vtc_id": c.id, "vtc_hash": c.digest(),
+            "parties": c.vtc["parties"],
+            "outcome": {"state": state, "challenge_upheld": upheld},
+        }
+        if c.delivery is not None:
+            record["work_hash"] = c.delivery["work_hash"]
+        record["trace"] = list(c.trace)
+        record["terms_result"] = {
+            "profile": terms.ID, "profile_hash": prof.profile_hash,
+            "currency": c.vtc["price"]["currency"], "transfers": list(c.transfers),
+        }
+        if c.children:
+            leaves = sorted(bytes.fromhex(pc.digest_over(ch.record)[7:]) for ch in c.children.values()
+                            if ch.record is not None)
+            record["children_merkle_root"] = "sha256:" + pc.mth(leaves).hex()
+        record["signatures"] = [pc.sign(record, self.key, MEDIA_OUTCOME)]
+        self.schemas.check(record, "outcome.schema.json")
+        c.outcome = record
+
+    # -- Propose, Section 13.1 --------------------------------------------
+    def _check_contract(self, vtc: dict) -> None:
+        """Everything Section 14 asks of a contract on its own, used both at
+        propose and at child registration."""
+        if not vtc.get("signatures"):
+            raise Refuse("signature-missing", "the contract carries no signatures")
+        self.schemas.check(vtc, "vtc.schema.json")
+        parties = vtc["parties"]
+        buyer, seller = parties["buyer"], parties["seller"]
+        if pc.same_party(buyer, seller):
+            raise Refuse("parties-not-distinct",
+                         "buyer and seller are the same party after the normalization "
+                         "of Section 9.1", buyer=buyer, seller=seller)
+        amount = vtc["price"]["amount"]
+        if Decimal(amount).as_tuple().exponent < -2:
+            raise Refuse("amount-invalid", f"price.amount {amount!r} is not a whole number "
+                         f"of cents (CHOICES C4)")
+        # Section 14.1 and 14.2: exactly one signature covering each of buyer and
+        # seller, verifying, nobody else, in sorted order.
+        for kid in pc.signer_kids(vtc):
+            if not (pc.kid_covers(kid, buyer) or pc.kid_covers(kid, seller)):
+                raise Refuse("unexpected-signer",
+                             "the contract carries a signature from a party that is "
+                             "neither its Buyer nor its Seller", signer=kid)
+        ok, why = pc.verify_object(vtc, self.resolver, MEDIA_CONTRACT, [buyer, seller])
+        if not ok:
+            raise Refuse(_sig_kind(why), why)
+        ok, why = pc.signatures_ordered(vtc)
+        if not ok:
+            raise Refuse("signatures-unordered", why)
+
     def propose(self, vtc: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("contract", vtc)
             if hit is not None:
                 return hit
-
-            self.schemas.check(vtc, "vtc.schema.json")
+            self._check_contract(vtc)
             vid = vtc["id"]
             if vid in self.contracts:
-                raise Refuse("object-conflict",
-                             f"contract {vid} exists with a different digest")
-            if vtc.get("pact") != "0.1" or vtc.get("type") != "VerifiableTaskContract":
-                raise Refuse("schema-invalid", "pact version or type is not one this "
-                             "Facilitator implements")
-
+                raise Refuse("object-conflict", f"contract {vid} exists with a different digest")
             parties = vtc["parties"]
             buyer, seller = parties["buyer"], parties["seller"]
-            if pc.same_party(buyer, seller):
-                raise Refuse("parties-not-distinct",
-                             "buyer and seller are the same party after the "
-                             "normalization of Section 9.1", buyer=buyer, seller=seller)
             if not pc.same_party(parties["facilitator"], self.identity):
                 raise Refuse("facilitator-mismatch",
                              "the contract names a different Facilitator; accepting it "
@@ -369,20 +527,8 @@ class Facilitator:
                                    (self.identity, "facilitator")):
                     if pc.same_party(named, who):
                         raise Refuse("verifier-not-independent",
-                                     f"parties.verifier is the {label} after "
-                                     f"normalization; such a contract could never be "
-                                     f"verified", verifier=named)
-
-            liability = vtc.get("liability")
-            if not liability:
-                raise Refuse("liability-missing", "a contract that does not allocate "
-                             "liability is not a PACT contract")
-            if "parent" in liability:
-                raise Refuse("parent-unresolvable",
-                             "subcontracts (Section 10) are not implemented by this "
-                             "Facilitator; a contract naming a parent is refused rather "
-                             "than accepted with the parent ignored")
-
+                                     f"parties.verifier is the {label} after normalization",
+                                     verifier=named)
             price_m = vtc["price"]
             binding = next((b for b in self.settlement_bindings
                             if b["id"] == price_m["settlement"]), None)
@@ -393,88 +539,66 @@ class Facilitator:
                              "advertises in its capability document",
                              settlement=price_m["settlement"], network=price_m["network"],
                              currency=price_m["currency"])
-            if vtc["release"] not in self.release_modes:
-                raise Refuse("release-mode-unsupported",
-                             f"release mode {vtc['release']!r} is not implemented; "
-                             f"accepting it would strand the contract in RELEASING",
-                             supported=self.release_modes)
-            mode = vtc["assurance"]["mode"]
-            if mode == "open":
-                raise Refuse("assurance-unsupported",
-                             "a contract MUST NOT declare open as its sole source of "
-                             "assurance (Section 7.2)")
-            if mode not in self.assurance_modes:
-                raise Refuse("assurance-unsupported",
-                             f"assurance mode {mode!r} is not implemented",
-                             supported=self.assurance_modes)
+            if price_m["currency"] != self.max_contract_value["currency"]:
+                raise Refuse("settlement-unsupported",
+                             "price is not stated in the currency of this Facilitator's max_contract_value",
+                             currency=price_m["currency"])
+            if pc.cents(price_m["amount"]) > pc.cents(self.max_contract_value["amount"]):
+                raise Refuse("settlement-unsupported",
+                             f"price exceeds this Facilitator's max_contract_value "
+                             f"{self.max_contract_value['amount']}")
+            if vtc["flow"] not in self.flows:
+                raise Refuse("flow-unsupported", f"flow {vtc['flow']!r} is not implemented; "
+                             f"accepting it would strand the contract", supported=self.flows)
             if vtc["verification"]["profile"] not in self.verification_profiles:
                 raise Refuse("settlement-unsupported",
                              f"verification profile {vtc['verification']['profile']!r} "
                              f"is not one this Facilitator supports",
                              supported=self.verification_profiles)
-
+            t = vtc["terms"]
+            prof = self.profiles.get((t["profile"], t["profile_hash"]))
+            if prof is None:
+                raise Refuse("terms-unsupported",
+                             "terms.profile and terms.profile_hash do not match a profile "
+                             "this Facilitator lists in its capability document",
+                             profile=t["profile"], profile_hash=t["profile_hash"])
+            err = prof.parameters_error(t["parameters"])
+            if err:
+                raise Refuse("terms-parameters-invalid", err, profile=t["profile"])
             deadline = parse_rfc3339(vtc["task"]["deadline"])
-            if deadline <= self.now():
+            if deadline <= self._op_now():
                 raise Refuse("deadline-invalid",
-                             "task.deadline is already past on this Facilitator's clock; "
-                             "the contract would be ABANDONED the moment it was funded")
+                             "task.deadline is already past on this Facilitator's clock")
+            prof.admit(vtc)   # raises terms.ProfileRefusal, reported per Section 13.3
 
-            price = money_cents("price.amount", price_m["amount"])
-            bond = money_cents("liability.seller_bond", liability["seller_bond"])
-            fund = money_cents("liability.verification_fund", liability["verification_fund"])
-            cap = money_cents("liability.cap", liability["cap"])
-            maxv = money_cents("max_contract_value", self.max_contract_value["amount"])
-            if price > maxv:
-                raise Refuse("settlement-unsupported",
-                             f"price exceeds this Facilitator's max_contract_value "
-                             f"{self.max_contract_value['amount']}")
-
-            # Section 5: exactly the Buyer's and the Seller's signatures, each
-            # once, verifying against keys bound to those identifiers. A third
-            # signer changes the digest without changing the agreement.
-            ok, why = pc.verify_object(vtc, self.resolver, MEDIA_CONTRACT, [buyer, seller])
-            if not ok:
-                raise Refuse(_sig_kind(why), why)
-            for kid in pc.signer_kids(vtc):
-                if not (pc.kid_covers(kid, buyer) or pc.kid_covers(kid, seller)):
-                    raise Refuse("unexpected-signer",
-                                 "the contract carries a signature from a party that is "
-                                 "neither its Buyer nor its Seller", signer=kid)
-
-            # Section 7.2: evaluated exactly, BEFORE funds lock.
-            q_min = vtc["assurance"]["q_min"]
-            if not pc.assurance_holds(price_m["amount"], liability["seller_bond"],
-                                      q_min, "0"):
-                need = pc.required_bond(float(price_m["amount"]), float(q_min), 0.0)
-                raise Refuse(
-                    "assurance-constraint-unsatisfied",
-                    f"Bond {liability['seller_bond']} is below the minimum {need:.2f} "
-                    f"required for q_min {float(q_min):.2f} at price "
-                    f"{price_m['amount']} with E 0.00.",
-                    required_bond=f"{need:.2f}", declared_bond=liability["seller_bond"],
-                    q_min=q_min, price=price_m["amount"])
-
-            c = Contract(vtc=vtc, created_at=self.now(), deadline=deadline)
-            c.pools.escrow = price
-            c.pools.bond = bond
-            c.pools.bond_initial = bond
-            c.pools.fund = fund
-            c.pools.cap = cap
-            c.pools.note(f"locked escrow {pc.money(price)}, bond {pc.money(bond)}, "
-                         f"fund {pc.money(fund)} (in memory: no rail, so PROPOSED is "
-                         f"not observable and the contract is FUNDED at once)")
-            c.state = "FUNDED"
-            self._record_keys(c, vtc)
+            c = Contract(vtc=vtc, created_at=self._op_now(), deadline=deadline)
             self.contracts[c.id] = c
+            self._record_keys(c, vtc)
             self._remember("contract", vtc, c.id)
-            return 201, self._with_state(c, vtc)
+            self._record(c, "accepted", object=c.digest())
+            c.state = "ACCEPTED"
+            # CHOICES C1: no rail, nothing to observe, funded in the same call.
+            self._record(c, "funded")
+            c.state = "FUNDED"
+            return 201, self._status(c)
 
-    # -- Retrieve ----------------------------------------------------------
-    def get_contract(self, vid: str) -> tuple[int, dict]:
+    # -- Retrieve, Section 11 and 12 --------------------------------------
+    def get_status(self, vid: str) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             c = self._contract(vid)
             self._tick(c)
-            return 200, self._with_state(c, c.vtc)
+            return 200, self._status(c)
+
+    def get_outcome(self, vid: str) -> tuple[int, dict]:
+        with self.lock:
+            self._begin()
+            c = self._contract(vid)
+            self._tick(c)
+            if c.outcome is None:
+                raise Refuse("wrong-state", f"contract {vid} is {c.state} and not terminal, "
+                             f"so no Outcome Record exists yet")
+            return 200, c.outcome
 
     def _contract(self, vid: str) -> Contract:
         c = self.contracts.get(vid)
@@ -482,83 +606,17 @@ class Facilitator:
             raise Refuse("unknown-contract", f"no contract {vid}")
         return c
 
-    # -- Section 6: deadline expiry ---------------------------------------
-    def _expire_if_due(self, c: Contract) -> None:
-        if c.state != "FUNDED" or self.now() < c.deadline:
-            return
-        p = c.pools
-        p.paid_to_buyer += p.escrow
-        p.note(f"deadline {iso(c.deadline)} passed with no Delivery: returned escrow "
-               f"{pc.money(p.escrow)} to buyer")
-        p.escrow = 0
-        # Section 6: slash the Bond to the extent of restitution_basis. Under
-        # `released` with nothing released that extent is zero. What happens to
-        # the rest is unspecified (Section 7.6 covers FINAL and SETTLED only);
-        # CHOICES C1: it is returned.
-        owed = self._basis_owed(c)
-        slashed = min(owed, p.bond, p.cap)
-        if slashed:
-            p.bond -= slashed
-            p.paid_to_buyer += slashed
-            p.restituted += slashed
-        p.note(f"restitution basis {c.vtc['liability']['restitution_basis']!r} slashes "
-               f"{pc.money(slashed)} from the bond on ABANDONED (Section 6)")
-        self._return_bond(c, "C1: the draft does not say; returned")
-        c.state = "ABANDONED"
-        self._attest(c, outcome="abandoned")
-
-    def _basis_owed(self, c: Contract) -> int:
-        """Rank 3: the Buyer's loss, up to the basis, net of rank 1 (CHOICES C2)."""
-        p = c.pools
-        basis = c.vtc["liability"]["restitution_basis"]
-        ceiling = p.released if basis == "released" else pc.cents(c.vtc["price"]["amount"])
-        loss = pc.cents(c.vtc["price"]["amount"]) - p.paid_to_buyer  # escrow not yet back
-        return max(0, min(ceiling, loss))
-
-    def _return_bond(self, c: Contract, why: str) -> None:
-        # Section 7.6: returned at FINAL or SETTLED, less what 7.4 applied.
-        p = c.pools
-        if p.bond:
-            p.note(f"returned bond {pc.money(p.bond)} to seller ({why})")
-            p.bond_returned += p.bond
-            p.bond = 0
-        if p.fund:
-            p.note(f"returned unspent verification fund {pc.money(p.fund)} to seller")
-            p.fund_returned += p.fund
-            p.fund = 0
-
-    # -- the challenge window, Section 7.5 --------------------------------
-    def _close_window_if_due(self, c: Contract) -> None:
-        if c.state != "RELEASING" or c.window_opened_at is None:
-            return
-        if self.now() - c.window_opened_at < c.window_seconds:
-            return
-        c.pools.note(f"challenge window of {c.window_seconds}s closed with no "
-                     f"successful Challenge")
-        self._return_bond(c, "Section 7.6, FINAL")
-        c.state = "FINAL"
-        self._attest(c, outcome="performed")
-
-    def _lapse_dispute_if_due(self, c: Contract) -> None:
-        # CHOICES C5. The draft bounds a dispute by max_dispute_seconds and does
-        # not say what happens when the bound passes with no Verdict.
-        if c.state != "DISPUTED" or c.disputed_at is None or not c.max_dispute_seconds:
-            return
-        if self.now() - c.disputed_at < c.max_dispute_seconds:
-            return
-        c.pools.note(f"no Verdict within max_dispute_seconds {c.max_dispute_seconds}; "
-                     f"the Challenge lapses and the earlier Verdict stands (C5)")
-        c.disputed_at = None
-        c.state = "RELEASING"
-
-    # -- Submit Delivery, Section 12 --------------------------------------
+    # -- Submit Delivery, Section 6 ---------------------------------------
     def submit_delivery(self, dlv: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("delivery", dlv)
             if hit is not None:
                 return hit
-            for member in ("vtc_id", "vtc_hash", "signature"):
-                if not isinstance(dlv.get(member), (str, dict)):
+            if "signature" not in dlv:
+                raise Refuse("signature-missing", "the Delivery carries no signature")
+            for member in ("vtc_id", "vtc_hash"):
+                if not isinstance(dlv.get(member), str):
                     raise Refuse("schema-invalid", f"the Delivery lacks {member}")
             c = self._contract(dlv["vtc_id"])
             self._tick(c)
@@ -568,21 +626,17 @@ class Facilitator:
             if c.state != "FUNDED":
                 raise Refuse("wrong-state", f"contract {c.id} is {c.state}; a Delivery "
                              f"is only accepted in FUNDED")
-
-            # Section 12: a Delivery not signed by the contract's Seller is
-            # rejected, and nobody else may sign it.
+            for kid in pc.signer_kids(dlv):
+                if not pc.kid_covers(kid, c.seller):
+                    raise Refuse("unexpected-signer", "a Delivery is signed by the Seller only",
+                                 signer=kid)
             ok, why = pc.verify_object(dlv, self.resolver, MEDIA_DELIVERY, [c.seller])
             if not ok:
                 raise Refuse(_sig_kind(why), why)
-
-            # Section 6: shape, not substance. Absent or nonconformant evidence
-            # is refused AND remedied as though a FAIL Verdict had been recorded,
-            # which is the rule the draft calls the one that makes silence
-            # expensive. Both halves are normative (line 832).
+            # Section 6: shape, not substance. A nonconformant Delivery is
+            # refused and recorded in no trace; the contract stays FUNDED.
             reason = self._delivery_nonconformance(c, dlv)
             if reason is None:
-                # Shape of everything else: a schema failure inside `evidence`
-                # is nonconformance too; elsewhere it is a plain 13.2 refusal.
                 try:
                     self.schemas.check(dlv, "delivery.schema.json")
                 except Refuse as exc:
@@ -591,18 +645,20 @@ class Facilitator:
                     else:
                         raise
             if reason is not None:
-                c.pools.note(f"nonconformant Delivery: {reason}; applying Section 7.4 as "
-                             f"though a FAIL Verdict were recorded")
-                self._record_keys(c, dlv)
-                self._apply_waterfall(c, challengers=[])
-                raise Refuse("evidence-nonconformant", reason, state=c.state,
-                             remedy="Section 7.4 applied as though FAIL")
+                raise Refuse("evidence-nonconformant", reason, state=c.state)
 
             c.delivery = dlv
-            c.state = "DELIVERED"
+            c.delivered_at = self._op_now()
             self._record_keys(c, dlv)
             self._remember("delivery", dlv, c.id)
-            return 202, self._with_state(c, dlv)
+            self._record(c, "delivered", object=pc.digest_over(dlv))
+            c.state = "DELIVERED"
+            if c.flow == "delivery-first":
+                self._open_window(c)
+            elif c.flow == "no-window":
+                c.state = "AWAITING_CHILDREN"
+                self._tick(c)
+            return 202, self._status(c)
 
     def _delivery_nonconformance(self, c: Contract, dlv: dict) -> str | None:
         ev = dlv.get("evidence")
@@ -616,41 +672,43 @@ class Facilitator:
             return "the evidence does not commit to the instrument the contract committed to"
         if "results_hash" not in ev:
             return "the acceptance profile requires results_hash in the evidence"
-        if "results_uri" in ev and "results_hash" not in ev:
-            return "results_uri without a sibling results_hash (Section 5.1)"
         if ver["tier"] == "T0-reexec" and "input_hash" not in dlv:
-            return ("input_hash is REQUIRED for a tier whose fraud proof re-executes "
-                    "(Section 6)")
+            return "input_hash is required for a tier whose proof of nonconformance re-executes (Section 6)"
         return None
 
     def _delivery_digest(self, c: Contract) -> str:
         if c.delivery is None:
             raise Refuse("no-recorded-delivery",
                          f"contract {c.id} has no recorded Delivery to judge")
-        return pc.digest_over(pc.hashable(c.delivery))
+        return pc.digest_over(c.delivery)
 
-    # -- Record Verdict, Section 12.4 -------------------------------------
+    # -- Record Verdict, Section 7.2 --------------------------------------
     def record_verdict(self, verdict: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("verdict", verdict)
             if hit is not None:
                 return hit
+            if "signature" not in verdict:
+                raise Refuse("signature-missing", "the Verdict carries no signature")
             self.schemas.check(verdict, "verdict.schema.json")
             c = self._contract(verdict["vtc_id"])
             self._tick(c)
             recorded = self._delivery_digest(c)
             if verdict["delivery_hash"] != recorded:
-                raise Refuse("object-conflict",
-                             "delivery_hash does not commit to the recorded Delivery",
-                             expected=recorded, received=verdict["delivery_hash"])
-            if c.state not in ("DELIVERED", "DISPUTED"):
+                raise Refuse("verdict-nonconformant",
+                             "delivery_hash does not commit to the recorded Delivery, "
+                             "including its signature", expected=recorded,
+                             received=verdict["delivery_hash"])
+            answers = verdict.get("challenge_hash")
+            admissible = ((c.state == "DELIVERED" and c.flow == "verdict-first" and c.standing is None)
+                          or (c.state == "WINDOW_OPEN" and c.flow == "delivery-first" and c.standing is None)
+                          or c.state == "DISPUTED")
+            if not admissible:
                 raise Refuse("wrong-state",
-                             f"contract {c.id} is {c.state}; a Verdict is accepted on "
-                             f"DELIVERED, or on DISPUTED to resolve a Challenge")
-
-            # A Verdict commits to the instrument it ran (Section 12.4). One
-            # over a different instrument or profile is the Section 16.3
-            # substitution attack from the verifier's side.
+                             f"contract {c.id} is {c.state} under {c.flow}"
+                             f"{' with a Verdict standing' if c.standing is not None else ''}; "
+                             f"Table 2 lists no verdict entry for it")
             ver = c.vtc["verification"]
             if verdict["instrument_hash"] != ver["criteria_hash"]:
                 raise Refuse("verdict-nonconformant",
@@ -660,117 +718,95 @@ class Facilitator:
                 raise Refuse("verdict-nonconformant",
                              f"profile {verdict['profile']!r} is not the contract's "
                              f"{ver['profile']!r}")
-            if verdict["outcome"] not in ("PASS", "FAIL"):
-                raise Refuse("verdict-nonconformant", "outcome must be PASS or FAIL")
+            if c.state == "DISPUTED":
+                if answers is None:
+                    raise Refuse("verdict-nonconformant",
+                                 "the contract is DISPUTED; a Verdict must name the pending "
+                                 "Challenge it answers in challenge_hash", pending=c.pending)
+                if answers not in c.pending:
+                    raise Refuse("verdict-nonconformant",
+                                 "challenge_hash names no pending Challenge", received=answers)
+            elif answers is not None:
+                raise Refuse("verdict-nonconformant",
+                             "challenge_hash is present and no Challenge is pending")
 
             kids = pc.signer_kids(verdict)
             if not kids:
                 raise Refuse("signature-missing", "the Verdict carries no signature")
-            self._check_verdict_signer(c, kids)
+            self._check_verdict_signer(c, kids, answers)
             named = c.vtc["parties"].get("verifier")
             ok, why = pc.verify_object(verdict, self.resolver, MEDIA_VERDICT,
                                        [named] if named else [])
             if not ok:
                 raise Refuse(_sig_kind(why), why)
 
-            # Every check passed; only now does state move.
-            c.verdicts.append(verdict)  # Section 7.5: both are recorded
+            # Every check passed; only now does the trace move.
             self._record_keys(c, verdict)
-            outcome = verdict["outcome"]
-            if c.state == "DELIVERED":
-                if outcome == "PASS":
-                    self._release_on_pass(c)
-                else:
-                    c.state = "DISPUTED"
-                    self._apply_waterfall(c, challengers=[])
-            else:  # DISPUTED: this Verdict resolves the open Challenge(s)
-                c.disputed_at = None
-                if outcome == "FAIL":
-                    c.pools.note("Challenge upheld: this Verdict supersedes the PASS")
-                    self._apply_waterfall(c, challengers=list(c.challenges))
-                else:
-                    c.pools.note("Challenge rejected: the PASS stands; window resumes")
-                    c.state = "RELEASING"
-                    self._close_window_if_due(c)
             self._remember("verdict", verdict, c.id)
-            return 201, self._with_state(c, verdict)
+            outcome = verdict["outcome"]
+            superseded = c.standing["object"] if c.standing is not None else None
+            entry = self._record(c, "verdict", object=pc.digest_over(verdict), signer=kids[0],
+                                 outcome=outcome, answers=answers, supersedes=superseded)
+            c.verdicts.append(entry)
+            if answers is not None:
+                c.pending.remove(answers)
+            if outcome == "FAIL":
+                c.state = "AWAITING_CHILDREN"
+                self._tick(c)
+            elif c.state == "DELIVERED":
+                self._open_window(c)
+                self._tick(c)
+            elif c.state == "DISPUTED" and not c.pending:
+                c.state = "WINDOW_OPEN"
+                self._tick(c)
+            return 201, self._status(c)
 
-    def _check_verdict_signer(self, c: Contract, kids: list[str]) -> None:
-        # Draft line 1852: where the contract names parties.verifier the Verdict
-        # MUST be signed by that party; otherwise 9.1 is evaluated against the
-        # signer. Section 3: never the Facilitator. Section 7.5: never a
-        # Challenger judging its own Challenge.
+    def _check_verdict_signer(self, c: Contract, kids: list[str], answers: str | None) -> None:
+        # Section 7.2: the named verifier, or Section 9.1 derived against the
+        # signer; never the Facilitator; never the Challenger it answers.
         named = c.vtc["parties"].get("verifier")
         if named and not any(pc.kid_covers(k, named) for k in kids):
             raise Refuse("verifier-not-independent",
                          "the contract names a verifier and the Verdict is not signed "
                          "by that party", signer=kids[0], required_verifier=named)
         for kid in kids:
-            if pc.kid_covers(kid, c.seller):
-                raise Refuse("verifier-not-independent",
-                             "the Verdict is signed by the contract's Seller",
-                             signer=kid, seller=c.seller)
-            if pc.kid_covers(kid, c.buyer):
-                raise Refuse("verifier-not-independent",
-                             "the Verdict is signed by the contract's Buyer",
-                             signer=kid, buyer=c.buyer)
-            if pc.kid_covers(kid, self.identity):
-                raise Refuse("facilitator-cannot-verify",
-                             "a Facilitator MUST NOT act as Verifier for a contract it "
-                             "settles", signer=kid, facilitator=self.identity)
-            for ch in c.challenges:
-                for ck in pc.signer_kids(ch):
-                    if c.state == "DISPUTED" and pc.same_party(ck, kid):
+            for who, label in ((c.seller, "Seller"), (c.buyer, "Buyer"),
+                               (self.identity, "Facilitator")):
+                if pc.kid_covers(kid, who):
+                    raise Refuse("verifier-not-independent",
+                                 f"the Verdict is signed by the contract's {label}",
+                                 signer=kid)
+            if answers is not None and not named:
+                for ck in pc.signer_kids(c.challenges[answers]):
+                    if pc.same_party(ck, kid):
                         raise Refuse("verifier-not-independent",
-                                     "a Challenger's own assertion is not a Verdict "
-                                     "(Section 7.5)", signer=kid)
+                                     "a Challenger's own assertion is not a Verdict on its "
+                                     "Challenge (Section 7.3)", signer=kid)
 
-    def _release_on_pass(self, c: Contract) -> None:
-        # on-verification: the price releases on PASS, the window opens now,
-        # and the Bond and fund stay locked until it closes (draft lines
-        # 477 to 482). An earlier version returned the Bond here and reached
-        # FINAL in the same call, so no window ever opened and the Figure 6
-        # path was unreachable in the only mode the draft requires.
-        p = c.pools
-        # Section 7.1: cumulative release before a Verdict never exceeds the
-        # Bond. Under on-verification nothing is released before the Verdict,
-        # so E is zero here by construction and the cap cannot bind.
-        p.paid_to_seller += p.escrow
-        p.released += p.escrow
-        p.note(f"released escrow {pc.money(p.escrow)} to seller on PASS; challenge "
-               f"window of {c.window_seconds}s opens")
-        p.escrow = 0
-        c.state = "RELEASING"
-        c.window_opened_at = self.now()
-
-    # -- Open challenge, Section 7.5 --------------------------------------
+    # -- Open Challenge, Section 7.3 --------------------------------------
     def open_challenge(self, ch: dict) -> tuple[int, dict]:
         with self.lock:
+            self._begin()
             hit = self._replay("challenge", ch)
             if hit is not None:
                 return hit
+            if "signature" not in ch:
+                raise Refuse("signature-missing", "the Challenge carries no signature")
             self.schemas.check(ch, "challenge.schema.json")
             c = self._contract(ch["vtc_id"])
             self._tick(c)
+            if c.state not in ("WINDOW_OPEN", "DISPUTED"):
+                raise Refuse("challenge-window-closed",
+                             f"no challenge window is open: contract {c.id} is {c.state}",
+                             state=c.state)
             recorded = self._delivery_digest(c)
             if ch["delivery_hash"] != recorded:
                 raise Refuse("object-conflict",
                              "delivery_hash does not commit to the recorded Delivery",
                              expected=recorded, received=ch["delivery_hash"])
-            if c.state not in ("RELEASING", "DISPUTED"):
+            if c.window_closes_at is None or self._op_now() >= c.window_closes_at:
                 raise Refuse("challenge-window-closed",
-                             f"no challenge window is open: contract {c.id} is {c.state}, "
-                             f"and under on-verification the window opens when a PASS "
-                             f"is recorded and closes {c.window_seconds}s later",
-                             state=c.state)
-            if c.window_opened_at is None or \
-                    self.now() - c.window_opened_at >= c.window_seconds:
-                raise Refuse("challenge-window-closed",
-                             f"the {c.window_seconds}s challenge window has closed")
-
-            # Section 7.5: a proof that does not conform to the profile is
-            # refused. Under the acceptance profile that means the committed
-            # instrument and a results digest.
+                             "the challenge window has closed", closes_at=iso(c.window_closes_at or 0))
             proof = ch["proof"]
             ver = c.vtc["verification"]
             if proof.get("profile") != ver["profile"]:
@@ -784,185 +820,125 @@ class Facilitator:
             if "results_hash" not in proof:
                 raise Refuse("proof-nonconformant",
                              "the acceptance profile requires results_hash in the proof")
-
             ok, why = pc.verify_object(ch, self.resolver, MEDIA_CHALLENGE, [])
             if not ok:
                 raise Refuse(_sig_kind(why), why)
             kids = pc.signer_kids(ch)
             if any(pc.kid_covers(k, c.seller) for k in kids):
-                raise Refuse("unexpected-signer", "a Seller cannot challenge its own "
-                             "Delivery", signer=kids[0])
-
-            # A Challenge is a fraud proof submitted for evaluation, not a
-            # finding. It moves the contract to DISPUTED and nothing else; the
-            # Verdict that resolves it comes from an independent party.
-            c.challenges.append(ch)
-            if c.state != "DISPUTED":
-                c.disputed_at = self.now()
-                c.state = "DISPUTED"
-            c.pools.note(f"challenge accepted from {kids[0]}; awaiting a Verdict from "
-                         f"an independent evaluator ({len(c.challenges)} open)")
+                raise Refuse("unexpected-signer", "a performer's statement against its own "
+                             "Delivery is not a proof of nonconformance (Section 7.3)", signer=kids[0])
+            # A Challenge is a proof of nonconformance submitted for evaluation, not a
+            # finding. The Buyer is admissible; nothing here checks who else is.
+            digest = pc.digest_over(ch)
+            c.challenges[digest] = ch
+            c.challenge_at[digest] = self._op_now()
+            c.pending.append(digest)
             self._record_keys(c, ch)
             self._remember("challenge", ch, c.id)
-            return 202, self._with_state(c, ch)
+            self._record(c, "challenge", object=digest, signer=kids[0], costs=ch.get("costs"))
+            c.state = "DISPUTED"
+            return 202, self._status(c)
 
-    # -- Section 7.4, the five ranks in order ------------------------------
-    def _apply_waterfall(self, c: Contract, challengers: list[dict]) -> None:
-        p = c.pools
-        moved_from_seller = 0
-
-        # 1. Reverse any unreleased escrow to the Buyer.
-        if p.escrow:
-            p.paid_to_buyer += p.escrow
-            p.note(f"rank 1: reversed unreleased escrow {pc.money(p.escrow)} to buyer")
-            p.escrow = 0
-
-        # 2. Reimburse the successful Challenger's documented costs FROM THE
-        #    VERIFICATION FUND. The Challenge object has no member in which to
-        #    document them (a -02 item), so this is 0.00 (CHOICES C4).
-        if challengers:
-            p.note("rank 2: the Challenge carries no cost claim; reimbursed 0.00 from "
-                   "the verification fund (C4)")
-
-        # 3. Restore the Buyer from the Bond, up to restitution_basis, net of
-        #    what rank 1 already returned (CHOICES C2), and never beyond cap.
-        owed = self._basis_owed(c)
-        restitution = min(owed, p.bond, p.cap - moved_from_seller)
-        if restitution:
-            p.bond -= restitution
-            p.paid_to_buyer += restitution
-            p.restituted += restitution
-            moved_from_seller += restitution
-        p.note(f"rank 3: restitution basis {c.vtc['liability']['restitution_basis']!r}, "
-               f"buyer's loss {pc.money(owed)}, paid {pc.money(restitution)} from bond")
-
-        # 4. The Challenger bounty from the remaining Bond: only to a
-        #    Challenger that exists, the whole remainder, split equally among
-        #    successful Challengers (CHOICES C3).
-        if challengers and p.bond:
-            pool = min(p.bond, p.cap - moved_from_seller)
-            share = pool // len(challengers)
-            paid = share * len(challengers)
-            p.bond -= paid
-            p.paid_to_challenger += paid
-            moved_from_seller += paid
-            p.note(f"rank 4: bounty {pc.money(paid)} from the remaining bond to "
-                   f"{len(challengers)} challenger(s), {pc.money(share)} each (C3)")
-        elif not challengers:
-            p.note("rank 4: no Challenger, no bounty")
-
-        # 5. Direct any remainder per liability.remainder_to, within cap.
-        remainder_to = c.vtc["liability"].get("remainder_to", "sink")
-        if p.bond:
-            movable = min(p.bond, p.cap - moved_from_seller)
-            if movable:
-                if remainder_to == "buyer":
-                    p.paid_to_buyer += movable
-                else:
-                    p.remainder += movable
-                p.bond -= movable
-                moved_from_seller += movable
-                p.note(f"rank 5: remainder {pc.money(movable)} directed to {remainder_to}")
-            if p.bond:
-                p.note(f"liability.cap reached: {pc.money(p.bond)} of the bond is not "
-                       f"the Facilitator's to move and is returned")
-
-        self._return_bond(c, "Section 7.6, SETTLED")
-        c.state = "SETTLED"
-        self._attest(c, outcome="slashed")
-
-    # -- Section 11, the Work Attestation ---------------------------------
-    def _attest(self, c: Contract, outcome: str) -> None:
-        """Issued for every terminal contract, signed by the Facilitator alone.
-
-        Under the -00 a slashed Seller simply declined to co-sign its own
-        conviction, which made the reputation layer structurally incapable of
-        recording a negative outcome. The Seller does not consent to this
-        record and its consent is not required.
-        """
-        p = c.pools
-        att = {
-            "pact": "0.1",
-            "type": "WorkAttestation",
-            "vtc_id": c.id,
-            "vtc_hash": c.digest(),
-            "parties": {"buyer": c.buyer, "seller": c.seller, "facilitator": self.identity},
-            "subject": c.seller,
-            "role": "seller",
-            "outcome": outcome,
-            "amounts": {
-                "settled": pc.money(p.paid_to_seller),
-                # Restitution is what the Buyer recovered FROM THE BOND. Escrow
-                # coming back is the Buyer's own money and is not restitution.
-                "restituted": pc.money(p.restituted),
-                "slashed": pc.money(p.bond_initial - p.bond_returned - p.bond),
-                "currency": c.vtc["price"]["currency"],
-            },
-            "opened_at": iso(c.created_at),
-            "settled_at": iso(self.now()),
-        }
-        if c.delivery is not None:
-            att["work_hash"] = c.delivery["work_hash"]
-        att["signatures"] = [pc.sign(att, self.key, MEDIA_ATTESTATION)]
-        self.schemas.check(att, "attestation.schema.json")
-        c.attestation = att
-
-    def get_attestation(self, vid: str) -> tuple[int, dict]:
+    # -- Contract trees, Section 10 ---------------------------------------
+    def register_child(self, parent_id: str, child: dict) -> tuple[int, dict]:
         with self.lock:
-            c = self._contract(vid)
-            self._tick(c)
-            if c.attestation is None:
-                raise Refuse("wrong-state",
-                             f"contract {vid} is {c.state} and not terminal, so no "
-                             f"attestation exists yet")
-            return 200, c.attestation
+            self._begin()
+            p = self._contract(parent_id)
+            self._tick(p)
+            hit = self.seen.get(("child", pc.digest_over(child)))
+            if hit == parent_id:
+                return 200, self._status(p)
+            if p.state in TERMINAL:
+                raise Refuse("wrong-state", f"parent {parent_id} is {p.state}")
+            self._check_contract(child)
+            par = child.get("parent")
+            if par is None:
+                raise Refuse("parent-unresolvable", "the registered contract carries no parent")
+            if par["vtc_hash"] != p.digest() or par["vtc_id"] != p.id:
+                raise Refuse("parent-unresolvable",
+                             "parent.vtc_hash is not this parent's digest",
+                             expected=p.digest(), received=par["vtc_hash"])
+            if not pc.same_party(par["facilitator"], self.identity):
+                raise Refuse("parent-unresolvable",
+                             "parent.facilitator is not this Facilitator",
+                             named=par["facilitator"])
+            if not pc.same_party(child["parties"]["buyer"], p.seller):
+                raise Refuse("parent-unresolvable",
+                             "the child's Buyer is not the parent's Seller after normalization",
+                             child_buyer=child["parties"]["buyer"], parent_seller=p.seller)
+            lc, lp = latest_finality(child), latest_finality(p.vtc)
+            if not lc < lp:
+                raise Refuse("finality-ordering-violation",
+                             "the child's latest finality instant is not earlier than the "
+                             "parent's (Section 10.3)", child_latest=iso(lc), parent_latest=iso(lp))
+            digest = pc.digest_over(child)
+            if digest in p.children:
+                return 200, self._status(p)
+            p.children[digest] = Child(vtc=child, digest=digest,
+                                       facilitator=child["parties"]["facilitator"], latest=lc)
+            self.seen[("child", digest)] = parent_id
+            self._record(p, "child-registered", object=digest,
+                         facilitator=child["parties"]["facilitator"])
+            self._tick(p)
+            return 201, self._status(p)
+
+    def supply_child_outcome(self, parent_id: str, child_hash: str, record: dict) -> tuple[int, dict]:
+        with self.lock:
+            self._begin()
+            p = self._contract(parent_id)
+            self._tick(p)
+            child = next((ch for ch in p.children.values() if ch.digest == child_hash), None)
+            if child is None:
+                raise Refuse("unknown-contract", f"no registered child with digest {child_hash} under {parent_id}")
+            if child.record is not None:   # a replay of an accepted record is the existing resource (Section 13.2)
+                if pc.digest_over(record) != pc.digest_over(child.record):
+                    raise Refuse("object-conflict", "a different Outcome Record is already held for this child")
+                return 200, self._status(p)
+            if p.state in TERMINAL:
+                raise Refuse("wrong-state", "the parent has reached a terminal state; child records are no longer accepted (Table 2)", state=p.state)
+            self.schemas.check(record, "outcome.schema.json")
+            if record["vtc_hash"] != child.digest:
+                raise Refuse("child-outcome-invalid",
+                             "the record's vtc_hash is not the registered child's digest",
+                             expected=child.digest, received=record["vtc_hash"])
+            ok, why = pc.verify_object(record, self.resolver, MEDIA_OUTCOME, [child.facilitator])
+            if not ok:
+                raise Refuse("child-outcome-invalid", why)
+            child.record = record
+            child.unresolved = False
+            self._record(p, "child-final", object=pc.digest_over(record), child=child.digest)
+            self._tick(p)
+            return 200, self._status(p)
 
     # -- Section 8 -----------------------------------------------------------
     def capability_document(self) -> dict:
         doc = {
-            "pact": "0.1",
+            "pact": "0.2",
+            "type": "FacilitatorCapabilities",
             "facilitator": self.identity,
+            "issued_at": iso(self._op_now()),
             "settlement_bindings": self.settlement_bindings,
-            "release_modes": self.release_modes,
+            "flows": self.flows,
             "verification_profiles": self.verification_profiles,
-            "assurance_modes": self.assurance_modes,
+            "terms_profiles": [{"id": pid, "profile_hash": ph} for (pid, ph) in self.profiles],
             "max_contract_value": self.max_contract_value,
+            "retrieval": "open",   # CHOICES C2
             "endpoints": {
-                "contract": self.base_url + "/pact/v1/contracts",
-                "delivery": self.base_url + "/pact/v1/deliveries",
-                "verdict": self.base_url + "/pact/v1/verdicts",
-                "challenge": self.base_url + "/pact/v1/challenges",
-                "attestation": self.base_url + "/pact/v1/attestations",
+                "contract": self.base_url + "/pact/v2/contracts",
+                "delivery": self.base_url + "/pact/v2/deliveries",
+                "verdict": self.base_url + "/pact/v2/verdicts",
+                "challenge": self.base_url + "/pact/v2/challenges",
+                "outcome": self.base_url + "/pact/v2/outcomes",
             },
-            # no challenge_deposit member: absent means none is required
         }
         doc["signature"] = pc.sign(doc, self.key, MEDIA_FACILITATOR)
         self.schemas.check(doc, "facilitator.schema.json")
         return doc
 
 
-def _sig_kind(why: str) -> str:
-    return "algorithm-not-permitted" if why.startswith("algorithm") else "signature-invalid"
-
-
 # --------------------------------------------------------------------------
 # HTTP
 # --------------------------------------------------------------------------
-
-ROUTES = {
-    "contracts": "propose",
-    "deliveries": "submit_delivery",
-    "verdicts": "record_verdict",
-    "challenges": "open_challenge",
-}
-
-MEDIA = {
-    "propose": MEDIA_CONTRACT,
-    "submit_delivery": MEDIA_DELIVERY,
-    "record_verdict": MEDIA_VERDICT,
-    "open_challenge": MEDIA_CHALLENGE,
-}
-
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -985,14 +961,27 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
         self.fac.message_count += 1
 
-    def _problem(self, exc: Refuse) -> None:
-        status, section = PROBLEMS.get(exc.kind, (400, "Section 12.3"))
+    def _problem(self, exc: Exception) -> None:
+        if isinstance(exc, terms.ProfileRefusal):
+            body = {
+                "type": terms.PROBLEM_BASE + exc.kind,
+                "title": exc.kind.replace("-", " "),
+                "status": 422,
+                "detail": exc.detail,
+                "profile": terms.ID,
+                "profile_section": exc.section,
+            }
+            body.update(exc.extra)
+            self._send(422, body, "application/problem+json")
+            return
+        assert isinstance(exc, Refuse)
+        status, section = PROBLEMS.get(exc.kind, (400, "13.3"))
         body = {
             "type": PROBLEM_BASE + exc.kind,
             "title": exc.kind.replace("-", " "),
             "status": status,
             "detail": exc.detail,
-            "section": section.split(" ", 1)[1],  # draft Figure 12: "7.2", not "Section 7.2"
+            "section": section,
         }
         body.update(exc.extra)
         self._send(status, body, "application/problem+json")
@@ -1000,48 +989,59 @@ class Handler(BaseHTTPRequestHandler):
     def _guard(self, fn) -> None:
         try:
             fn()
-        except Refuse as exc:
+        except (Refuse, terms.ProfileRefusal) as exc:
             self._problem(exc)
         except Exception as exc:  # pragma: no cover
-            # Never a 409 dressed as a rule, and never the traceback: a caller
-            # cannot locate a Python exception in the specification.
             self._problem(Refuse("internal-error",
                                  f"the Facilitator failed internally ({type(exc).__name__})"))
+
+    def _body(self) -> dict:
+        length = int(self.headers.get("Content-Length", 0))
+        if length > MAX_BODY:
+            raise Refuse("payload-too-large", f"body exceeds {MAX_BODY} bytes")
+        try:
+            obj = json.loads(self.rfile.read(length) or b"{}")
+        except ValueError:
+            raise Refuse("schema-invalid", "body is not JSON")
+        if not isinstance(obj, dict):
+            raise Refuse("schema-invalid", "body is not a JSON object")
+        return obj
 
     def do_GET(self) -> None:
         def run() -> None:
             if self.path == "/.well-known/pact-facilitator":
                 self._send(200, self.fac.capability_document(), MEDIA_FACILITATOR)
                 return
-            m = re.match(r"^/pact/v1/(contracts|attestations)/([^/]+)$", self.path)
+            m = re.match(r"^/pact/v2/(contracts|outcomes)/([^/]+)$", self.path)
             if not m:
                 raise Refuse("unknown-contract", f"no route for {self.path}")
             kind, vid = m.groups()
             if kind == "contracts":
-                status, body = self.fac.get_contract(vid)
-                self._send(status, body, MEDIA_CONTRACT)
+                status, body = self.fac.get_status(vid)
+                self._send(status, body, MEDIA_STATUS)
             else:
-                status, body = self.fac.get_attestation(vid)
-                self._send(status, body, MEDIA_ATTESTATION)
+                status, body = self.fac.get_outcome(vid)
+                self._send(status, body, MEDIA_OUTCOME)
         self._guard(run)
 
     def do_POST(self) -> None:
         def run() -> None:
-            m = re.match(r"^/pact/v1/(contracts|deliveries|verdicts|challenges)$", self.path)
+            m = re.match(r"^/pact/v2/contracts/([^/]+)/children(?:/([^/]+))?$", self.path)
+            if m:
+                parent_id, child_hash = m.groups()
+                if child_hash is None:
+                    status, body = self.fac.register_child(parent_id, self._body())
+                else:
+                    status, body = self.fac.supply_child_outcome(parent_id, child_hash, self._body())
+                self._send(status, body, MEDIA_STATUS)
+                return
+            m = re.match(r"^/pact/v2/(contracts|deliveries|verdicts|challenges)$", self.path)
             if not m:
                 raise Refuse("unknown-contract", f"no route for {self.path}")
-            op = ROUTES[m.group(1)]
-            length = int(self.headers.get("Content-Length", 0))
-            if length > MAX_BODY:
-                raise Refuse("payload-too-large", f"body exceeds {MAX_BODY} bytes")
-            try:
-                obj = json.loads(self.rfile.read(length) or b"{}")
-            except ValueError:
-                raise Refuse("schema-invalid", "body is not JSON")
-            if not isinstance(obj, dict):
-                raise Refuse("schema-invalid", "body is not a JSON object")
-            status, body = getattr(self.fac, op)(obj)
-            self._send(status, body, MEDIA[op])
+            op = {"contracts": "propose", "deliveries": "submit_delivery",
+                  "verdicts": "record_verdict", "challenges": "open_challenge"}[m.group(1)]
+            status, body = getattr(self.fac, op)(self._body())
+            self._send(status, body, MEDIA_STATUS)
         self._guard(run)
 
 
@@ -1064,9 +1064,16 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--port", type=int, default=8402)
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--problems", action="store_true",
+                    help="print every problem type this Facilitator emits, with its "
+                         "HTTP status and the section it cites, then exit")
     ap.add_argument("--rules", action="store_true",
                     help="print the rules this implementation enforces, and its choices, and exit")
     args = ap.parse_args()
+    if args.problems:
+        for kind, (status, section) in sorted(PROBLEMS.items()):
+            print(f"{PROBLEM_BASE}{kind}\t{status}\t{section}")
+        return
     if args.rules:
         print(RULES.strip())
         print()

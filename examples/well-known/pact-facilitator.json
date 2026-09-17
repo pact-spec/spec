@@ -1,19 +1,45 @@
 {
-  "pact": "0.1",
+  "pact": "0.2",
+  "type": "FacilitatorCapabilities",
   "facilitator": "did:web:settle.example",
+  "issued_at": "2026-11-01T09:00:00Z",
   "settlement_bindings": [
-    { "id": "pact-escrow", "networks": ["eip155:8453"], "assets": ["USDC"] }
+    {
+      "id": "https://settle.example/bindings/ledger-1",
+      "networks": [
+        "eip155:8453"
+      ],
+      "assets": [
+        "USDC"
+      ]
+    }
   ],
-  "release_modes": ["on-verification", "on-window"],
-  "verification_profiles": ["acceptance", "bisection"],
-  "assurance_modes": ["certain", "committed-sample"],
-  "max_contract_value": { "amount": "50000.00", "currency": "USDC" },
-  "endpoints": {
-    "contract": "https://settle.example/pact/v1/contracts",
-    "delivery": "https://settle.example/pact/v1/deliveries",
-    "verdict": "https://settle.example/pact/v1/verdicts",
-    "challenge": "https://settle.example/pact/v1/challenges",
-    "attestation": "https://settle.example/pact/v1/attestations"
+  "flows": [
+    "verdict-first",
+    "delivery-first"
+  ],
+  "verification_profiles": [
+    "acceptance"
+  ],
+  "terms_profiles": [
+    {
+      "id": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+      "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956e835df2653b99d71d363a68"
+    }
+  ],
+  "max_contract_value": {
+    "amount": "50000.00",
+    "currency": "USDC"
   },
-  "signature": { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6c2V0dGxlLmV4YW1wbGUjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi9wYWN0LWZhY2lsaXRhdG9yK2pzb24ifQ", "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" }
+  "endpoints": {
+    "contract": "https://settle.example/pact/v2/contracts",
+    "delivery": "https://settle.example/pact/v2/deliveries",
+    "verdict": "https://settle.example/pact/v2/verdicts",
+    "challenge": "https://settle.example/pact/v2/challenges",
+    "outcome": "https://settle.example/pact/v2/outcomes"
+  },
+  "signature": {
+    "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpzZXR0bGUuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3ZuZC5wYWN0LmZhY2lsaXRhdG9yK2pzb24ifQ",
+    "signature": "8gd373Neg1u8nXuae2cQvFbbjwBoovlZ4NT1hs_cdHntSEOJdSfXQXqXahrv8QyLaFGrU1inged3ajGJwrsQBg"
+  }
 }

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "outcome.schema.json",
+  "title": "PACT Outcome Record (0.2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pact",
+    "type",
+    "vtc_id",
+    "vtc_hash",
+    "parties",
+    "outcome",
+    "trace",
+    "terms_result",
+    "signatures"
+  ],
+  "properties": {
+    "pact": {
+      "const": "0.2"
+    },
+    "type": {
+      "const": "OutcomeRecord"
+    },
+    "vtc_id": {
+      "type": "string"
+    },
+    "vtc_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "parties": {
+      "$ref": "common.schema.json#/$defs/parties"
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "state",
+        "challenge_upheld"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "FINAL",
+            "SETTLED",
+            "ABANDONED"
+          ]
+        },
+        "challenge_upheld": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "work_hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "trace": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "common.schema.json#/$defs/trace_entry"
+      },
+      "$comment": "Section 12: the complete trace, ending with the terminal entry."
+    },
+    "terms_result": {
+      "$ref": "common.schema.json#/$defs/terms_result"
+    },
+    "children_merkle_root": {
+      "$ref": "common.schema.json#/$defs/hash",
+      "$comment": "Section 12.2: present when at least one child is registered, absent otherwise, never null."
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/signature"
+      },
+      "$comment": "MUST include the Facilitator's; code checks which."
+    }
+  }
+}

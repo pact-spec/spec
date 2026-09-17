@@ -11,22 +11,22 @@ Two things here are worth reading before trusting a number produced with it.
 The canonicalizer is the same restricted RFC 8785 implementation validate.py
 uses. It is correct for the value types PACT objects carry and is not a
 conforming general JCS implementation; what it does get right, and what the
-Section 13.3 vectors pin, is the UTF-16 code unit key order of RFC 8785
+Section 14.3 vectors pin, is the UTF-16 code unit key order of RFC 8785
 section 3.2.3, which json.dumps(sort_keys=True) does not implement.
 
-The signatures are real. Section 13.1 fixes the JWS Signing Input as
+The signatures are real. Section 14.1 fixes the JWS Signing Input as
 ASCII(BASE64URL(UTF8(protected)) || "." || BASE64URL(JCS(object))) over the
-object with its signing member removed, and Section 6 computes vtc_hash over
+object with its signing member removed, and Section 2 computes vtc_hash over
 the contract *including* its signatures member. Those two facts are why a
 contract digest proves who agreed rather than merely what was written, and
 why the signing input and the digest are computed over different bytes. Both
 are implemented here and exercised by the measurement harness.
 
-The committed examples under examples/ keep their placeholder signature
-values on purpose. The published Internet-Draft prints their digests in
-Section 14 and cannot be corrected, so re-signing them would silently
-desynchronise the repository from the document. Everything in this module
-mints fresh keys and fresh contracts at run time instead.
+The committed examples under examples/ carry real Ed25519 signatures minted by
+mint_examples.py from public seeds, so anyone can reproduce their bytes and the
+digests the -02 prints; the -01 examples kept placeholder signature values, and
+the -01 text printed digests over them. The measurement harness still mints fresh
+keys and contracts at run time.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # Ed25519 and P-256 come from `cryptography`. It is an optional dependency:
-# validate.py's sixty-six checks do not need it, and this module is only
+# validate.py's checks do not need it, and this module is only
 # imported by the Facilitator and the agents.
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -84,10 +84,63 @@ def _utf16_key_order(obj: Any) -> Any:
     return obj
 
 
+def _es6_number(f: float) -> str:
+    """Serialize a float the way ECMAScript Number::toString does, which is
+    what RFC 8785 section 3.2.2.3 requires. Python's own repr gives the same
+    shortest round-trip digits but places them differently: 1.0 becomes
+    "1.0", 1e20 becomes "1e+20" and 1e-7 becomes "1e-07", and each of those
+    is a different byte string, so a different digest, from what a conformant
+    canonicalizer produces. An earlier revision of this file used repr and
+    every digest it printed over an object with a float was wrong."""
+    if f != f or f in (float("inf"), float("-inf")):
+        raise ValueError("RFC 8785 does not serialize NaN or Infinity")
+    if f == 0:
+        return "0"
+    d = Decimal(repr(f))
+    sign = "-" if d < 0 else ""
+    t = abs(d).as_tuple()
+    digits = "".join(map(str, t.digits))
+    n = t.exponent + len(digits)          # value = 0.digits x 10^n
+    digits = digits.rstrip("0")
+    k = len(digits)
+    if k <= n <= 21:
+        s = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        s = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        s = "0." + "0" * (-n) + digits
+    else:
+        e = n - 1
+        s = digits[0] + ("." + digits[1:] if k > 1 else "") + "e" + ("+" if e >= 0 else "-") + str(abs(e))
+    return sign + s
+
+
+def _emit(obj: Any) -> str:
+    if obj is None:
+        return "null"
+    if obj is True:
+        return "true"
+    if obj is False:
+        return "false"
+    if isinstance(obj, int):
+        return str(obj)
+    if isinstance(obj, float):
+        return _es6_number(obj)
+    if isinstance(obj, str):
+        return json.dumps(obj, ensure_ascii=False)
+    if isinstance(obj, (list, tuple)):
+        return "[" + ",".join(_emit(v) for v in obj) + "]"
+    if isinstance(obj, dict):
+        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + _emit(obj[k])
+                              for k in sorted(obj, key=lambda s: s.encode("utf-16-be"))) + "}"
+    raise TypeError(f"not JSON: {type(obj).__name__}")
+
+
 def jcs(obj: Any) -> bytes:
-    """Restricted RFC 8785 canonical serialization. See the module docstring."""
-    return json.dumps(_utf16_key_order(obj), separators=(",", ":"),
-                      ensure_ascii=False).encode("utf-8")
+    """RFC 8785 canonical serialization: keys in UTF-16 code unit order,
+    numbers as ECMAScript prints them, strings escaped as JSON requires and
+    nothing else, no whitespace. See the module docstring."""
+    return _emit(obj).encode("utf-8")
 
 
 def h(b: bytes) -> str:
@@ -97,31 +150,44 @@ def h(b: bytes) -> str:
 def digest_over(obj: Any) -> str:
     """Digest over the whole object as it stands, signatures included.
 
-    This is the Section 6 construction. Use it for vtc_hash, and never for a
+    This is the Section 2 construction. Use it for vtc_hash, and never for a
     signing input.
     """
     return h(jcs(obj))
 
 
 # PACT objects carry their signatures two ways, and both are in the schemas.
-# The contract and the Work Attestation take an array, because more than one
-# party signs them. Delivery, Verdict and Challenge take a single object,
-# because exactly one party does.
+# The contract and the Outcome Record take an array, because more than one
+# party may sign them. Delivery, Verdict, Challenge, Status and the capability
+# document take a single object, because exactly one party does.
 SIGNING_MEMBERS = ("signatures", "signature")
-
-# The Facilitator adds `state` to a response body. Section 12 says it is not
-# part of the signed object and MUST NOT be included when the object is
-# canonicalized or hashed, so it is stripped everywhere alongside signatures.
-UNSIGNED_MEMBERS = SIGNING_MEMBERS + ("state",)
 
 
 def signable(obj: dict) -> dict:
-    return {k: v for k, v in obj.items() if k not in UNSIGNED_MEMBERS}
+    """The signing input's object: everything but the signing member."""
+    return {k: v for k, v in obj.items() if k not in SIGNING_MEMBERS}
 
 
 def hashable(obj: dict) -> dict:
-    """The object as it is committed to: signatures kept, transport state dropped."""
-    return {k: v for k, v in obj.items() if k != "state"}
+    """The object as it is committed to: everything, signatures included.
+
+    -02 Section 2 defines one digest construction over the whole object. The
+    -01 response bodies carried an unsigned `state` member that had to be
+    stripped here; the -02 Status object replaced it and nothing is stripped.
+    """
+    return dict(obj)
+
+
+def manifest_digest(dirpath) -> str:
+    """The bundle commitment of Section 5.1: SHA-256(JCS(M)) where M maps each
+    file's path, relative to the bundle root with "/" separators, to the
+    SHA-256 of its bytes, over every file in the bundle."""
+    import pathlib
+    root = pathlib.Path(dirpath)
+    manifest = {p.relative_to(root).as_posix(): h(p.read_bytes())
+                for p in sorted(root.rglob("*"))
+                if p.is_file() and not any(part.startswith(".") for part in p.relative_to(root).parts)}
+    return h(jcs(manifest))
 
 
 def signature_entries(obj: dict) -> list[dict]:
@@ -156,7 +222,7 @@ def norm(identifier: str) -> str:
     never stripped the fragment, which is both too permissive and too strict in
     different places.
     """
-    s = unicodedata.normalize("NFC", identifier).strip()
+    s = identifier.strip()
     s = s.split("#", 1)[0]
 
     if ":" in s:
@@ -164,14 +230,20 @@ def norm(identifier: str) -> str:
         scheme = scheme.lower()
         if scheme == "did":
             parts = rest.split(":")
-            if parts:
-                parts[0] = parts[0].lower()               # the DID method
-                if parts[0] == "web" and len(parts) > 1:
-                    parts[1] = parts[1].lower()           # the host
+            if len(parts) > 1 and parts[0] == "web":
+                parts[1] = parts[1].lower()               # the did:web host only
             rest = ":".join(parts)
-        elif scheme in ("http", "https") and rest.startswith("//"):
-            host, sep, tail = rest[2:].partition("/")
-            rest = "//" + host.lower() + sep + tail
+        elif scheme == "https" and rest.startswith("//"):
+            authority, sep, tail = rest[2:].partition("/")
+            authority, q, query = authority.partition("?")   # a query with no path
+            userinfo, at, hostport = authority.rpartition("@")
+            if hostport.startswith("["):                      # IPv6 literal
+                end = hostport.find("]") + 1
+                hostname, port = hostport[:end], hostport[end:]
+            else:
+                hostname, colon, port = hostport.partition(":")
+                port = colon + port
+            rest = "//" + userinfo + at + hostname.lower() + port + q + query + sep + tail
         s = scheme + ":" + rest
 
     while s.endswith(("/", ".")):
@@ -183,24 +255,25 @@ def same_party(a: str, b: str) -> bool:
     return norm(a) == norm(b)
 
 
-# --------------------------------------------------------------------------
-# The assurance constraint, Section 7.2
-# --------------------------------------------------------------------------
+def signatures_ordered(obj: dict) -> tuple[bool, str]:
+    """The `signatures` array sorted by kid (facilitator Section 14.1).
 
-def required_bond(price: float, q: float, released: float = 0.0) -> float:
-    """B >= P(1-q)/q + E.
-
-    E, the amount already paid out before a Verdict is recorded, is the only
-    term this specification contributes; the rest is the classical deterrence
-    bound (Polinsky and Shavell; Belenkiy et al. Theorem 1; Mamageishvili and
-    Felten for rollup validators). Optimistic release both pays a defecting
-    Seller and puts that payment beyond recovery, so the required Bond rises
-    with it one for one.
+    Two agents that each attach their own entry and then exchange the object
+    produce two arrays, two vtc_hash values (Section 2 digests the signature
+    set) and two contracts for one agreement. The order is the Section 9.1
+    normalized kid, ties broken by the raw kid, both compared as sequences of
+    Unicode code points. Returns (ok, reason); an object with fewer than two
+    entries is trivially ordered.
     """
-    if q <= 0:
-        raise ValueError("q must be greater than zero")
-    return price * (1.0 - q) / q + released
+    keys = [(norm(k), k) for k in signer_kids(obj)]
+    if keys != sorted(keys):
+        return False, "signatures are not sorted by normalized kid"
+    return True, "ok"
 
+
+# --------------------------------------------------------------------------
+# The assurance constraint, Appendix A.4 of -02 (Section 7.2 of -01)
+# --------------------------------------------------------------------------
 
 def assurance_holds(price: str | float, bond: str | float, q_min: str | float,
                     released: str | float = "0") -> bool:
@@ -218,10 +291,10 @@ def assurance_holds(price: str | float, bond: str | float, q_min: str | float,
 
 
 # --------------------------------------------------------------------------
-# JWS General JSON Serialization with a detached payload, Section 13.1
+# JWS General JSON Serialization with a detached payload, Section 14.1
 # --------------------------------------------------------------------------
 
-ALLOWED_ALGS = ("EdDSA", "ES256", "ES384")
+ALLOWED_ALGS = ("Ed25519", "ES256", "ES384")
 
 
 def b64u(b: bytes) -> str:
@@ -248,19 +321,43 @@ def signing_input(protected_b64: str, obj: dict) -> bytes:
 
 @dataclass
 class Key:
-    """A party key. `kid` is the URI a verifier resolves, per Section 13.1.1."""
+    """A party key. `kid` is the URI a verifier resolves, per Section 14.1.1."""
     kid: str
     alg: str
     private: Any = None
     public: Any = None
 
     @classmethod
-    def generate(cls, kid: str, alg: str = "EdDSA") -> "Key":
+    def from_seed(cls, kid: str, seed: bytes) -> "Key":
+        """An Ed25519 key from 32 seed bytes. Used only to mint the committed
+        examples reproducibly; the seeds are public and so are the keys."""
+        if not HAVE_CRYPTO:
+            raise RuntimeError("signing needs the `cryptography` package")
+        sk = Ed25519PrivateKey.from_private_bytes(seed)
+        return cls(kid=kid, alg="Ed25519", private=sk, public=sk.public_key())
+
+    @classmethod
+    def from_public_bytes(cls, kid: str, alg: str, raw: bytes) -> "Key":
+        """A verify-only key from the raw public bytes public_bytes() emits."""
+        if not HAVE_CRYPTO:
+            raise RuntimeError("verification needs the `cryptography` package")
+        if alg == "Ed25519":
+            pub = Ed25519PublicKey.from_public_bytes(raw)
+        elif alg == "ES256":
+            pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), raw)
+        elif alg == "ES384":
+            pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP384R1(), raw)
+        else:
+            raise ValueError(f"unsupported alg {alg}")
+        return cls(kid=kid, alg=alg, private=None, public=pub)
+
+    @classmethod
+    def generate(cls, kid: str, alg: str = "Ed25519") -> "Key":
         if not HAVE_CRYPTO:
             raise RuntimeError(
                 "the `cryptography` package is required to mint keys; "
                 "install it with `pip install cryptography`")
-        if alg == "EdDSA":
+        if alg == "Ed25519":
             sk = Ed25519PrivateKey.generate()
         elif alg == "ES256":
             sk = ec.generate_private_key(ec.SECP256R1())
@@ -271,16 +368,19 @@ class Key:
         return cls(kid=kid, alg=alg, private=sk, public=sk.public_key())
 
     def sign_bytes(self, data: bytes) -> bytes:
-        if self.alg == "EdDSA":
+        if self.alg == "Ed25519":
             return self.private.sign(data)
         curve_hash = hashes.SHA256() if self.alg == "ES256" else hashes.SHA384()
         der = self.private.sign(data, ec.ECDSA(curve_hash))
         r, s = decode_dss_signature(der)
+        n = CURVE_ORDER[self.alg]
+        if s > n // 2:                       # emit the low-S form, see verify_bytes
+            s = n - s
         size = 32 if self.alg == "ES256" else 48
         return r.to_bytes(size, "big") + s.to_bytes(size, "big")
 
     def verify_bytes(self, sig: bytes, data: bytes) -> None:
-        if self.alg == "EdDSA":
+        if self.alg == "Ed25519":
             self.public.verify(sig, data)
             return
         size = 32 if self.alg == "ES256" else 48
@@ -288,14 +388,33 @@ class Key:
             raise InvalidSignature("bad JWS ECDSA signature length")
         r = int.from_bytes(sig[:size], "big")
         s = int.from_bytes(sig[size:], "big")
+        # RFC 7518 fixes the encoding (raw r||s) but not which of the two valid
+        # s values a verifier accepts. Accepting both lets anyone holding a
+        # valid signature mint a second one over the same bytes without the
+        # key, and a second signature entry changes vtc_hash (Section 2). The
+        # low half is enforced here ahead of the text; see Section 14.1.
+        n = CURVE_ORDER[self.alg]
+        if s == 0 or s > n // 2:
+            raise InvalidSignature("ECDSA s is not in the low half of the curve order")
         curve_hash = hashes.SHA256() if self.alg == "ES256" else hashes.SHA384()
         self.public.verify(encode_dss_signature(r, s), data, ec.ECDSA(curve_hash))
+
+
+# Group orders of P-256 and P-384 (FIPS 186-4 D.1.2.3 and D.1.2.4), for the
+# low-S rule in sign_bytes and verify_bytes. tools/validate.py proves both
+# constants without a library by computing n * G on each curve and requiring
+# the point at infinity.
+CURVE_ORDER = {
+    "ES256": 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551,
+    "ES384": int("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF"
+                 "581A0DB248B0A77AECEC196ACCC52973", 16),
+}
 
 
 class KeyResolver:
     """Maps a `kid` to a public key.
 
-    Section 13.1.1 resolves a kid as a DID URL (DID Core, did:web) or as an
+    Section 14.1.1 resolves a kid as a DID URL (DID Core, did:web) or as an
     https URI naming a JWK Set (RFC 7517). Both are network lookups with
     caching and revocation semantics that a reference implementation should
     not fake. This resolver is an in-process registry with the same interface,
@@ -316,9 +435,9 @@ class KeyResolver:
 
 
 def public_bytes(key: "Key") -> bytes:
-    """Raw public key bytes, for the Section 16.11 record of what was resolved."""
+    """Raw public key bytes, for the Section 17.13 record of what was resolved."""
     from cryptography.hazmat.primitives import serialization
-    if key.alg == "EdDSA":
+    if key.alg == "Ed25519":
         return key.public.public_bytes(serialization.Encoding.Raw,
                                        serialization.PublicFormat.Raw)
     return key.public.public_bytes(serialization.Encoding.X962,
@@ -349,8 +468,13 @@ def verify_entry(obj: dict, entry: dict, resolver: KeyResolver,
         if member not in protected:
             return False, f"protected header is missing {member}"
     if "kid" in entry:
-        # Section 13.1: a kid outside the signed header is attacker-controlled.
+        # Section 14.1: a kid outside the signed header is attacker-controlled.
         return False, "kid carried as a sibling of the protected header"
+    for member in ("jwk", "jku", "x5c", "x5u", "x5t", "x5t#S256", "crit"):
+        if member in protected:
+            return False, f"protected header carries {member}, which Section 14.1 forbids"
+    if "header" in entry:
+        return False, "signature entry carries an unprotected header"
     # RFC 8725 section 3.11 and conformance vector V-05: typ carries the full
     # media type so a signature minted over one object cannot be presented as
     # one minted over another. This was previously accepted as an argument and
@@ -363,7 +487,7 @@ def verify_entry(obj: dict, entry: dict, resolver: KeyResolver,
     if alg not in ALLOWED_ALGS:
         # Rejecting `none` and everything off the allowlist is the whole point:
         # absent one, the attacker selects the algorithm. The reason string
-        # starts with "algorithm" so a caller can map it to Table 9's
+        # starts with "algorithm" so a caller can map it to the problem table's
         # algorithm-not-permitted rather than a generic signature failure.
         return False, f"algorithm {alg!r} is not permitted"
 
@@ -397,8 +521,8 @@ def kid_covers(kid: str, party: str) -> bool:
     Section 9.1 normalization strips the fragment, so a kid of
     did:web:seller.example#key-1 normalizes to the party identifier itself and
     this is an equality test. It used to be a prefix test, which is a hole:
-    did:web:acme.example.evil starts with did:web:acme.example and would have
-    signed as its neighbour. Line 1965 of the draft requires equality of the
+    did:web:seller.example.evil starts with did:web:seller.example and would have
+    signed as its neighbour. Section 14.1 of the draft requires equality of the
     normalized identifier, not containment.
     """
     return norm(kid) == norm(party)
@@ -466,30 +590,3 @@ def money(c: int) -> str:
     return f"{c / 100:.2f}"
 
 
-@dataclass
-class Pools:
-    """The three pools of Section 7.1, in cents.
-
-    Keeping the Verification Fund separate from the Bond is not tidiness. Under
-    the -00 a Challenger was reimbursed from the slashed Bond, so reimbursement
-    was capped by the Bond, and for any re-execution profile the cost of
-    producing a fraud proof approximates the cost of the work itself. That MUST
-    was unsatisfiable in the ordinary case.
-    """
-    escrow: int = 0
-    bond: int = 0
-    fund: int = 0
-    bond_initial: int = 0
-    bond_returned: int = 0
-    fund_returned: int = 0
-    cap: int = 0       # liability.cap: the most the Facilitator may move from the Seller
-    released: int = 0  # E in the constraint of Section 7.2
-    paid_to_buyer: int = 0
-    restituted: int = 0
-    paid_to_seller: int = 0
-    paid_to_challenger: int = 0
-    remainder: int = 0
-    ledger: list[str] = field(default_factory=list)
-
-    def note(self, line: str) -> None:
-        self.ledger.append(line)

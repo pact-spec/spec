@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pact-spec.github.io/spec/profiles/bonded-restitution/parameters.schema.json",
+  "title": "Parameters of the bonded-restitution terms profile",
+  "$comment": "This schema is part of the profile bundle committed by terms.profile_hash. It validates terms.parameters of a contract naming tag:laxsharma79@gmail.com,2026:pact:bonded-restitution. It is not part of the Internet-Draft.",
+  "type": "object",
+  "required": [
+    "seller_bond",
+    "verification_fund",
+    "cap",
+    "restitution_basis",
+    "principal_on",
+    "assurance"
+  ],
+  "properties": {
+    "seller_bond": {
+      "$ref": "#/$defs/money"
+    },
+    "verification_fund": {
+      "$ref": "#/$defs/money"
+    },
+    "cap": {
+      "$ref": "#/$defs/money"
+    },
+    "restitution_basis": {
+      "enum": [
+        "released",
+        "price"
+      ]
+    },
+    "remainder_to": {
+      "enum": [
+        "buyer",
+        "sink"
+      ]
+    },
+    "verifier_fee": {
+      "$ref": "#/$defs/money"
+    },
+    "principal_on": {
+      "enum": [
+        "verdict",
+        "delivered",
+        "window-closed"
+      ]
+    },
+    "assurance": {
+      "type": "object",
+      "required": [
+        "mode",
+        "q_min"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "certain",
+            "committed-sample",
+            "open"
+          ]
+        },
+        "q_min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "sample_rate": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "committed-sample"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "required": [
+          "sample_rate"
+        ]
+      },
+      "$comment": "sample_rate is the declared fraction of deliveries verified under committed-sample; how the draw is made is outside the profile."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "money": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2,18}$"
+    }
+  }
+}

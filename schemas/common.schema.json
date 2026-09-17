@@ -1,24 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pact-spec.github.io/spec/schemas/common.schema.json",
+  "$comment": "Shared definitions for the -02 objects. Everything about what a party owes, posts or receives left this file with the liability member; a terms profile carries its own parameters.schema.json.",
   "$defs": {
     "hash": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
-    "did": {
+    "party": {
       "type": "string",
-      "pattern": "^did:"
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+$",
+      "$comment": "A party identifier is a URI (Section 2); did:web and https are the forms the document exercises. Compared only after the normalization of Section 9.1."
     },
     "money": {
       "type": "string",
-      "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2,18}$",
-      "$comment": "Widened from exactly two decimals. Two decimals cannot express a bounty on a sub-dollar bond (a 25 percent bounty on a 0.02 bond is 0.005), which made the micro-contract case that contract channels exist to serve arithmetically inexpressible."
+      "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2,18}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "$comment": "Section 2: RFC 3339 in UTC with the Z designator. A pattern rather than format, so that validation does not depend on optional format checkers."
     },
     "tier": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$",
-      "$comment": "Not a closed enum. Section 14 establishes a PACT Verification Tiers registry with Specification Required policy, so a registered extension must validate. The four initial entries are T0-reexec, T1-tee, T2-zkml, T3-jury."
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+    },
+    "flow": {
+      "enum": [
+        "verdict-first",
+        "delivery-first",
+        "no-window"
+      ]
+    },
+    "state": {
+      "enum": [
+        "ACCEPTED",
+        "FUNDED",
+        "DELIVERED",
+        "WINDOW_OPEN",
+        "DISPUTED",
+        "AWAITING_CHILDREN",
+        "FINAL",
+        "SETTLED",
+        "ABANDONED"
+      ]
     },
     "signature": {
       "type": "object",
@@ -35,25 +60,40 @@
         "protected": {
           "type": "string",
           "pattern": "^[A-Za-z0-9_-]+$",
-          "$comment": "base64url JOSE protected header. MUST carry alg, kid and typ. alg MUST be one of ES256, ES384 or EdDSA; a verifier MUST reject alg values of none and all MAC algorithms, and MUST take the algorithm from the resolved key material rather than from the token."
+          "$comment": "base64url JOSE protected header carrying alg, kid and typ (Section 14.1)."
         },
         "signature": {
           "type": "string"
         }
       },
-      "$comment": "kid was previously a sibling of protected, which placed the key identifier outside the signed data where it could be rewritten in transit. It now lives in the protected header. See https://github.com/pact-spec/spec/issues/1 entry 7.",
+      "additionalProperties": false
+    },
+    "amount_with_currency": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "currency": {
+          "type": "string"
+        }
+      },
       "additionalProperties": false
     },
     "challenge": {
       "type": "object",
       "required": [
-        "window_seconds"
+        "window_seconds",
+        "max_dispute_seconds"
       ],
       "properties": {
         "window_seconds": {
           "type": "integer",
-          "minimum": 1,
-          "$comment": "Raised from a minimum of 0. A zero-length window made optimistic release unconditional and instantaneous, with no opportunity for a fraud proof to exist."
+          "minimum": 1
         },
         "max_dispute_seconds": {
           "type": "integer",
@@ -62,90 +102,206 @@
       },
       "additionalProperties": false
     },
-    "assurance": {
+    "terms": {
       "type": "object",
       "required": [
-        "mode",
-        "q_min"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "mode": {
-          "enum": [
-            "certain",
-            "committed-sample",
-            "open"
-          ]
-        },
-        "q_min": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "maximum": 1
-        },
-        "sample_rate": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "maximum": 1
-        }
-      },
-      "$comment": "Section 7.2. 'open' MUST NOT be the sole declared source of assurance; enforced in code."
-    },
-    "release_mode": {
-      "enum": [
-        "on-verification",
-        "on-window",
-        "optimistic",
-        "unsecured"
-      ]
-    },
-    "liability": {
-      "type": "object",
-      "required": [
-        "seller_bond",
-        "verification_fund",
-        "cap",
-        "restitution_basis"
+        "profile",
+        "profile_hash",
+        "parameters"
       ],
       "properties": {
-        "seller_bond": {
-          "$ref": "common.schema.json#/$defs/money"
+        "profile": {
+          "type": "string",
+          "minLength": 1
         },
-        "verification_fund": {
-          "$ref": "common.schema.json#/$defs/money"
+        "profile_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
         },
-        "cap": {
-          "$ref": "common.schema.json#/$defs/money"
-        },
-        "restitution_basis": {
-          "enum": [
-            "released",
-            "price"
-          ]
-        },
-        "parent": {
+        "parameters": {
           "type": "object",
-          "required": [
-            "vtc_id",
-            "vtc_hash"
-          ],
-          "properties": {
-            "vtc_id": {
-              "type": "string"
-            },
-            "vtc_hash": {
-              "$ref": "common.schema.json#/$defs/hash"
-            }
-          },
-          "additionalProperties": false
-        },
-        "remainder_to": {
-          "enum": [
-            "buyer",
-            "sink"
-          ],
-          "$comment": "Section 5.3. Absent means sink."
+          "$comment": "Section 5.3: opaque to this document. The named profile's parameters.schema.json validates it; the closed-object rule of Section 2 does not apply inside it."
         }
       },
+      "additionalProperties": false
+    },
+    "parent": {
+      "type": "object",
+      "required": [
+        "vtc_id",
+        "vtc_hash",
+        "facilitator"
+      ],
+      "properties": {
+        "vtc_id": {
+          "type": "string"
+        },
+        "vtc_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "facilitator": {
+          "$ref": "common.schema.json#/$defs/party"
+        }
+      },
+      "additionalProperties": false
+    },
+    "trace_entry": {
+      "type": "object",
+      "required": [
+        "event",
+        "at"
+      ],
+      "properties": {
+        "event": {
+          "enum": [
+            "accepted",
+            "funded",
+            "deadline-passed",
+            "delivered",
+            "window-opened",
+            "verdict",
+            "verdict-lapsed",
+            "challenge",
+            "dispute-lapsed",
+            "window-closed",
+            "child-registered",
+            "child-final",
+            "child-unresolved",
+            "children-final",
+            "terminal"
+          ]
+        },
+        "at": {
+          "$ref": "common.schema.json#/$defs/timestamp"
+        },
+        "object": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "answers": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "supersedes": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "signer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closes_at": {
+          "$ref": "common.schema.json#/$defs/timestamp"
+        },
+        "costs": {
+          "$ref": "common.schema.json#/$defs/amount_with_currency"
+        },
+        "facilitator": {
+          "$ref": "common.schema.json#/$defs/party"
+        },
+        "child": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "state": {
+          "enum": [
+            "FINAL",
+            "SETTLED",
+            "ABANDONED"
+          ]
+        },
+        "challenge_upheld": {
+          "type": "boolean"
+        }
+      },
+      "$comment": "Section 4.2, Table 2. Which optional members an event carries is stated there and checked in code.",
+      "additionalProperties": false
+    },
+    "transfer": {
+      "type": "object",
+      "required": [
+        "event",
+        "from",
+        "to",
+        "amount",
+        "code"
+      ],
+      "properties": {
+        "event": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "from": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "terms_result": {
+      "type": "object",
+      "required": [
+        "profile",
+        "profile_hash",
+        "currency",
+        "transfers"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "profile_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "transfers": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/transfer"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "parties": {
+      "type": "object",
+      "required": [
+        "buyer",
+        "seller",
+        "facilitator"
+      ],
+      "properties": {
+        "buyer": {
+          "$ref": "common.schema.json#/$defs/party"
+        },
+        "seller": {
+          "$ref": "common.schema.json#/$defs/party"
+        },
+        "facilitator": {
+          "$ref": "common.schema.json#/$defs/party"
+        },
+        "verifier": {
+          "$ref": "common.schema.json#/$defs/party"
+        }
+      },
+      "$comment": "buyer and seller MUST be distinct after normalization; JSON Schema cannot compare siblings, so code enforces it (Section 14.2).",
       "additionalProperties": false
     }
   }

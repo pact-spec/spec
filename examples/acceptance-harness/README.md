@@ -1,7 +1,7 @@
 # Acceptance instrument (worked example)
 
 This directory is the acceptance instrument committed by
-`verification.criteria_hash` in `cfb.json` and `vtc.json`.
+`verification.criteria_hash` in `vtc.json`.
 
 `criteria_hash` is SHA-256 over the JCS-canonicalized manifest of this
 directory: a JSON object mapping each file's path, relative to this

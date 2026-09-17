@@ -1,0 +1,3102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude" version="3" category="exp"
+     docName="draft-laxsharma-pact-02" ipr="trust200902"
+     tocInclude="true" symRefs="true" sortRefs="false">
+  <front>
+    <title abbrev="PACT">PACT: Co-Signed Task Contracts, Delivery and Verdict Records, and Outcome Records for Autonomous Agents</title>
+    <seriesInfo name="Internet-Draft" value="draft-laxsharma-pact-02"/>
+    <author fullname="Laxmikant Sharma" initials="L." surname="Sharma">
+      <organization>Independent</organization>
+      <address><email>laxsharma79@gmail.com</email></address>
+    </author>
+    <date year="2026" month="September" day="16"/>
+    <keyword>autonomous agents</keyword>
+    <keyword>agent commerce</keyword>
+    <keyword>signed records</keyword>
+    <keyword>verification</keyword>
+    <keyword>Merkle tree</keyword>
+
+    <abstract>
+      <t>Autonomous agents can already prove who they are, show whose authority they act under, find and call one another, and pay. What no existing specification lets them do is agree on a task
+      in a form a third party can check, deliver against it, have the
+      delivery judged by someone other than the performer, and carry away a
+      record of the outcome that a stranger can verify. This document
+      specifies PACT, a set of signed JSON records that closes that gap.</t>
+
+      <t>PACT defines four things: a co-signed task contract whose digest covers its signature set; a Verdict record bound by digest to the Delivery it judges; a Facilitator-signed event trace and Outcome Record for every contract, recorded once, in one order, by a party other than the performer; and a Merkle commitment from a parent's Outcome Record to its subcontracts' Outcome Records.</t>
+
+      <t>Settlement terms are carried by reference to a profile defined
+      outside this document. This document specifies no escrow, custody or
+      release of value, and takes no position on the legal effect of any
+      record it defines.</t>
+    </abstract>
+  </front>
+
+  <middle>
+
+    <section anchor="intro"><name>Introduction</name>
+
+      <section anchor="motivation"><name>Motivation</name>
+        <t>By late 2026 an autonomous agent can prove who it is, show whose
+        authority it acts under, discover another agent, call it, record what
+        happened in a tamper-evident receipt, and pay for the call. Each of
+        those is the subject of active standardisation, and several are
+        specified in more detail than this document specifies anything.</t>
+
+        <t>What none of them provides is interoperability at the level of the
+        task. Two agents built by different vendors have no common record of
+        what one asked the other to do, no common form for the result, no way
+        to have that result judged by a third implementation against criteria
+        fixed before the work began, and no record of the outcome that a
+        fourth implementation can verify without trusting any of the first
+        three. Receipts record that an action occurred, audit records establish whether behaviour matched intent, and payment schemes move value on the payer's instruction. None of them says what was agreed, what
+        was delivered, or whether the one met the other.</t>
+
+        <t>Those documents leave that gap on purpose, since it is outside their scope, and correctly so. It is the gap this document addresses, and only that gap.</t>
+      </section>
+
+      <section anchor="scope"><name>What This Document Specifies, and What It Does Not</name>
+        <t>PACT specifies exactly four things: a co-signed contract record
+        whose digest covers its signature set (<xref target="vtc"/>); a
+        Delivery record and the Verdict record bound to it by digest
+        (<xref target="delivery"/>, <xref target="verdicts"/>); an event
+        trace, signed by a Facilitator, from which one Outcome Record per
+        contract is produced (<xref target="status"/>,
+        <xref target="outcomes"/>); and a Merkle commitment from a parent's
+        Outcome Record to its children's (<xref target="merkle"/>).</t>
+
+        <t>A contract names its settlement terms by reference: a profile
+        identifier, a digest over the profile's bytes, and a parameter object
+        that this document does not read (<xref target="terms"/>). What those
+        terms mean, and everything about who holds or moves value under them,
+        is the profile's to say. This document specifies the records, their
+        digests, who signs each one, the order in which a Facilitator records
+        events, and a commitment across records. That is the whole of it. A
+        contract carries a price and names a settlement binding, since a
+        task contract without them is not one; what happens to the price is
+        the profile's, and what the binding reports is the binding's.</t>
+
+        <t>A deployment relies on other specifications, agreements or
+        arrangements for: the meaning of the terms a contract names; agent
+        identity and key distribution; delegation of authority from a human or
+        organisational principal; agent discovery; transport security beyond
+        <xref target="RFC9325"/>; an audit or accountability architecture; a
+        transparency service; a payment rail or settlement network; a
+        reputation system; and the resolution of any disagreement the records
+        do not settle.</t>
+
+        <t>Carrying terms by reference is an old pattern in this series.
+        ACME <xref target="RFC8555"/> carries a terms-of-service URL and, where a server chooses to require it, has the client assert agreement to those terms before an account is created, without defining a single term. A certificate carries its
+        policy as an identifier whose rules live outside the IETF
+        (<xref target="RFC5280"/>, Section 4.2.1.4), and the framework for
+        writing those rules <xref target="RFC3647"/> says it does not aim to
+        provide legal advice. The Internet Open Trading Protocol
+        <xref target="RFC2801"/> specified the messages of a trade and left
+        the trade's terms to the parties. PACT follows that line.</t>
+
+        <t>Two mechanisms present in the -00 revision <xref target="I-D.laxsharma-pact-00"/> remain withdrawn:
+        contract channels, and the sealed-bid award procedure. The reasons are
+        recorded in <xref target="I-D.laxsharma-pact-01"/> and are not
+        repeated. The change from -01 to this revision is listed in
+        <xref target="changes"/>.</t>
+      </section>
+
+      <section anchor="related"><name>Relationship to Existing Work</name>
+        <t>PACT's agree, perform, verify, record loop is an instance of
+        optimistic fair exchange <xref target="ASOKAN98"/>, in which a third
+        party is contacted only when the exchange fails. What that literature
+        establishes is what a third party must be able to observe for an
+        exchange to be fair; the records in this document are that
+        observation, written down in a form two implementations can
+        compare.</t>
+
+        <t>Two adjacent Internet-Drafts address agent commerce settlement
+        directly. <xref target="I-D.hood-agtp-commerce"/> carries Work
+        Completion Records and an audit-verified settlement timing;
+        <xref target="I-D.stone-vcap-ap2-binding"/> binds verified commerce
+        settlement to the Agent Payments Protocol. This document binds to neither and is designed to be usable alongside either.</t>
+
+        <t>Five bodies of IETF work touch the same records, and the
+        relationship to each is stated here so that it is not left to the
+        reader.</t>
+
+        <dl>
+          <dt>RATS.</dt><dd><xref target="RFC9334"/> defines Verifier,
+          Evidence and Attestation Result as terms of art: a RATS Verifier
+          appraises Evidence about an Attester. PACT's Verifier evaluates a
+          Delivery against an instrument the parties committed to, and its
+          terminal record is an Outcome Record, not an attestation. The -01
+          revision called that record a Work Attestation and used the RATS
+          words with other meanings; this revision renames the record and
+          defines its remaining shared vocabulary in
+          <xref target="terminology"/>. Where a verification tier relies on
+          hardware attestation, the RATS architecture applies unchanged and
+          PACT consumes its results.</dd>
+          <dt>SCITT.</dt><dd><xref target="RFC9943"/> defines signed-statement
+          transparency and <xref target="RFC9942"/> defines COSE receipts for
+          it. PACT does not define a transparency service; a Facilitator that
+          wants its Outcome Records to be publicly append-only can register
+          them with a SCITT transparency service, and
+          <xref target="sec-facilitator"/> says which Facilitator
+          misbehaviour that closes. The Merkle commitment in
+          <xref target="merkle"/> is not a transparency log: it is a fixed
+          commitment from one record to a known, finite set of other records,
+          and it uses the tree of <xref target="RFC9162"/> for its
+          construction only.</dd>
+          <dt>HTTPAPI.</dt><dd><xref target="I-D.ietf-httpapi-idempotency-key-header"/>
+          is the general mechanism for making a POST safe to retry. PACT does
+          not use it, because every object it carries is committed by the
+          digest of its own canonical form and that digest is the idempotency
+          key (<xref target="ep-idempotency"/>). Error reporting follows
+          <xref target="RFC9457"/>.</dd>
+          <dt>WIMSE.</dt><dd><xref target="I-D.ietf-wimse-aims"/> gives
+          workload and agent identity a home. PACT does not define an identity
+          format; a <tt>kid</tt> resolves as <xref target="keyres"/> says. An identity system defined elsewhere is used by naming its identifiers in one of the two forms that section resolves; a further form needs one resolution rule added there, and nothing else in this document changes.</dd>
+          <dt>SATP.</dt><dd><xref target="I-D.ietf-satp-core"/> transfers a
+          digital asset between two gateways with evidence a third party can
+          verify. An Outcome Record moves no asset. It is a signed statement that certain records were received in a certain order, and what any of that means for an
+          asset is the terms profile's to say.</dd>
+        </dl>
+
+        <t>Verification evidence for hardware-attested tiers follows the architecture of <xref target="RFC9334"/> and the EAT format of <xref target="RFC9711"/>.
+        Signed, hash-chained action receipts
+        <xref target="I-D.sahu-agent-action-receipts"/>, composition of
+        accountability records
+        <xref target="I-D.mih-sato-agent-accountability-composition"/>,
+        delegation chains
+        <xref target="I-D.asor-wimse-agent-delegation-chain"/>, and
+        contestability bindings
+        <xref target="I-D.pinto-agent-authz-contestability"/> are each
+        specified elsewhere, and PACT consumes rather than restates them.</t>
+      </section>
+
+      <section anchor="experiment"><name>The Experiment</name>
+        <t>This document is Experimental, and an individual submission with no formal standing in the standards process: no working group has adopted it and the IETF has not endorsed it. The question it tests is stated
+        over protocol observables only. Given the same sequence of posted records, the same clock readings and the same reports from the settlement binding, two independent Facilitator
+        implementations should produce the same event trace (<xref target="events"/>). Given the same trace and the same terms
+        profile, they should produce the same Outcome Record body
+        (<xref target="outcomes"/>), byte for byte after canonicalization.
+        The experiment succeeds if two independent Facilitators, serving
+        Buyers and Sellers built by different implementers, reach every
+        terminal state in <xref target="fig-states"/> with Outcome Records
+        either can verify and that agree. It fails, and that would itself be
+        worth recording, if the trace turns out to under-determine the
+        outcome, which is to say if two honest implementations reading the
+        same records disagree about what happened. Experience should be
+        reported to the author and to the repository named in
+        <xref target="implstatus"/>. The non-normative profile in
+        <xref target="appendix-profile"/> exists so that the experiment can
+        be run before any other profile is written.</t>
+      </section>
+    </section>
+
+    <section anchor="conventions"><name>Conventions and Definitions</name>
+      <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+      "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+      "OPTIONAL" in this document are to be interpreted as described in
+      BCP 14 <xref target="RFC2119"/> <xref target="RFC8174"/> when, and only
+      when, they appear in all capitals, as shown here.</t>
+
+      <t>Canonical form. Every JSON object defined here is canonicalized with
+      JCS <xref target="RFC8785"/> before hashing or signing. Implementations
+      MUST order object keys by UTF-16 code unit as
+      <xref target="RFC8785"/> Section 3.2.3 requires. Sorting by Unicode code
+      point is a common substitution; it agrees with the required order until a key outside the Basic Multilingual Plane is compared with one whose first differing unit lies in U+E000 to U+FFFF, where the two orders disagree. Numbers
+      MUST be serialized as <xref target="RFC8785"/> Section 3.2.2.3
+      requires, which is how ECMAScript prints them: the number one is
+      <tt>1</tt>, whatever type held it, and never <tt>1.0</tt>.</t>
+
+      <t>Figures. A figure line that would exceed the page width is folded
+      with the single backslash strategy of <xref target="RFC8792"/>, and a
+      figure that contains a fold begins with the header line that RFC
+      requires. The figure is read after unfolding; the digests it prints
+      are whole once the fold is removed.</t>
+
+      <t>Object digest. The digest of an object is the string
+      <tt>sha256:</tt> followed by the lowercase hexadecimal SHA-256 of the
+      canonical form of the whole object, including every signature member it
+      carries. Every hash member in this document that names another object
+      (<tt>vtc_hash</tt>, <tt>delivery_hash</tt>, <tt>challenge_hash</tt>,
+      the <tt>object</tt> member of a trace entry) is that object's digest, and an element of the list D in <xref target="merkle"/> is the 32 bytes that digest's hexadecimal encodes. A digest that
+      excluded signatures would prove what was written and not who agreed to
+      it; the -00 revision had that defect and the -01 revision fixed it for
+      the contract only. This revision applies one construction
+      everywhere.</t>
+
+      <t>Signing input. A signature over an object is computed over the
+      canonical form of the object with the signing member (<tt>signature</tt>
+      or <tt>signatures</tt>) removed, as <xref target="conf-sig"/>
+      specifies. The digest of an object and the signing input of an object
+      are therefore different byte strings, and the difference is the
+      signature set.</t>
+
+      <t>Version. The <tt>pact</tt> member carries a version of the form
+      major.minor; this document defines 0.2. Every object defined here is
+      hash-committed and signed, so a member an implementation does not
+      recognise is inside the commitment and cannot be ignored safely. An
+      implementation MUST reject an object whose <tt>pact</tt> version it
+      does not implement, and MUST reject an object carrying a member this
+      document does not define for it, with two exceptions: the contents of <tt>terms.parameters</tt> (<xref target="terms"/>), which the named profile defines and this document does not read; and the members of a Delivery's <tt>evidence</tt>, a Challenge's <tt>proof</tt> and a TaskSpec's <tt>constraints</tt> beyond those <xref target="dictionary"/> names, which the verification profile defines. Extension is by a
+      new version, not by adding members.</t>
+
+      <t>Time. Every timestamp is an RFC 3339 date-time
+      <xref target="RFC3339"/> in UTC with the "Z" designator. The
+      Facilitator's clock governs every deadline and window in this
+      document: the instant at which the Facilitator records an event is the
+      instant that counts, that instant is what the trace carries, and
+      parties SHOULD allow for skew when acting near a boundary.
+      <xref target="sec-facilitator"/> says what that clock can and cannot
+      prove.</t>
+
+      <t>Amounts. An amount is a decimal string with no sign, no exponent and a
+      fractional part of two to eighteen digits; comparisons are exact and
+      no rounding is implied. A currency is an asset identifier whose
+      namespace is defined by the settlement binding named in
+      <tt>price.settlement</tt>, and need not be an ISO 4217 code. A network is a ledger identifier in the form the same binding defines; the examples use <xref target="CAIP-2"/> chain identifiers. This
+      document carries amounts; it does not say what any amount is for. Where
+      a record produced under this document lists amounts, as
+      <tt>terms_result</tt> does (<xref target="terms-result"/>), the meaning
+      of every entry is the named profile's.</t>
+
+      <t>Identifiers. A party identifier is a URI. Two identifiers name the
+      same party when they are equal after the normalization in
+      <xref target="independence"/>, and every comparison of identifiers in
+      this document is made after that normalization.</t>
+
+      <section anchor="terminology"><name>Terminology</name>
+        <t>Five words in this document have meanings elsewhere that are
+        close enough to mislead, and are defined here once.</t>
+        <dl>
+          <dt>Contract:</dt><dd>Used in this document for a co-signed JSON
+          object of the form in <xref target="vtc"/>, and for nothing else.
+          This document takes no position on whether any such object is a
+          contract in law, in any jurisdiction, and defines no obligation
+          between the parties that sign one.</dd>
+          <dt>Verifier, Verdict:</dt><dd>A Verifier here is the party that
+          evaluates a Delivery against the instrument the contract committed
+          to, and a Verdict is its signed finding. This is not the Verifier
+          of <xref target="RFC9334"/>, which appraises Evidence about an
+          Attester; the two roles may be played by the same software in a
+          hardware-attested tier, and are still different roles.</dd>
+          <dt>Evidence:</dt><dd>The <tt>evidence</tt> member of a Delivery is
+          the set of artefacts a Verifier evaluates, produced by the Seller.
+          It is not Evidence in the sense of <xref target="RFC9334"/>. The member name is kept because it is the ordinary word for what the member holds; the RATS term names a role in an attestation architecture, and this note is the disambiguation.</dd>
+          <dt>Facilitator:</dt><dd>The party that runs the state machine of
+          <xref target="overview"/> for a contract: it accepts or refuses the
+          records posted to it, records events in one order on its own clock,
+          and signs the trace and the Outcome Record. Nothing in this document
+          says that a Facilitator holds anything of value, and nothing in it
+          requires that it does.</dd>
+        </dl>
+        <t>The remaining roles are defined by what they sign and receive in
+        <xref target="roles"/>, and the objects by their members in
+        <xref target="dictionary"/>.</t>
+      </section>
+    </section>
+
+    <section anchor="dictionary"><name>Data Dictionary</name>
+      <t>This section lists every member this document defines, by the object
+      that carries it, with its type, whether it is required in that object,
+      and what it commits to. It is a dictionary and not a rulebook: the rule
+      that a record omitting a required member, or carrying one this document
+      does not define for it, does not conform is stated once, in <xref target="conf-rules"/>; the rules a Facilitator applies when it
+      accepts or refuses a record are in <xref target="conformance"/> and in
+      the section that defines the record. No sentence in this section
+      requires anything of any party. Where a member's meaning is the named
+      terms profile's, the entry says so and says nothing more.</t>
+
+      <t>Types are JSON types. A digest is a string of the form in
+      <xref target="conventions"/>. An amount is a string of the form in
+      <xref target="conventions"/>. A URI is a string. A timestamp is a
+      string of the form in <xref target="conventions"/>. Cardinality is
+      written as required or optional.</t>
+
+      <section anchor="dict-common"><name>Members Common to Every Record</name>
+        <dl>
+          <dt><tt>pact</tt>:</dt><dd>string, required. The protocol version;
+          <tt>0.2</tt> for objects defined by this document.</dd>
+          <dt><tt>type</tt>:</dt><dd>string, required. The object's type name:
+          <tt>VerifiableTaskContract</tt>, <tt>Delivery</tt>,
+          <tt>Verdict</tt>, <tt>Challenge</tt>, <tt>ContractStatus</tt>,
+          <tt>OutcomeRecord</tt>, or <tt>FacilitatorCapabilities</tt>.</dd>
+          <dt><tt>signature</tt>:</dt><dd>object, required in Delivery,
+          Verdict, Challenge, ContractStatus and the capability document. One
+          JWS entry of the form in <xref target="conf-sig"/>, by the single
+          signer of that record.</dd>
+          <dt><tt>signatures</tt>:</dt><dd>array of objects, required in the
+          contract and in the Outcome Record. JWS entries of the form in
+          <xref target="conf-sig"/>, sorted as that section says. Commits, in
+          the contract, to who agreed; in the Outcome Record, to which
+          Facilitator issued it.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-vtc"><name>Contract Members</name>
+        <t>Carried in the Verifiable Task Contract (<xref target="vtc"/>),
+        media type <tt>application/vnd.pact.contract+json</tt>.</t>
+        <dl>
+          <dt><tt>id</tt>:</dt><dd>string, required. Contract identifier,
+          unique among the contracts of the Facilitator named in
+          <tt>parties.facilitator</tt>.</dd>
+          <dt><tt>parties</tt>:</dt><dd>object, required. The identifiers of
+          the parties, by role: <tt>buyer</tt> (URI, required),
+          <tt>seller</tt> (URI, required), <tt>facilitator</tt> (URI,
+          required), <tt>verifier</tt> (URI, optional). Commits to who plays
+          each role for this contract.</dd>
+          <dt><tt>task</tt>:</dt><dd>object, required. <tt>spec_hash</tt>
+          (digest, required) commits to a TaskSpec (<xref target="taskspec"/>);
+          <tt>spec_uri</tt> (URI, optional) says where its bytes may be
+          fetched; <tt>deadline</tt> (timestamp, required) is the instant at or after which the <tt>deadline-passed</tt> event may be recorded
+          (<xref target="events"/>).</dd>
+          <dt><tt>price</tt>:</dt><dd>object, required. <tt>amount</tt>
+          (amount, required), <tt>currency</tt> (string, required),
+          <tt>settlement</tt> (URI, required, naming a settlement binding),
+          <tt>network</tt> (string, required, in the form the binding
+          defines). Commits to a figure and a venue that both parties signed.
+          The meaning of the figure is the named terms profile's.</dd>
+          <dt><tt>verification</tt>:</dt><dd>object, required. <tt>tier</tt>
+          (string, required), <tt>profile</tt> (string or URI, required;
+          <xref target="profiles"/>), <tt>criteria_hash</tt> (digest,
+          required; the manifest digest of the acceptance instrument per
+          <xref target="hashes"/>), <tt>max_verdict_seconds</tt> (integer, required, greater than zero; the longest interval after <tt>delivered</tt> within
+          which a first Verdict is recorded before <tt>verdict-lapsed</tt>
+          may be). Commits to how a
+          Delivery is judged and by what.</dd>
+          <dt><tt>flow</tt>:</dt><dd>string, required. One of
+          <tt>verdict-first</tt>, <tt>delivery-first</tt>, <tt>no-window</tt>
+          (<xref target="flows"/>). Selects the shape of the state machine
+          for this contract.</dd>
+          <dt><tt>terms</tt>:</dt><dd>object, required
+          (<xref target="terms"/>). <tt>profile</tt> (URI, required) names
+          a terms profile; <tt>profile_hash</tt> (digest, required) commits
+          to the profile's bytes as <xref target="terms"/> says;
+          <tt>parameters</tt> (object, required, may be empty) carries the
+          profile's parameters. This document reads no member of
+          <tt>parameters</tt>; every one of them means what the named
+          profile says.</dd>
+          <dt><tt>challenge</tt>:</dt><dd>object, required.
+          <tt>window_seconds</tt> (integer, required, greater than zero) is the
+          duration of the challenge window; <tt>max_dispute_seconds</tt> (integer, required, greater than zero) is the longest interval after a
+          <tt>challenge</tt> event within which a Verdict on that Challenge
+          is recorded before <tt>dispute-lapsed</tt> may be.</dd>
+          <dt><tt>parent</tt>:</dt><dd>object, optional; present only in a
+          subcontract (<xref target="trees"/>). <tt>vtc_id</tt> (string,
+          required), <tt>vtc_hash</tt> (digest, required), and
+          <tt>facilitator</tt> (URI, required) identify the parent contract
+          and the Facilitator that holds it.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-taskspec"><name>TaskSpec Members</name>
+        <t>The TaskSpec is the content committed by <tt>task.spec_hash</tt>
+        (<xref target="taskspec"/>). It is not transmitted over the
+        endpoints of this document.</t>
+        <dl>
+          <dt><tt>description</tt>:</dt><dd>string, required. A statement of
+          the work in natural language.</dd>
+          <dt><tt>inputs</tt>:</dt><dd>object, optional. <tt>schema_uri</tt>
+          with <tt>schema_hash</tt>, and where a representative sample is
+          published, <tt>sample_uri</tt> with <tt>sample_hash</tt>; each URI
+          with its digest over the dereferenced bytes.</dd>
+          <dt><tt>deliverable</tt>:</dt><dd>object, required. <tt>format</tt>
+          (string) and <tt>schema_uri</tt> with <tt>schema_hash</tt>.</dd>
+          <dt><tt>acceptance</tt>:</dt><dd>object, required. The verification
+          instrument: <tt>harness_uri</tt> with <tt>harness_hash</tt> for
+          re-execution tiers, enclave and model policy for attestation tiers,
+          a proof statement with its verifying key for proving tiers, or
+          <tt>rubric_uri</tt> with <tt>rubric_hash</tt> for judgment tiers;
+          plus <tt>thresholds</tt> (object) in machine-readable form.
+          <tt>harness_hash</tt> equals the contract's
+          <tt>criteria_hash</tt>.</dd>
+          <dt><tt>constraints</tt>:</dt><dd>object, optional. Tool
+          prohibitions, confidentiality and compliance conditions, in a form
+          this document does not define.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-delivery"><name>Delivery Members</name>
+        <t>Carried in the Delivery (<xref target="delivery"/>), media type
+        <tt>application/vnd.pact.delivery+json</tt>.</t>
+        <dl>
+          <dt><tt>vtc_id</tt>, <tt>vtc_hash</tt>:</dt><dd>string and digest,
+          required. Identify and commit to the contract performed.</dd>
+          <dt><tt>work_hash</tt>:</dt><dd>digest, required. Commits to the
+          delivered bytes, or to a manifest per <xref target="hashes"/> where
+          the deliverable is a bundle.</dd>
+          <dt><tt>work_uri</tt>:</dt><dd>URI, optional. Where the bytes may be
+          fetched, subject to <xref target="sec-fetch"/>.</dd>
+          <dt><tt>input_hash</tt>:</dt><dd>digest, required for tiers whose
+          proof of nonconformance re-executes. Commits to the production input actually
+          consumed.</dd>
+          <dt><tt>evidence</tt>:</dt><dd>object, required. Members profiled by
+          <tt>verification.tier</tt> and <tt>verification.profile</tt>; for the <tt>acceptance</tt> profile, <tt>profile</tt>, <tt>instrument_hash</tt> and <tt>results_hash</tt> (required) and <tt>results_uri</tt> (optional). Conformance to the profile is a validity
+          condition of the Delivery, not a judgement on the work.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-verdict"><name>Verdict Members</name>
+        <t>Carried in the Verdict (<xref target="verdicts"/>), media type
+        <tt>application/vnd.pact.verdict+json</tt>.</t>
+        <dl>
+          <dt><tt>vtc_id</tt>:</dt><dd>string, required.</dd>
+          <dt><tt>delivery_hash</tt>:</dt><dd>digest, required. Commits to the
+          Delivery judged, including the Seller's signature over it.</dd>
+          <dt><tt>challenge_hash</tt>:</dt><dd>digest, optional. Present when
+          the Verdict answers a Challenge; commits to that Challenge.</dd>
+          <dt><tt>outcome</tt>:</dt><dd>string, required. <tt>PASS</tt> or
+          <tt>FAIL</tt>.</dd>
+          <dt><tt>profile</tt>, <tt>instrument_hash</tt>:</dt><dd>string and
+          digest, required. The verification profile applied and the digest of
+          the instrument actually run, which equals the contract's
+          <tt>criteria_hash</tt>.</dd>
+          <dt><tt>results_hash</tt>:</dt><dd>digest, required. The digest of the results document the verification profile defines; for <tt>acceptance</tt>, the bytes of the results file the instrument wrote.</dd>
+          <dt><tt>evaluated_at</tt>:</dt><dd>timestamp, required. The
+          Verifier's own clock; informational, since the trace carries the
+          Facilitator's.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-challenge"><name>Challenge Members</name>
+        <t>Carried in the Challenge (<xref target="challenges"/>), media type
+        <tt>application/vnd.pact.challenge+json</tt>.</t>
+        <dl>
+          <dt><tt>vtc_id</tt>, <tt>delivery_hash</tt>:</dt><dd>string and
+          digest, required. Identify the contract and commit to the Delivery
+          challenged.</dd>
+          <dt><tt>proof</tt>:</dt><dd>object, required. Members profiled by
+          <tt>verification.profile</tt>; for the <tt>acceptance</tt> profile, <tt>profile</tt>, <tt>instrument_hash</tt> and <tt>results_hash</tt> (required), <tt>results_uri</tt> and <tt>failing_checks</tt> (array of strings; optional).</dd>
+          <dt><tt>costs</tt>:</dt><dd>object, optional. <tt>amount</tt> and
+          <tt>currency</tt>: an amount the Challenger states. This document records it in the trace and reads it for
+          nothing; its meaning is the named terms profile's.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-status"><name>Contract Status Members</name>
+        <t>Carried in the Contract Status (<xref target="status"/>), media
+        type <tt>application/vnd.pact.status+json</tt>, the Facilitator's
+        signed response to every accepted POST.</t>
+        <dl>
+          <dt><tt>vtc_id</tt>, <tt>vtc_hash</tt>:</dt><dd>string and digest,
+          required.</dd>
+          <dt><tt>state</tt>:</dt><dd>string, required. A state name from
+          <xref target="fig-states"/>.</dd>
+          <dt><tt>trace</tt>:</dt><dd>array of objects, required. The event
+          trace so far, in the order recorded (<xref target="events"/>). Each
+          entry carries <tt>event</tt> (string, required), <tt>at</tt>
+          (timestamp, required), <tt>object</tt> (digest, required where the event was caused by a posted record, and on <tt>dispute-lapsed</tt>, where it names the Challenge that lapsed), and the event-specific
+          members listed in <xref target="events"/>.</dd>
+          <dt><tt>issued_at</tt>:</dt><dd>timestamp, required. When this
+          status was signed.</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-outcome"><name>Outcome Record Members</name>
+        <t>Carried in the Outcome Record (<xref target="outcomes"/>), media
+        type <tt>application/vnd.pact.outcome+json</tt>.</t>
+        <dl>
+          <dt><tt>vtc_id</tt>, <tt>vtc_hash</tt>:</dt><dd>string and digest,
+          required.</dd>
+          <dt><tt>parties</tt>:</dt><dd>object, required. The contract's
+          <tt>parties</tt> object, copied, so that the record names its
+          subjects and which side of the contract each was on.</dd>
+          <dt><tt>outcome</tt>:</dt><dd>object, required. <tt>state</tt>
+          (string, required; <tt>FINAL</tt>, <tt>SETTLED</tt> or
+          <tt>ABANDONED</tt>) and <tt>challenge_upheld</tt> (boolean,
+          required).</dd>
+          <dt><tt>work_hash</tt>:</dt><dd>digest, required where a Delivery was
+          recorded. Binds the record to what was produced.</dd>
+          <dt><tt>trace</tt>:</dt><dd>array of objects, required. The complete
+          event trace, ending with the <tt>terminal</tt> event.</dd>
+          <dt><tt>terms_result</tt>:</dt><dd>object, required
+          (<xref target="terms-result"/>). <tt>profile</tt> and
+          <tt>profile_hash</tt> (copied from the contract), <tt>currency</tt>
+          (string), and <tt>transfers</tt> (array of objects), each with <tt>event</tt> (integer, the zero-based index of the trace entry the transfer follows), <tt>from</tt> (string), <tt>to</tt> (string), <tt>amount</tt>
+          (amount) and <tt>code</tt> (string). The entries are the named
+          profile's output for the trace; this document defines their form
+          and two arithmetic invariants over them, and nothing about their
+          meaning.</dd>
+          <dt><tt>children_merkle_root</tt>:</dt><dd>digest, required where the
+          contract has registered children and absent otherwise
+          (<xref target="merkle"/>).</dd>
+        </dl>
+      </section>
+
+      <section anchor="dict-capabilities"><name>Capability Document Members</name>
+        <t>Carried in the Facilitator capability document
+        (<xref target="wellknown"/>), media type
+        <tt>application/vnd.pact.facilitator+json</tt>.</t>
+        <dl>
+          <dt><tt>facilitator</tt>:</dt><dd>URI, required. The identifier that
+          appears in <tt>parties.facilitator</tt>.</dd>
+          <dt><tt>issued_at</tt>:</dt><dd>timestamp, required. When the
+          document was signed. Nothing in a document survives its Facilitator withdrawing a profile; <xref target="wellknown"/> says when to fetch it again.</dd>
+          <dt><tt>settlement_bindings</tt>:</dt><dd>array of objects,
+          required. Each with <tt>id</tt> (URI), <tt>networks</tt> and <tt>assets</tt> (arrays of strings), all required.</dd>
+          <dt><tt>flows</tt>:</dt><dd>array of strings, required. The flows of <xref target="flows"/> the Facilitator implements; <xref target="flows"/> requires <tt>verdict-first</tt> among them.</dd>
+          <dt><tt>verification_profiles</tt>:</dt><dd>array of strings, required. A contract naming a profile not listed is refused (<xref target="ep-propose"/>).</dd>
+          <dt><tt>terms_profiles</tt>:</dt><dd>array of objects, required,
+          with at least one entry. Each with <tt>id</tt> (URI) and
+          <tt>profile_hash</tt> (digest): the terms profiles, at the
+          revisions named, whose schedules this Facilitator evaluates.</dd>
+          <dt><tt>max_contract_value</tt>:</dt><dd>object, optional. <tt>amount</tt> and <tt>currency</tt>; a contract whose price, stated in the same currency, exceeds it is refused, as is one whose price is stated in another currency (<xref target="ep-propose"/>).</dd>
+          <dt><tt>challenge_deposit</tt>:</dt><dd>object, optional.
+          <tt>amount</tt> and <tt>currency</tt>; see
+          <xref target="challenges"/>.</dd>
+          <dt><tt>retrieval</tt>:</dt><dd>string, optional. <tt>parties</tt>,
+          the default of <xref target="sec-retrieval"/>, or <tt>open</tt>.</dd>
+          <dt><tt>endpoints</tt>:</dt><dd>object, required. Maps each endpoint
+          name in <xref target="endpoints"/> to an absolute URI.</dd>
+        </dl>
+      </section>
+
+      <section anchor="roles"><name>Roles</name>
+        <t>A role is defined by where its identifier appears, what it signs,
+        and what it receives. Nothing else about a role is defined here.</t>
+        <table anchor="tab-roles">
+          <name>Roles, by what each signs and receives</name>
+          <thead>
+            <tr><th>Role</th><th>Identifier appears in</th><th>Signs</th>
+                <th>Receives</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Buyer</td><td><tt>parties.buyer</tt></td>
+                <td>the contract</td>
+                <td>Contract Status, Outcome Record</td></tr>
+            <tr><td>Seller</td><td><tt>parties.seller</tt></td>
+                <td>the contract; the Delivery; as the Buyer of a child,
+                that child's contract (<xref target="tree-registration"/>)</td>
+                <td>Contract Status, Outcome Record</td></tr>
+            <tr><td>Facilitator</td><td><tt>parties.facilitator</tt>,
+                <tt>parent.facilitator</tt>, the capability document</td>
+                <td>Contract Status, Outcome Record, the capability
+                document</td>
+                <td>every posted record</td></tr>
+            <tr><td>Verifier</td><td><tt>parties.verifier</tt>, or the
+                <tt>kid</tt> of a Verdict</td>
+                <td>the Verdict</td>
+                <td>the Delivery and, on a Challenge, the Challenge</td></tr>
+            <tr><td>Challenger</td><td>the <tt>kid</tt> of a Challenge</td>
+                <td>the Challenge</td>
+                <td>Contract Status</td></tr>
+          </tbody>
+        </table>
+        <t>One identifier may play more than one role across contracts, and
+        <xref target="independence"/> and <xref target="conf-rules"/> say which combinations within one contract a Facilitator refuses.</t>
+      </section>
+    </section>
+
+    <section anchor="overview"><name>Protocol Overview</name>
+      <t>A contract passes through four phases: Propose establishes the record, Agree co-signs it and a Facilitator accepts it, Complete produces a Delivery and a Verdict on it, and Record produces an Outcome Record. Every step after Agree is an event the Facilitator records on
+      its own clock, in one order, and the sequence of those events is the
+      contract's trace. The trace is the protocol's central object: the state
+      machine is defined over it, every response a Facilitator gives carries
+      the prefix recorded so far, and the Outcome Record carries the whole of
+      it.</t>
+
+      <figure anchor="fig-flow">
+        <name>Message flow under the verdict-first flow, without a Challenge</name>
+        <artwork type="ascii-art"><![CDATA[
+ Buyer            Facilitator            Seller          Verifier
+   |                   |                    |                |
+   |<==== contract negotiated and co-signed ==>|             |
+   |                   |                    |                |
+   |-- POST contract ->|                    |                |
+   |<-- Status --------|   [ accepted ]     |                |
+   |                   |   [ funded ]       |                |
+   |                   |                    |                |
+   |                   |        [ Seller performs ]          |
+   |                   |<-- POST Delivery --|                |
+   |                   |-- Status --------->|  [ delivered ] |
+   |                   |                    |                |
+   |                   |---- Delivery, criteria_hash ------->|
+   |                   |<--- POST Verdict -------------------|
+   |                   |---- Status ------------------------>|
+   |                   |   [ verdict PASS ]  [ window-opened ]
+   |                   |   [ window-closed ] [ children-final ]
+   |                   |   [ terminal FINAL ]                |
+   |                   |                    |                |
+   |<-- Outcome Record-|-- Outcome Record ->|                |
+        ]]></artwork>
+      </figure>
+
+      <t>Every accepted POST is answered with a Contract Status
+      (<xref target="status"/>), a Facilitator-signed object carrying the
+      state and the trace so far. Nothing in the figure moves value, and no
+      arrow in it is named for a movement of value. What a terms profile does
+      at each bracketed event is the profile's, and it is reported once, in
+      the Outcome Record, as a list the profile produced and the Facilitator
+      signed.</t>
+
+      <section anchor="states"><name>States</name>
+        <figure anchor="fig-states">
+          <name>Contract states</name>
+          <artwork type="ascii-art"><![CDATA[
+ ACCEPTED -funded-> FUNDED -delivered-> DELIVERED
+    |                 |                    |
+    | deadline-       | deadline-          | window-opened
+    | passed          | passed             v
+    |                 |          WINDOW_OPEN <------+
+    |                 |            |       |        |
+    |                 |  challenge |       | window | verdict PASS
+    |                 |            v       | closed | on it, or
+    |                 |         DISPUTED----|--------+ dispute-
+    |                 |            |       |          lapsed
+    |                 |    verdict |       |
+    |                 |    FAIL    |       |
+    v                 v            v       v
+  +--------------------------------------------------+
+  |                AWAITING_CHILDREN                 |
+  +--------------------------------------------------+
+                           | children-final, then terminal
+                           v
+           FINAL        SETTLED        ABANDONED
+          ]]></artwork>
+        </figure>
+
+        <t>The figure omits three arrows that the table carries: a FAIL
+        Verdict recorded in DELIVERED or in WINDOW_OPEN also leads to
+        AWAITING_CHILDREN; under the <tt>no-window</tt> flow <tt>delivered</tt> leads there directly; and a Verdict that is late (<tt>verdict-lapsed</tt>)
+        opens the window without one. FINAL, SETTLED and ABANDONED are
+        terminal and each produces exactly one Outcome Record. The -01 revision had a state, RELEASING, named for a movement of value; it is gone. FUNDED remains, named for the event the settlement binding reports (<xref target="events"/>), and nothing here says what that report means.</t>
+
+        <t>The state named PROPOSED in earlier revisions is gone. Between the
+        parties' signatures and the Facilitator's acceptance a contract exists
+        only on the parties' side, so no Facilitator could observe that state, and the -01 reference implementation never reported it, although the -01 Section 12.1 example printed it in a 201 response.</t>
+      </section>
+
+      <section anchor="events"><name>Events</name>
+        <t>A trace entry is a JSON object with <tt>event</tt> (one of the
+        names below), <tt>at</tt> (the Facilitator's clock when it was
+        recorded), <tt>object</tt> where the entry records a posted record
+        (that record's digest, <xref target="conventions"/>), and the members
+        listed for the event. A Facilitator MUST record the entries of one
+        contract in the order it recorded them and MUST NOT reorder, remove
+        or alter an entry once a Status carrying it has been issued
+        (<xref target="sec-facilitator"/> says what that rule does and does
+        not prove).</t>
+
+        <table anchor="tab-events">
+          <name>Events: the state each is recorded in, the state that follows, and what the entry carries</name>
+          <thead>
+            <tr><th>Event</th><th>Recorded in; then. Members and condition</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><tt>accepted</tt></td><td>none; then ACCEPTED. <tt>object</tt> is <tt>vtc_hash</tt>. The contract passed <xref target="ep-propose"/>.</td></tr>
+            <tr><td><tt>funded</tt></td><td>ACCEPTED; then FUNDED. <tt>ref</tt> (string, optional, in the form the settlement binding defines). Recorded when the settlement binding named in <tt>price.settlement</tt> reports that whatever the named terms profile requires before work starts is in place; how a Facilitator observes that is the binding's to say. Where the profile requires nothing, <tt>funded</tt> follows <tt>accepted</tt> in the same operation.</td></tr>
+            <tr><td><tt>deadline-passed</tt></td><td>ACCEPTED or FUNDED; then AWAITING_CHILDREN. <tt>task.deadline</tt> has passed with no <tt>delivered</tt> entry.</td></tr>
+            <tr><td><tt>delivered</tt></td><td>FUNDED; then DELIVERED, or under <tt>no-window</tt> AWAITING_CHILDREN directly. <tt>object</tt> is the Delivery's digest. The Delivery passed <xref target="delivery"/>.</td></tr>
+            <tr><td><tt>window-opened</tt></td><td>DELIVERED; then WINDOW_OPEN. Recorded in the same operation as the entry it follows, with the same <tt>at</tt>: under <tt>delivery-first</tt> the <tt>delivered</tt> entry; under <tt>verdict-first</tt> a PASS <tt>verdict</tt> or <tt>verdict-lapsed</tt>. <tt>closes_at</tt> (timestamp, required) is <tt>at</tt> plus <tt>challenge.window_seconds</tt>.</td></tr>
+            <tr><td><tt>verdict</tt></td><td>DELIVERED (<tt>verdict-first</tt>, no Verdict standing), WINDOW_OPEN (<tt>delivery-first</tt>, no Verdict standing) or DISPUTED (answering a pending Challenge); then as the condition says. <tt>object</tt> is the Verdict's digest; <tt>signer</tt> (the <tt>kid</tt> of its signature); <tt>outcome</tt> (PASS or FAIL); <tt>answers</tt> (digest of the Challenge, present exactly when the Verdict carries <tt>challenge_hash</tt>); <tt>supersedes</tt> (digest of the Verdict that stood, present exactly when one did). Then: FAIL leads to AWAITING_CHILDREN; PASS in DELIVERED leads to <tt>window-opened</tt>; PASS in WINDOW_OPEN changes the state of nothing; PASS in DISPUTED leads to WINDOW_OPEN once no Challenge is pending.</td></tr>
+            <tr><td><tt>verdict-lapsed</tt></td><td>DELIVERED; unchanged. Under <tt>verdict-first</tt>, <tt>verification.max_verdict_seconds</tt> have passed since <tt>delivered</tt> with no <tt>verdict</tt>. <tt>window-opened</tt> follows in the same operation.</td></tr>
+            <tr><td><tt>challenge</tt></td><td>WINDOW_OPEN or DISPUTED; then DISPUTED. <tt>object</tt> is the Challenge's digest; <tt>signer</tt> (the <tt>kid</tt> of its signature); <tt>costs</tt> copied from the Challenge when present. The Challenge passed <xref target="challenges"/> before <tt>closes_at</tt>.</td></tr>
+            <tr><td><tt>dispute-lapsed</tt></td><td>DISPUTED; then WINDOW_OPEN. <tt>object</tt> is the Challenge's digest. <tt>challenge.max_dispute_seconds</tt> have passed since that <tt>challenge</tt> entry with no Verdict answering it. Leads to WINDOW_OPEN once no Challenge is pending; the earlier Verdict, if any, stands.</td></tr>
+            <tr><td><tt>window-closed</tt></td><td>WINDOW_OPEN; then AWAITING_CHILDREN. <tt>closes_at</tt> has passed and no Challenge is pending. The window is never extended: a dispute that outlasts it delays this entry and does not move <tt>closes_at</tt>.</td></tr>
+            <tr><td><tt>child-registered</tt></td><td>any non-terminal; unchanged. <tt>object</tt> is the child contract's digest; <tt>facilitator</tt> (URI). <xref target="tree-registration"/>.</td></tr>
+            <tr><td><tt>child-final</tt></td><td>any non-terminal; unchanged. <tt>object</tt> is the child's Outcome Record digest; <tt>child</tt> (the child contract's digest).</td></tr>
+            <tr><td><tt>child-unresolved</tt></td><td>any non-terminal; unchanged. <tt>child</tt> (the child contract's digest). The child's latest finality instant (<xref target="tree-timing"/>) has passed and no Outcome Record for it is held.</td></tr>
+            <tr><td><tt>children-final</tt></td><td>AWAITING_CHILDREN; then terminal follows. Every registered child has a <tt>child-final</tt> or <tt>child-unresolved</tt> entry. A contract with no registered children records this entry on entering AWAITING_CHILDREN.</td></tr>
+            <tr><td><tt>terminal</tt></td><td>AWAITING_CHILDREN; then FINAL, SETTLED or ABANDONED. <tt>state</tt> (the terminal state) and <tt>challenge_upheld</tt> (boolean). ABANDONED where <tt>deadline-passed</tt> was recorded; SETTLED where the standing Verdict is FAIL, with <tt>challenge_upheld</tt> true when that Verdict answers a Challenge; FINAL otherwise.</td></tr>
+          </tbody>
+        </table>
+
+        <t>The standing Verdict is the last <tt>verdict</tt> entry in the
+        trace that no later entry supersedes. A Challenge is pending from its
+        <tt>challenge</tt> entry until a <tt>verdict</tt> entry answers it, a <tt>dispute-lapsed</tt> entry names it, or a <tt>terminal</tt> entry is recorded.</t>
+
+        <t>Every instant in the table is read from the Facilitator's clock,
+        and an entry conditioned on an instant having passed is recorded at
+        the first opportunity after it, which need not be that instant. Two Facilitators given the same posted records, the same clock readings and the same reports from the settlement binding record the same trace; that is the determinism the
+        experiment in <xref target="experiment"/> tests, and the reason
+        every condition above is stated over the trace, the clock and the binding's report, and nothing else.</t>
+
+        <t>An instant has passed when the Facilitator's clock reads that
+        instant or a later one, and a record received when the clock reads an
+        instant has arrived at it, so a Challenge received when the clock
+        reads <tt>closes_at</tt> is after the window. Before acting on a posted
+        record a Facilitator MUST first record every clock-driven entry that
+        is due, so that the record is judged in the state the clock produced;
+        entries due at the same instant are recorded in the order of the
+        table. The <tt>at</tt> of an entry MUST be no earlier than that of
+        the entry before it, and a Status's <tt>issued_at</tt> MUST be no
+        earlier than the <tt>at</tt> of its last entry.</t>
+      </section>
+    </section>
+
+    <section anchor="vtc"><name>The Verifiable Task Contract</name>
+      <t>A VTC is a JSON object, media type
+      <tt>application/vnd.pact.contract+json</tt>, with the members in
+      <xref target="dict-vtc"/>. A VTC is valid only if every required member is present, the Buyer and the Seller are distinct after normalization (<xref target="conf-rules"/>), any named Verifier satisfies <xref target="independence"/>, and both the Buyer and the Seller
+      have contributed exactly one signature that verifies against a key bound
+      to its identifier (<xref target="conf-rules"/>). The Facilitator and any
+      Verifier do not sign the VTC; their assent is expressed by acting on it,
+      and a Facilitator that will not act on a contract refuses it at
+      <xref target="ep-propose"/>.</t>
+
+      <t>The <tt>settlement</tt> identifier, the network and the asset are all
+      carried inside <tt>price</tt> so that a co-signed VTC is bound to one
+      venue. The -00 revision omitted them, which made a signed contract
+      replayable against any facilitator, chain or token contract.</t>
+
+      <figure anchor="fig-vtc">
+        <name>A Verifiable Task Contract, signatures and parameters abbreviated</name>
+        <sourcecode type="json" name="vtc.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "VerifiableTaskContract",
+  "id": "vtc_9f2c11",
+  "parties": {
+    "buyer": "did:web:buyer.example:agents:procure-1",
+    "seller": "did:web:dataforge.example:agents:etl-3",
+    "facilitator": "did:web:settle.example",
+    "verifier": "did:web:audit.example"
+  },
+  "task": {
+    "spec_hash": "sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef11\
+   1d27ff6bee37f05531823b72",
+    "spec_uri": "https://buyer.example/specs/taskspec.json",
+    "deadline": "2026-11-14T00:00:00Z"
+  },
+  "price": {
+    "amount": "180.00",
+    "currency": "USDC",
+    "settlement": "https://settle.example/bindings/ledger-1",
+    "network": "eip155:8453"
+  },
+  "verification": {
+    "tier": "T0-reexec",
+    "profile": "acceptance",
+    "criteria_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c\
+   10b8351c9c55eb9316416265fc1b",
+    "max_verdict_seconds": 86400
+  },
+  "flow": "verdict-first",
+  "terms": {
+    "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restit\
+   ution",
+    "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf\
+   6956e835df2653b99d71d363a68",
+    "parameters": {
+      "...": "the profile's; not read here"
+    }
+  },
+  "challenge": {
+    "window_seconds": 3600,
+    "max_dispute_seconds": 86400
+  },
+  "signatures": [
+    {
+      "protected": "...",
+      "signature": "..."
+    },
+    {
+      "protected": "...",
+      "signature": "..."
+    }
+  ]
+}
+]]></sourcecode>
+      </figure>
+
+      <t>The values are the reference repository's
+      (<xref target="example"/>), with the signatures abbreviated. The
+      <tt>parameters</tt> object is shown elided on purpose: nothing in this
+      document depends on what is in it.</t>
+
+      <section anchor="hashes"><name>Hash Commitments and Content Conveyance</name>
+        <t>Every URI carried inside hash-committed content MUST be accompanied
+        by a sibling hash over the dereferenced bytes. The -00 revision
+        committed <tt>harness_uri</tt> as a string while leaving the bytes at
+        that URI uncommitted, which permitted a Buyer to substitute the
+        acceptance instrument after signature, run the substituted
+        instrument, and submit the failure as a valid proof of nonconformance. The -01
+        revision stated the rule and its own reference TaskSpec broke it for
+        three of four URIs; this revision's example carries all four
+        sibling hashes, and the validator checks each.</t>
+        <t>Where the committed content is a bundle of files rather than a
+        single octet stream, the commitment MUST be computed as
+        <tt>SHA-256(JCS(M))</tt> where M is an object mapping each file's
+        path, relative to the bundle root and expressed with "/" separators,
+        to the digest of its bytes in the string form of <xref target="conventions"/>, over every file in the bundle. A file whose name, or any directory on whose path, begins with a dot is not part of a bundle. A
+        manifest of per-file digests is specified rather than an archive
+        digest because archive formats carry ordering, timestamp and
+        permission metadata that is not stable across producers. The same
+        construction commits to a terms profile (<xref target="terms"/>).</t>
+      </section>
+
+      <section anchor="taskspec"><name>The Task Specification</name>
+        <t>The content committed by <tt>spec_hash</tt> is a TaskSpec: a JSON
+        object with the members in <xref target="dict-taskspec"/>,
+        canonicalized per <xref target="RFC8785"/> before hashing. It is not
+        transmitted over the endpoints of this document; the parties exchange
+        it before signing, and <tt>spec_uri</tt> may say where.</t>
+
+        <t>The <tt>acceptance</tt> object MUST carry the members required for
+        the contract's tier: <tt>harness_uri</tt> and <tt>harness_hash</tt>
+        for re-execution tiers, enclave and model policy for attestation
+        tiers, a proof statement with its verifying key for proving tiers, or
+        <tt>rubric_uri</tt> and <tt>rubric_hash</tt> for judgment tiers. An
+        empty <tt>acceptance</tt> object MUST be rejected. The -00 revision's
+        schema permitted one, which made every proof of nonconformance impossible.</t>
+
+        <t>Thresholds MUST be stated so that they cannot be satisfied by
+        returning almost nothing. A threshold expressed only as a rate over
+        returned rows is satisfied by returning one correct row out of
+        millions; a completeness condition relative to the committed input is
+        therefore required wherever the deliverable is a transformation of
+        that input.</t>
+      </section>
+
+      <section anchor="terms"><name>Terms</name>
+        <t>The <tt>terms</tt> member names the settlement terms both parties
+        signed, by reference. It carries a <tt>profile</tt> URI, a
+        <tt>profile_hash</tt>, and a <tt>parameters</tt> object. This document
+        defines no obligation between parties and takes no position on the
+        legal effect of any object it defines; what the named profile says the
+        parties have agreed to, and what any of it means between them, is the
+        profile's and its authors' to say.</t>
+
+        <t><tt>profile_hash</tt> is the manifest digest of
+        <xref target="hashes"/> over the profile's bundle. A bundle usable
+        with this document contains at least three files: the profile's prose,
+        <tt>parameters.schema.json</tt>, a JSON Schema
+        <xref target="I-D.bhutton-json-schema"/> for the <tt>parameters</tt> object, and
+        <tt>vectors.json</tt>, whose form <xref target="terms-result"/>
+        gives. A digest over prose alone would commit the parties to bytes and
+        not to behaviour; the schema and the vectors are what make two
+        implementations of the profile checkable against each other.</t>
+
+        <t>A Facilitator MUST refuse a contract whose <tt>terms.profile</tt>
+        and <tt>terms.profile_hash</tt> do not match an entry in the
+        <tt>terms_profiles</tt> array of its own capability document
+        (<xref target="wellknown"/>; <tt>terms-unsupported</tt>), so that no party signs terms the Facilitator will not evaluate, and MUST refuse a contract whose <tt>parameters</tt> do not validate against the named profile's <tt>parameters.schema.json</tt> (<tt>terms-parameters-invalid</tt>). This document reads <tt>parameters</tt> for no other purpose; the named profile's schedule and admission rule read them as the profile's. The rule of <xref target="conventions"/> that an
+        undefined member is rejected does not apply inside
+        <tt>parameters</tt>; the profile's schema governs there.</t>
+
+        <t>A profile usable with this document defines, in its prose, a
+        schedule: a total, deterministic function from a contract and a trace
+        prefix (<xref target="events"/>) to the list of entries the profile
+        emits at the last event of that prefix, in the form of
+        <xref target="terms-result"/>. Total means every event in
+        <xref target="tab-events"/> has a defined result, including the ones a
+        profile author would rather not think about: a lapsed dispute, an
+        unresolved child, a contract abandoned before it was funded.
+        Deterministic means the result depends on the contract, the trace and
+        nothing else, so that any party holding those can recompute it. The prose also names the accounts the schedule moves value between, and says which of them are internal, opened empty and required to close empty, and which are external. A profile MAY also state
+        an admission rule: a condition on the contract, evaluated once at
+        <tt>accepted</tt>, whose failure is reported with a problem type from
+        the profile's namespace (<xref target="ep-errors"/>). This document does not
+        register profiles and defines none normatively;
+        <xref target="appendix-profile"/> carries one for the experiment.</t>
+
+        <t>Everything the -01 revision said in its Section 5.3, and everything
+        it said in its Section 7 about what is posted, released,
+        returned or forfeited and when, is now the content of a profile. The
+        member that carried those figures inside the contract is gone; the
+        figures a profile needs are in <tt>parameters</tt>, and the -01
+        figures in particular are the parameters of the profile in
+        <xref target="appendix-profile"/>.</t>
+      </section>
+    </section>
+
+    <section anchor="delivery"><name>The Delivery Record</name>
+      <t>The Delivery is the record a contract is judged against. It is a
+      JSON object, media type <tt>application/vnd.pact.delivery+json</tt>,
+      with the members in <xref target="dict-delivery"/>, signed once by the
+      Seller.</t>
+
+      <t>A Facilitator MUST refuse a Delivery, with the problem type named,
+      when: its <tt>vtc_hash</tt> does not match the contract
+      (<tt>object-conflict</tt>); the contract is not in FUNDED
+      (<tt>wrong-state</tt>); its signature does not verify against a key
+      bound to <tt>parties.seller</tt> (<tt>signature-invalid</tt>,
+      <tt>unexpected-signer</tt>); its <tt>evidence</tt> member is absent or
+      does not conform to the verification profile named in the contract
+      (<tt>evidence-nonconformant</tt>); or <tt>input_hash</tt> is absent
+      where the tier re-executes (<tt>evidence-nonconformant</tt>). A refused
+      Delivery is recorded in no trace; the contract stays in FUNDED and a
+      conformant Delivery may follow before the deadline. The -01 revision
+      treated a nonconformant Delivery as a FAIL Verdict, which decided a
+      question about value inside a rule about shape; the consequence of a
+      Seller reaching the deadline with nothing conformant recorded is now
+      the <tt>deadline-passed</tt> event, and what that event costs anyone is
+      the profile's.</t>
+
+      <t>Conformance of <tt>evidence</tt> is a check on shape, not on
+      substance: the Facilitator confirms that the members the profile
+      requires are present and well formed, and nothing about whether the
+      work is any good. That is why the check stays on the right side of the line
+      drawn in <xref target="terminology"/>. Where <tt>task.deadline</tt> passes
+      with no <tt>delivered</tt> entry, the Facilitator records
+      <tt>deadline-passed</tt> (<xref target="events"/>). No window opens,
+      because there is nothing to challenge.</t>
+
+      <figure anchor="fig-delivery">
+        <name>A Delivery for a T0-reexec contract, acceptance profile</name>
+        <sourcecode type="json" name="delivery.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "Delivery",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff49493\
+   04c2c855ca1d746ba6459",
+  "work_hash": "sha256:a26dc519a79ac70835a71ea58c9e34f0625778aee2\
+   80a3170b6b9a5037036ef0",
+  "work_uri": "https://cdn.dataforge.example/o/a26d",
+  "input_hash": "sha256:d7f43b3a51c28274adc4ebe535cc9de80f0b6d6c9\
+   75a1d1ce519d582306338b1",
+  "evidence": {
+    "profile": "acceptance",
+    "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae9\
+   5c10b8351c9c55eb9316416265fc1b",
+    "results_hash": "sha256:28d334e0e0e0771eb5708452612ebcc6fbf84\
+   8ebaca540214b4f6d2165688a51",
+    "results_uri": "https://cdn.dataforge.example/o/28d3"
+  },
+  "signature": {
+    "protected": "...",
+    "signature": "..."
+  }
+}
+]]></sourcecode>
+      </figure>
+
+      <t>The -01 revision said that a Buyer countersignature over the
+      Delivery constituted a receipt. The Delivery's signing member is a
+      single object, so no second signature could be carried, and the
+      sentence is withdrawn. A Buyer that wants a record of receipt has one:
+      the Status the Facilitator returns for the Delivery carries the
+      <tt>delivered</tt> entry and the Facilitator's signature over it.</t>
+    </section>
+
+    <section anchor="verification"><name>Verdicts, Challenges and the Window</name>
+
+      <section anchor="flows"><name>Flows</name>
+        <t>The <tt>flow</tt> member selects one of three shapes for the state
+        machine of <xref target="states"/>. A conformant Facilitator MUST implement <tt>verdict-first</tt> and MUST list it in the <tt>flows</tt> member of its capability document (<xref target="dict-capabilities"/>); the others are OPTIONAL, and a
+        Facilitator MUST refuse a contract naming a flow it does not advertise
+        (<tt>flow-unsupported</tt>).</t>
+        <dl>
+          <dt><tt>verdict-first</tt>:</dt><dd>A Verdict is recorded before the
+          window opens. The window opens on a PASS Verdict or on
+          <tt>verdict-lapsed</tt>; a FAIL Verdict ends the contract without a
+          window.</dd>
+          <dt><tt>delivery-first</tt>:</dt><dd>The window opens at
+          <tt>delivered</tt>. One Verdict MAY be recorded inside the window without a Challenge, and a second only in answer to one; a FAIL ends the contract, a PASS changes nothing.</dd>
+          <dt><tt>no-window</tt>:</dt><dd>No window opens and no Verdict is
+          accepted; <tt>delivered</tt> is followed by the terminal
+          path.</dd>
+        </dl>
+        <t>The -01 revision had four release modes. Two of them produce the
+        same trace and differed only in which event a profile acts on, which
+        is a profile parameter and not a protocol matter. The mapping is in
+        <xref target="changes"/>.</t>
+
+        <t>The window opens at the instant of the <tt>window-opened</tt> entry
+        and closes at that instant plus <tt>challenge.window_seconds</tt>,
+        carried in the entry as <tt>closes_at</tt>. A Facilitator MUST NOT
+        accept a Challenge after <tt>closes_at</tt>, MUST NOT extend the
+        window for any reason, and MUST NOT record <tt>window-closed</tt>
+        while a Challenge is pending.</t>
+      </section>
+
+      <section anchor="verdicts"><name>Verdicts</name>
+        <t>A Verdict is a signed statement that a Delivery was evaluated
+        against the committed instrument, and with what outcome. It is a JSON
+        object, media type <tt>application/vnd.pact.verdict+json</tt>, with
+        the members in <xref target="dict-verdict"/>, signed once.</t>
+
+        <figure anchor="fig-verdict">
+          <name>A Verdict</name>
+          <sourcecode type="json" name="verdict.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "Verdict",
+  "vtc_id": "vtc_9f2c11",
+  "delivery_hash": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45\
+   370cb3023331bc8bfbd924fcbe",
+  "outcome": "PASS",
+  "profile": "acceptance",
+  "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c\
+   10b8351c9c55eb9316416265fc1b",
+  "results_hash": "sha256:28d334e0e0e0771eb5708452612ebcc6fbf848e\
+   baca540214b4f6d2165688a51",
+  "evaluated_at": "2026-11-10T09:14:22Z",
+  "signature": {
+    "protected": "...",
+    "signature": "..."
+  }
+}
+]]></sourcecode>
+        </figure>
+
+        <t>The Verifier is the party identified by the <tt>kid</tt> of the
+        Verdict's signature. Where the contract names
+        <tt>parties.verifier</tt>, a Facilitator MUST refuse a Verdict signed
+        by any other party; otherwise it MUST refuse a Verdict whose signer
+        does not satisfy <xref target="independence"/>
+        (<tt>verifier-not-independent</tt>). It MUST refuse a Verdict for a
+        contract with no <tt>delivered</tt> entry
+        (<tt>no-recorded-delivery</tt>); one whose <tt>delivery_hash</tt>
+        does not match that entry, or whose <tt>profile</tt> or
+        <tt>instrument_hash</tt> does not match the contract
+        (<tt>verdict-nonconformant</tt>); one received in a state, or under conditions, that the table in <xref target="events"/> does not list for it, or under the
+        <tt>no-window</tt> flow (<tt>wrong-state</tt>); and one carrying
+        <tt>challenge_hash</tt> that names no pending Challenge, or omitting
+        it while the contract is DISPUTED (<tt>verdict-nonconformant</tt>).
+        A Verdict recorded while one stands supersedes it, and both stay in the trace; since a Verdict is accepted while one stands only in DISPUTED, only a Verdict that answers a Challenge ever supersedes.</t>
+
+        <t>A Verdict commits to the instrument it ran and to the results it
+        produced. Without <tt>instrument_hash</tt> a Verifier could run
+        something other than the committed instrument and the contract would
+        have no way to tell; that is the substitution attack of
+        <xref target="sec-substitution"/>, arriving from the verification
+        side.</t>
+
+        <t>Under <tt>verdict-first</tt> a Verifier that never answers would
+        leave a contract in DELIVERED forever, and the -01 revision had no
+        rule for it. <tt>verification.max_verdict_seconds</tt> bounds the
+        wait: when it passes with no Verdict, the Facilitator records
+        <tt>verdict-lapsed</tt> and opens the window, so that the contract can
+        still be challenged and can still end. What a lapsed Verdict costs
+        anyone is the profile's.</t>
+      </section>
+
+      <section anchor="challenges"><name>Challenges</name>
+        <t>A Challenge is a JSON object, media type
+        <tt>application/vnd.pact.challenge+json</tt>, with the members in
+        <xref target="dict-challenge"/>, by which a party submits a proof of nonconformance (what optimistic systems call a fraud proof) inside the window. A Facilitator MUST refuse a Challenge
+        received when the contract is not in WINDOW_OPEN or DISPUTED, or
+        after <tt>closes_at</tt> (<tt>challenge-window-closed</tt>); one
+        whose <tt>delivery_hash</tt> does not match the <tt>delivered</tt>
+        entry (<tt>object-conflict</tt>); one whose <tt>proof</tt> does not
+        conform to the verification profile (<tt>proof-nonconformant</tt>);
+        one whose signer it cannot resolve (<tt>signature-invalid</tt>); and
+        one signed by the contract's Seller (<tt>unexpected-signer</tt>),
+        since a performer's statement against its own Delivery is not a
+        proof of nonconformance and the -01 revision left the case open. A Facilitator
+        MUST NOT refuse a Challenge on the ground that its signer is the
+        contract's Buyer.</t>
+
+        <t>A Challenge that is accepted is evaluated by a party satisfying
+        <xref target="independence"/>, whose finding is a Verdict carrying <tt>challenge_hash</tt>; the Challenger's own assertion is not a finding, unless the Challenger is the verifier the contract names, whose Verdict is the finding by definition. A named Verifier that finds its own PASS wrong posts a Challenge and answers it. The Challenger is the party identified by the <tt>kid</tt> of
+        the Challenge's signature.</t>
+
+        <t>A capability document MAY advertise <tt>challenge_deposit</tt>. Whether anything must accompany a Challenge, how it is posted and what becomes of it are the terms profile's and the settlement binding's to say; this document carries the member and reads it for no purpose. <xref target="sec-dos"/>
+        discusses what a deposit does and does not prevent.</t>
+
+        <figure anchor="fig-challenge">
+          <name>A Challenge under the acceptance profile</name>
+          <sourcecode type="json" name="challenge.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "Challenge",
+  "vtc_id": "vtc_9f2c11",
+  "delivery_hash": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45\
+   370cb3023331bc8bfbd924fcbe",
+  "proof": {
+    "profile": "acceptance",
+    "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae9\
+   5c10b8351c9c55eb9316416265fc1b",
+    "results_hash": "sha256:7f05a60223e24ca9393e0c241d0448cb5f39e\
+   5edb71c117fb7d3d593d5861b40",
+    "results_uri": "https://watch.example/o/a91e",
+    "failing_checks": ["schema_valid_rate", "row_count_min"]
+  },
+  "costs": {
+    "amount": "1.20",
+    "currency": "USDC"
+  },
+  "signature": {
+    "protected": "...",
+    "signature": "..."
+  }
+}
+]]></sourcecode>
+        </figure>
+      </section>
+
+      <section anchor="disputes"><name>Disputes and Lapses</name>
+        <t>A contract with a pending Challenge is DISPUTED. It leaves that
+        state when a Verdict answers the Challenge, or when
+        <tt>challenge.max_dispute_seconds</tt> pass with none and the
+        Facilitator records <tt>dispute-lapsed</tt>. A lapsed Challenge
+        changes no Verdict: the Verdict that stood before it stands after it.
+        A Facilitator MAY accept further Challenges while DISPUTED, each of
+        which is pending on its own account, and MUST NOT record
+        <tt>window-closed</tt> until none is pending.</t>
+
+        <figure anchor="fig-dispute">
+          <name>The dispute path: a Challenge answered by a FAIL Verdict</name>
+          <artwork type="ascii-art"><![CDATA[
+  Buyer        Facilitator       Verifier      Challenger
+    |              |                 |               |
+    |              |<-- POST Verdict |               |
+    |              |   [ verdict PASS ]              |
+    |              |   [ window-opened ]             |
+    |              |<------------- POST Challenge ---|
+    |              |-- Status ---------------------->|
+    |              |   [ challenge ]                 |
+    |              |-- Challenge + Delivery -------->|
+    |              |<-- POST Verdict |               |
+    |              |   [ verdict FAIL, answers,      |
+    |              |     supersedes ]                |
+    |              |   [ children-final ]            |
+    |              |   [ terminal SETTLED,           |
+    |              |     challenge_upheld true ]     |
+    |<- Outcome ---|                                 |
+        ]]></artwork>
+        </figure>
+
+        <t>The figure carries no rank, no waterfall and no amount. The -01
+        revision drew five numbered transfers on this diagram; every one of
+        them is now a line in a profile's schedule, keyed to the
+        <tt>terminal</tt> entry, and reported in <tt>terms_result</tt>.</t>
+      </section>
+    </section>
+
+    <section anchor="wellknown"><name>Facilitator Capability Discovery</name>
+      <t>Before a Buyer and Seller can co-sign a VTC they must agree on a
+      Facilitator and know what it implements. This document registers one
+      well-known URI for that purpose, per <xref target="RFC8615"/>. A client SHOULD fetch the document again before it proposes, since nothing in it survives the Facilitator withdrawing a profile.</t>
+
+      <t>This is deliberately narrower than agent discovery, which is the
+      subject of separate work and is not restated here. What is discovered
+      is one service's capabilities, not an agent's identity, skills or
+      endpoints.</t>
+
+      <t>A Facilitator SHOULD publish a JSON document, media type
+      <tt>application/vnd.pact.facilitator+json</tt>, with the members in
+      <xref target="dict-capabilities"/>, at the path <tt>/.well-known/pact-facilitator</tt> of its origin: for an <tt>https:</tt> identifier that origin, and for a <tt>did:web</tt> identifier <tt>https://</tt> followed by the host the method encodes. The document MUST
+      be served over HTTPS. It MUST be signed, and the signature MUST verify
+      against a key bound to the identifier in <tt>facilitator</tt>. An
+      unsigned capability document is not usable for contract formation,
+      because <tt>terms_profiles</tt> determines which terms a party can name
+      and expect to be evaluated.</t>
+
+      <figure anchor="fig-wellknown">
+        <name>https://settle.example/.well-known/pact-facilitator</name>
+        <sourcecode type="json" name="pact-facilitator.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "FacilitatorCapabilities",
+  "facilitator": "did:web:settle.example",
+  "issued_at": "2026-11-01T09:00:00Z",
+  "settlement_bindings": [
+    {
+      "id": "https://settle.example/bindings/ledger-1",
+      "networks": ["eip155:8453"],
+      "assets": ["USDC"]
+    }
+  ],
+  "flows": ["verdict-first", "delivery-first"],
+  "verification_profiles": ["acceptance"],
+  "terms_profiles": [
+    {
+      "id": "tag:laxsharma79@gmail.com,2026:pact:bonded-restituti\
+   on",
+      "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124c\
+   cf6956e835df2653b99d71d363a68"
+    }
+  ],
+  "max_contract_value": {
+    "amount": "50000.00",
+    "currency": "USDC"
+  },
+  "endpoints": {
+    "contract": "https://settle.example/pact/v2/contracts",
+    "delivery": "https://settle.example/pact/v2/deliveries",
+    "verdict": "https://settle.example/pact/v2/verdicts",
+    "challenge": "https://settle.example/pact/v2/challenges",
+    "outcome": "https://settle.example/pact/v2/outcomes"
+  },
+  "signature": {
+    "protected": "...",
+    "signature": "..."
+  }
+}
+]]></sourcecode>
+      </figure>
+
+      <t>A client MUST NOT infer any capability from the absence of a member.
+      A client may hold a Facilitator\'s capability document by prior arrangement rather than fetch it from the well-known path; the path is a convenience, the document is not, since a Facilitator refuses what its document does not advertise (<xref target="terms"/>, <xref target="ep-propose"/>). A Facilitator lists only the terms profiles whose vectors (<xref target="terms-result"/>) its own implementation reproduces.</t>
+    </section>
+
+    <section anchor="profiles"><name>Verification Profiles</name>
+      <t>A contract names both a <tt>tier</tt>, which says what class of
+      evidence is produced, and a <tt>profile</tt>, which says what is
+      actually done to check it. Four tier labels are used in this document:
+      <tt>T0-reexec</tt>, deterministic re-execution; <tt>T1-tee</tt>,
+      hardware attestation per <xref target="RFC9334"/>; <tt>T2-zkml</tt>, a
+      proof of inference; and <tt>T3-jury</tt>, staked arbitration. Tiers are
+      a vocabulary. Three profiles are defined below by name; any other is
+      identified by a URI under its definer's control, and this document
+      creates no registry for them. The distinction matters because the tier
+      name does not determine how much checking a contract gets and the
+      profile largely does.</t>
+
+      <t>Consider one task, a bulk data transformation, under two profiles at
+      the same nominal tier. Re-executing the whole computation and comparing outputs costs about what performing it cost; running a committed acceptance instrument against the delivered artifact costs a small fraction of that. Those are the author's estimates, not measurements (the measurements <xref target="implstatus"/> mentions are of the protocol, not the work), and the two can differ by orders of magnitude in what checking costs relative to the price. A terms profile
+      may make that ratio matter; this document requires of a verification profile the five statements listed after the profiles below, one of which is an order-of-magnitude estimate of its cost relative to the work, since a figure nobody can estimate is a figure nobody can use.</t>
+
+      <t>Implementations SHOULD select the cheapest profile that detects the
+      failures they actually care about, rather than the strongest-sounding
+      one. A committed acceptance instrument that is adequate is worth more
+      than a re-execution profile that nobody can afford to run.</t>
+
+      <dl>
+        <dt><tt>acceptance</tt>:</dt><dd>Run the instrument committed by
+        <tt>criteria_hash</tt> against the Delivery. The proof of nonconformance is a
+        failing evaluation. Deterministic by construction, since the
+        instrument is fixed before work begins. Cost: a small fraction of the work for a data transformation, by estimate.</dd>
+        <dt><tt>bisection</tt>:</dt><dd>Interactive narrowing to a single
+        disputed step, which is then checked directly. Cost grows
+        logarithmically in the size of the computation rather than
+        linearly.</dd>
+        <dt><tt>full-reexec</tt>:</dt><dd>Re-execute and compare byte for
+        byte. Sound only where the computation is deterministic and the
+        environment is pinned; see <xref target="sec-determinism"/>. Cost:
+        approximately the work.</dd>
+      </dl>
+
+      <t>A verification profile usable with this document states five
+      things: what artefact is evaluated and against what; what constitutes a
+      valid proof of nonconformance, including whether absence of evidence
+      is one; that its proof can be evaluated by a party other than the
+      Seller; its cost relative to the work, to order of magnitude; and
+      whether it is deterministic and with what tolerance
+      (<xref target="sec-determinism"/>). <tt>acceptance</tt> states these below; the other two are sketches that a full profile document completes; a profile defined elsewhere states them in its own document.</t>
+
+      <section anchor="independence"><name>Verifier Independence and Identifier Normalization</name>
+        <t>Independence is a relation between the party that signs a Verdict
+        and the parties to the contract. It MUST be derived by the Facilitator
+        and MUST NOT be satisfied by a field in which a record declares itself independent. Rules of this kind are stated for evaluation after the fact in <xref target="X402COMPLIANCE"/>; this document binds them at contract formation. A Facilitator MUST refuse a Verdict whose signer
+        is, after normalization, the contract's Buyer, Seller or Facilitator,
+        and MUST refuse a contract whose <tt>parties.verifier</tt> is any of
+        those three (<tt>verifier-not-independent</tt>). The last case is the
+        rule the -01 revision stated as a prohibition on the Facilitator's
+        conduct; it is an identifier comparison and is stated as one.</t>
+
+        <t>Party identifiers MUST be normalized before comparison, and the
+        normalization MUST fold toward identifying the same party: strip
+        leading and trailing whitespace; lower-case the scheme and, for
+        <tt>did:web</tt> and <tt>https</tt> identifiers, the host; remove any
+        fragment (a "#" and everything after it) and any trailing "/" or
+        ".". The path of a <tt>did:web</tt> identifier is case sensitive and
+        MUST NOT be folded. Percent-encoding MUST NOT be decoded, since an
+        open-ended decoder is its own attack surface. An identifier that does
+        not parse after normalization is not evaluable and MUST NOT be
+        treated as outside the parties. An independence claim reaches
+        exactly as far as the record's own commitments.</t>
+      </section>
+    </section>
+
+    <section anchor="trees"><name>Contract Trees</name>
+      <t>An agent that accepts work may subcontract part of it. The
+      subcontract is an ordinary PACT contract whose Buyer is the parent's
+      Seller. What this section adds is the binding between the two, in both
+      directions and across Facilitators, so that a parent's Outcome Record
+      can commit to its children's and a reader of the parent's record can
+      find and check them.</t>
+
+      <figure anchor="fig-tree">
+        <name>A contract tree. B is Seller above and Buyer below.</name>
+        <artwork type="ascii-art"><![CDATA[
+                A (Buyer)
+                    |
+                vtc_9f2c11      at did:web:settle.example
+                    |
+                B (Seller)
+                    |
+        +-----------+-----------+
+        |                       |
+    vtc_c1a2                vtc_c2b7    at did:web:other.example
+        |                       |
+    C (Seller)              D (Seller)
+        ]]></artwork>
+      </figure>
+
+      <section anchor="tree-binding"><name>Binding a Child to Its Parent</name>
+        <t>A subcontract carries <tt>parent</tt>, a top-level member with the
+        parent's <tt>vtc_id</tt>, <tt>vtc_hash</tt> and
+        <tt>facilitator</tt>. Because <tt>parent</tt> is inside the bytes both
+        parties sign, the child's Buyer signature is itself the authorisation
+        to attach that child to that parent. The -01 revision carried this
+        member inside the member it has since removed; it is structural and
+        is now where structure is.</t>
+
+        <t>The child's Facilitator need not resolve the parent, and across
+        Facilitators it often cannot. It MUST record <tt>parent</tt> as
+        signed, and MUST allow the identifier in <tt>parent.facilitator</tt>
+        to retrieve the child's Status and Outcome Record
+        (<xref target="sec-retrieval"/>). The check that the child's Buyer is
+        the parent's Seller is made where the parent is: at registration.</t>
+
+        <t>The -01 revision required a Facilitator to reject a child whose
+        parent chain contained the child's own identifier and to enforce a
+        maximum depth. Neither rule survives, because neither is needed. A
+        child commits to its parent's digest, and the parent's digest exists
+        before the child is signed, so no contract can commit to a descendant
+        and a cycle cannot be formed; depth is bounded by whatever a
+        Facilitator is willing to register, and no Facilitator sees more
+        than one level.</t>
+      </section>
+
+      <section anchor="tree-registration"><name>Registration and Children Final</name>
+        <t>The parent's Facilitator learns of a child when the child's co-signed
+        contract is posted to the parent's children resource
+        (<xref target="endpoints"/>). Any holder of that contract may post it;
+        the registration is authenticated by the child's own signatures, and
+        the child's Buyer, which is the parent's Seller, is the party that
+        ordinarily holds it. A registered child is identified at the parent's
+        venue by its digest, so its <tt>id</tt> need not be unique there.</t>
+
+        <t>A Facilitator MUST refuse a registration, with the problem type
+        named, when: the body is not a valid contract (<xref target="conf-rules"/>, the
+        rules on members and signatures; its terms and deadline are its own
+        Facilitator's to check); its <tt>parent.vtc_hash</tt> is not the
+        parent's digest or its <tt>parent.facilitator</tt> is not this
+        Facilitator (<tt>parent-unresolvable</tt>); its
+        <tt>parties.buyer</tt> is not the parent's <tt>parties.seller</tt>
+        after normalization (<tt>parent-unresolvable</tt>); its latest
+        finality instant is not earlier than the parent's
+        (<xref target="tree-timing"/>, <tt>finality-ordering-violation</tt>);
+        or the parent is terminal (<tt>wrong-state</tt>). An accepted
+        registration is recorded as <tt>child-registered</tt>.</t>
+
+        <artwork type="ascii-art"><![CDATA[
+   child.parties.buyer  ==  parent.parties.seller
+   child.parent.vtc_hash  ==  digest(parent)
+        ]]></artwork>
+
+        <t>Without the first check any party may name any contract as its
+        parent. The attack is cheap and asymmetric: name a competitor's
+        contract as parent, subcontract a trivial task to yourself, fail it,
+        and put a failed child under the competitor's record. The -00
+        revision carried the parent as a bare string with no hash and no
+        check, so the attack cost one signature.</t>
+
+        <t>A child becomes final for its parent when the parent's Facilitator
+        holds the child's Outcome Record. It may obtain that record itself,
+        by retrieving it from the child's Facilitator, or receive it by a POST to the child's entry under that resource
+        (<xref target="endpoints"/>). Either way the Facilitator MUST verify
+        the record's Facilitator signature against a key bound to the
+        identifier the registration recorded, and MUST verify that its <tt>vtc_hash</tt> is the registered child's digest, refusing a record that fails either check (<tt>child-outcome-invalid</tt>), before recording <tt>child-final</tt>. Where the child's latest finality instant passes
+        with no record held, the Facilitator records
+        <tt>child-unresolved</tt>. <tt>children-final</tt> follows when every
+        registered child has one entry or the other, and the parent's
+        <tt>terminal</tt> entry follows that.</t>
+
+        <t>A child that is never registered does not exist for the parent.
+        Nothing in this document compels a parent's Seller to register a
+        child, and <xref target="sec-parent"/> says what that means.</t>
+      </section>
+
+      <section anchor="tree-timing"><name>Finality Is Bottom-Up</name>
+        <t>A parent's Outcome Record MUST carry
+        <tt>children_merkle_root</tt> over the Outcome Records of its
+        registered children (<xref target="merkle"/>), so a parent cannot be
+        recorded until its children have been, and the parent waits in
+        AWAITING_CHILDREN until they are. For that wait to be bounded, every
+        child must be able to reach a terminal state, or be declared
+        unresolved, before its parent needs it.</t>
+
+        <t>The latest finality instant L of a contract is computed from its
+        own members and nothing else:</t>
+
+        <artwork type="ascii-art"><![CDATA[
+   verdict-first:  L = task.deadline
+                       + verification.max_verdict_seconds
+                       + challenge.window_seconds
+                       + challenge.max_dispute_seconds
+   delivery-first: L = task.deadline
+                       + challenge.window_seconds
+                       + challenge.max_dispute_seconds
+   no-window:      L = task.deadline
+        ]]></artwork>
+
+        <t>Every wait in <xref target="tab-events"/> is bounded by one of
+        those members, and a Challenge can only be received before
+        <tt>closes_at</tt>, so no sequence of events carries a contract past
+        its L except waiting for its own children. A Facilitator MUST refuse
+        to register a child unless L(child) is earlier than L(parent), and
+        MUST record <tt>child-unresolved</tt> for a registered child no later
+        than the first opportunity after L(child) if it holds no Outcome
+        Record for it by then.</t>
+
+        <t>The -01 revision compared the child's latest finality with the
+        parent's earliest window close, and bounded neither: under its
+        default mode the first Verdict could take forever, so the inequality
+        guaranteed nothing. <tt>max_verdict_seconds</tt> is what makes L
+        finite, and the waiting state is what makes the rule honest about
+        the case where a child is late anyway.</t>
+
+        <figure anchor="fig-finality">
+          <name>Bottom-up finality</name>
+          <artwork type="ascii-art"><![CDATA[
+ parent |== work ==|= verdict =|= window =|= dispute =|
+                                                      ^ L(parent)
+ child  |== work ==|= vrd =|= win =|= dsp =|
+                                           ^ L(child)
+
+        a child is registered only where L(child) < L(parent)
+          ]]></artwork>
+        </figure>
+
+        <t>What a child's outcome means for its parent is not stated here.
+        No entry in a parent's schedule depends on any child's outcome unless
+        the named terms profile says so; what this document guarantees is
+        that the parent's Outcome Record commits to whichever child records
+        exist when it is issued and names, in its trace, every child that
+        does not.</t>
+      </section>
+    </section>
+
+    <section anchor="status"><name>The Contract Status</name>
+      <t>A Contract Status is a JSON object, media type
+      <tt>application/vnd.pact.status+json</tt>, with the members in
+      <xref target="dict-status"/>, signed once by the Facilitator. It is the
+      body of every successful response to a POST in
+      <xref target="endpoints"/> and of a GET on a contract resource. It
+      carries the contract's state and the trace recorded so far.</t>
+
+      <figure anchor="fig-status">
+        <name>A Contract Status after the Verdict of <xref target="fig-verdict"/></name>
+        <sourcecode type="json" name="status.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "ContractStatus",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff49493\
+   04c2c855ca1d746ba6459",
+  "state": "WINDOW_OPEN",
+  "trace": [
+    {
+      "event": "accepted",
+      "at": "2026-11-01T10:00:00Z",
+      "object": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff494\
+   9304c2c855ca1d746ba6459"
+    },
+    {
+      "event": "funded",
+      "at": "2026-11-01T10:00:00Z"
+    },
+    {
+      "event": "delivered",
+      "at": "2026-11-10T08:30:12Z",
+      "object": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45370\
+   cb3023331bc8bfbd924fcbe"
+    },
+    {
+      "event": "verdict",
+      "at": "2026-11-10T09:14:30Z",
+      "object": "sha256:1ac94d72dbdd1f51e523ecddb3a3b360703976215\
+   b13324485db355c948adfc0",
+      "signer": "did:web:audit.example#k1",
+      "outcome": "PASS"
+    },
+    {
+      "event": "window-opened",
+      "at": "2026-11-10T09:14:30Z",
+      "closes_at": "2026-11-10T10:14:30Z"
+    }
+  ],
+  "issued_at": "2026-11-10T09:14:30Z",
+  "signature": {
+    "protected": "...",
+    "signature": "..."
+  }
+}
+]]></sourcecode>
+      </figure>
+
+      <t>Two rules make a Status worth keeping. A Facilitator MUST issue a Status for every POST it accepts, carrying the entry that request
+      caused, so that the requester holds a signed receipt of what was
+      recorded and when. And the trace in every Status a Facilitator issues
+      for a contract MUST be a prefix of the trace in every later one; two
+      Statuses for one contract that violate that are evidence of
+      equivocation, and <xref target="sec-facilitator"/> says what a holder
+      can do with it. The Outcome Record's trace is the last such
+      sequence.</t>
+
+      <t>The -01 revision returned the posted object with a <tt>state</tt>
+      member added to it, which no schema admitted and no signature covered.
+      The Status replaces that: the posted object is not echoed, and
+      everything in the response is inside the Facilitator's signature.</t>
+    </section>
+
+    <section anchor="outcomes"><name>Outcome Records</name>
+      <t>An Outcome Record records what a contract did. It is a JSON object,
+      media type <tt>application/vnd.pact.outcome+json</tt>, with the members
+      in <xref target="dict-outcome"/>. It is the input to any reputation
+      system built on PACT, though this document defines no such system and
+      takes no position on how the records should be weighed.</t>
+
+      <t>A Facilitator MUST issue exactly one Outcome Record for every
+      contract that reaches a terminal state, including SETTLED and
+      ABANDONED, MUST sign it, and MUST NOT require the signature of any
+      other party on it. A Facilitator MUST serve the bytes of the record it signed rather than sign it again on retrieval; under a randomized signature scheme a second signing would produce a second record with a different digest. The -00 revision's record needed the signature of
+      the party it recorded against, which made a reputation layer built on
+      it structurally incapable of recording a loss. The Facilitator
+      signature is what makes the record evidence: without it the record is
+      a claim by interested parties about themselves, and with it a
+      fabricated history requires a Facilitator's key rather than two
+      identities.</t>
+
+      <figure anchor="fig-outcome">
+        <name>An Outcome Record for a contract that reached SETTLED on an upheld Challenge</name>
+        <sourcecode type="json" name="outcome.json"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+{
+  "pact": "0.2",
+  "type": "OutcomeRecord",
+  "vtc_id": "vtc_9f2c11",
+  "vtc_hash": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff49493\
+   04c2c855ca1d746ba6459",
+  "parties": {
+    "buyer": "did:web:buyer.example:agents:procure-1",
+    "seller": "did:web:dataforge.example:agents:etl-3",
+    "facilitator": "did:web:settle.example",
+    "verifier": "did:web:audit.example"
+  },
+  "outcome": {
+    "state": "SETTLED",
+    "challenge_upheld": true
+  },
+  "work_hash": "sha256:a26dc519a79ac70835a71ea58c9e34f0625778aee2\
+   80a3170b6b9a5037036ef0",
+  "trace": [
+    {
+      "event": "accepted",
+      "at": "2026-11-01T10:00:00Z",
+      "object": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff494\
+   9304c2c855ca1d746ba6459"
+    },
+    {
+      "event": "funded",
+      "at": "2026-11-01T10:00:00Z"
+    },
+    {
+      "event": "delivered",
+      "at": "2026-11-10T08:30:12Z",
+      "object": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45370\
+   cb3023331bc8bfbd924fcbe"
+    },
+    {
+      "event": "verdict",
+      "at": "2026-11-10T09:14:30Z",
+      "object": "sha256:1ac94d72dbdd1f51e523ecddb3a3b360703976215\
+   b13324485db355c948adfc0",
+      "signer": "did:web:audit.example#k1",
+      "outcome": "PASS"
+    },
+    {
+      "event": "window-opened",
+      "at": "2026-11-10T09:14:30Z",
+      "closes_at": "2026-11-10T10:14:30Z"
+    },
+    {
+      "event": "challenge",
+      "at": "2026-11-10T09:40:00Z",
+      "object": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093e\
+   c2c6795962e67a6e2ff55ff",
+      "signer": "did:web:watch.example#k1",
+      "costs": {
+        "amount": "1.20",
+        "currency": "USDC"
+      }
+    },
+    {
+      "event": "verdict",
+      "at": "2026-11-10T09:58:05Z",
+      "object": "sha256:10d537e7b8face8bd7695541d36d32568394a5319\
+   7653280c404e2d84a63d46d",
+      "signer": "did:web:audit.example#k1",
+      "outcome": "FAIL",
+      "answers": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093\
+   ec2c6795962e67a6e2ff55ff",
+      "supersedes": "sha256:1ac94d72dbdd1f51e523ecddb3a3b36070397\
+   6215b13324485db355c948adfc0"
+    },
+    {
+      "event": "children-final",
+      "at": "2026-11-10T09:58:05Z"
+    },
+    {
+      "event": "terminal",
+      "at": "2026-11-10T09:58:05Z",
+      "state": "SETTLED",
+      "challenge_upheld": true
+    }
+  ],
+  "terms_result": {
+    "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restit\
+   ution",
+    "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf\
+   6956e835df2653b99d71d363a68",
+    "currency": "USDC",
+    "transfers": [
+      {
+        "event": 8,
+        "from": "...",
+        "to": "...",
+        "amount": "...",
+        "code": "..."
+      }
+    ]
+  },
+  "signatures": [
+    {
+      "protected": "...",
+      "signature": "..."
+    }
+  ]
+}
+]]></sourcecode>
+      </figure>
+
+      <t>The record carries one signature, the Facilitator's. The Seller did
+      not consent to this record and its consent is not required. The
+      <tt>transfers</tt> entries are elided here because their content is the
+      profile's; <xref target="appendix-profile"/> shows them filled in for
+      its own profile.</t>
+
+      <section anchor="terms-result"><name>The Terms Result</name>
+        <t><tt>terms_result</tt> reports what the named profile's schedule
+        produced over the whole trace. It carries the profile identifier and
+        hash copied from the contract, the currency, and <tt>transfers</tt>:
+        an array of entries, in the order the schedule produced them, each
+        with <tt>event</tt> (the zero-based index of the trace entry at which
+        the schedule emitted it), <tt>from</tt> and <tt>to</tt> (account
+        names as the profile defines them), <tt>amount</tt>, and
+        <tt>code</tt> (a string the profile defines, naming the schedule
+        line that produced the entry).</t>
+
+        <t>This document defines the form of the list and two arithmetic
+        facts about it, and nothing about what any entry means. Over the internal accounts the profile declares (<xref target="terms"/>), which open empty: no entry takes from an account more than
+        that account holds at that point in the list; and after the last
+        entry every account the profile marks internal holds zero. The two facts are constraints on a profile, checked against its vectors before a Facilitator lists it (<xref target="wellknown"/>); a Facilitator MUST NOT sign an Outcome Record whose list breaks either, since such a list shows the profile it evaluates to be defective, and MUST NOT sign one whose list differs from what the profile's schedule produces for the record's own trace. Any party
+        holding the contract, the trace and the profile's bundle can
+        recompute the list; that is the property the experiment in
+        <xref target="experiment"/> depends on.</t>
+
+        <t><tt>vectors.json</tt> in a profile's bundle is an array of
+        objects, each with <tt>name</tt>, <tt>contract</tt> (a VTC, or the
+        members of one the schedule reads), and then either <tt>trace</tt> (a complete
+        trace) with <tt>transfers</tt> (the list the schedule produces for
+        it) and <tt>accounts</tt> (the profile's internal accounts, which open empty and must close empty), or <tt>admission</tt> (an object carrying either <tt>admitted</tt>, true, or <tt>refused</tt>, the problem type the admission rule answers with for that contract). A Facilitator MUST reproduce every vector of a profile before
+        listing that profile in its capability document
+        (<xref target="wellknown"/>), which is the only conformance
+        requirement this document places on a profile implementation.</t>
+      </section>
+
+      <section anchor="merkle"><name>The Children Merkle Root</name>
+        <t>Let D be the list of 32-byte SHA-256 digests of the Outcome Record
+        of each registered child for which the Facilitator holds one, each
+        computed over the record's canonical form including its
+        <tt>signatures</tt> member, sorted ascending as byte strings.
+        <tt>children_merkle_root</tt> is MTH(D) exactly as defined in
+        <xref target="RFC9162"/> Section 2.1.1, with SHA-256 as the hash: a
+        leaf is SHA-256(0x00 || d), an interior node is SHA-256(0x01 || left
+        || right), and for n greater than one the list is split at k, the
+        largest power of two smaller than n. The shape is therefore fixed by
+        n alone, and two implementations that agree on D agree on the
+        root.</t>
+        <t>The domain separation is not optional, because the prefixes are what make MTH the function <xref target="RFC9162"/> defines, and a second implementation must compute the same root. The second-preimage attack the prefixes guard against, a leaf input chosen to equal an interior node's input, needs a leaf of that input's length; the fixed 32-byte digests in D cannot supply one, so here the prefixes buy agreement with the RFC rather than a defence the construction would otherwise lack.</t>
+        <t>The member is present when at least one child is registered and
+        absent otherwise; it MUST NOT be present with an empty or zero value,
+        which would be indistinguishable from a tree whose children were
+        withheld. Where every registered child is unresolved D is empty and
+        the root is MTH of the empty list, SHA-256 of the empty string; the
+        <tt>child-unresolved</tt> entries in the trace say which records the
+        root does not cover. The -01 revision did not say whether a leaf covered the record's signatures; this revision says it does, so a record cannot be re-signed without changing the root.</t>
+      </section>
+    </section>
+
+    <section anchor="endpoints"><name>Protocol Endpoints</name>
+      <t>This section specifies the operations a Facilitator exposes. This document fixes no base URI; each is discovered from the <tt>endpoints</tt> member of the capability document
+      (<xref target="wellknown"/>), so a Facilitator may mount them anywhere
+      on its origin.</t>
+
+      <dl>
+        <dt>Propose a contract:</dt><dd>POST <tt>{contract}</tt>; body, a
+        contract; 201 with a Status.</dd>
+        <dt>Retrieve a contract's status:</dt><dd>GET
+        <tt>{contract}/{id}</tt>; 200 with a Status.</dd>
+        <dt>Register a child:</dt><dd>POST
+        <tt>{contract}/{id}/children</tt>; body, the child's contract; 201
+        with a Status.</dd>
+        <dt>Supply a child's outcome:</dt><dd>POST
+        <tt>{contract}/{id}/children/{child_hash}</tt>, where <tt>child_hash</tt> is the digest by which the registration identifies the child; body, the child's Outcome Record; 200 with a Status. This resource is keyed by digest, so the id rule of <xref target="ep-idempotency"/> does not apply to it.</dd>
+        <dt>Submit a Delivery:</dt><dd>POST <tt>{delivery}</tt>; body, a
+        Delivery; 202 with a Status.</dd>
+        <dt>Record a Verdict:</dt><dd>POST <tt>{verdict}</tt>; body, a
+        Verdict; 201 with a Status.</dd>
+        <dt>Open a Challenge:</dt><dd>POST <tt>{challenge}</tt>; body, a
+        Challenge; 202 with a Status.</dd>
+        <dt>Retrieve an Outcome Record:</dt><dd>GET
+        <tt>{outcome}/{id}</tt>; 200 with the Outcome Record.</dd>
+      </dl>
+
+      <t>A request naming a contract the Facilitator does not hold is refused
+      as <tt>unknown-contract</tt> (404). A body larger than the Facilitator
+      accepts is refused as <tt>payload-too-large</tt> (413). A failure inside
+      the Facilitator is reported as <tt>internal-error</tt> (500), the one
+      problem type that names no rule. A GET of an Outcome Record before the
+      <tt>terminal</tt> entry is refused as <tt>wrong-state</tt>.</t>
+
+      <t>All requests and responses use the media types defined in
+      <xref target="iana"/>. All requests MUST be made over HTTPS, following
+      the recommendations of <xref target="RFC9325"/>. Status codes are as
+      defined in <xref target="RFC9110"/>. A Delivery and a Challenge are answered <tt>202 (Accepted)</tt> because, in the sense of <xref target="RFC9110"/> Section 15.3.3, their processing is not complete when the response is sent: what either record leads to may depend on a Verdict the Facilitator does not itself produce. A contract and a Verdict are answered <tt>201 (Created)</tt>; the contract is the resource the Location header names, and a Verdict, to which this document gives no resource of its own, is identified by the digest the Status in the response carries.</t>
+
+      <t>A Facilitator authenticates the sender of a POST by the signature on
+      the body, and by nothing else in this document: it MUST reject a
+      Delivery not signed by the contract's Seller, a Verdict not signed by a
+      party admissible under <xref target="verdicts"/>, a Challenge whose
+      signer it cannot resolve, and a child registration or child outcome
+      whose body does not verify as <xref target="tree-registration"/>
+      requires. A Facilitator MAY require an HTTP-layer authentication in
+      addition. Retrieval is discussed in <xref target="sec-retrieval"/>.</t>
+
+      <section anchor="ep-propose"><name>Proposing a Contract</name>
+        <t>The request body is a VTC carrying the signatures of both parties
+        required to sign it. A Facilitator MUST perform the checks in
+        <xref target="conformance"/>, <xref target="terms"/> and
+        <xref target="independence"/> before creating the resource, MUST
+        refuse a contract whose <tt>parties.facilitator</tt> is not itself or
+        whose <tt>price.settlement</tt>, network or currency it does not
+        advertise (<tt>facilitator-mismatch</tt>,
+        <tt>settlement-unsupported</tt>), and MUST refuse otherwise with the
+        problem type that names the rule. <tt>settlement-unsupported</tt> also covers a price stated in a currency other than <tt>max_contract_value</tt>'s and a price above it; a verification profile the Facilitator does not list is refused as <tt>settlement-unsupported</tt>.</t>
+
+        <sourcecode type="http-message"><![CDATA[
+POST /pact/v2/contracts HTTP/1.1
+Host: settle.example
+Content-Type: application/vnd.pact.contract+json
+
+{ "pact": "0.2", "type": "VerifiableTaskContract",
+  "id": "vtc_9f2c11", ... }
+        ]]></sourcecode>
+
+        <sourcecode type="http-message"><![CDATA[
+HTTP/1.1 201 Created
+Location: /pact/v2/contracts/vtc_9f2c11
+Content-Type: application/vnd.pact.status+json
+
+{ "pact": "0.2", "type": "ContractStatus",
+  "vtc_id": "vtc_9f2c11", "state": "ACCEPTED",
+  "trace": [ { "event": "accepted", ... } ], ... }
+        ]]></sourcecode>
+      </section>
+
+      <section anchor="ep-idempotency"><name>Idempotency</name>
+        <t>Every object this protocol carries is committed by the digest of
+        its own canonical form, so no separate idempotency key is needed and
+        none is defined; the general mechanism of
+        <xref target="I-D.ietf-httpapi-idempotency-key-header"/> solves a
+        problem this protocol does not have. A Facilitator MUST treat a POST
+        whose body has a digest it has already accepted as a request for the
+        existing resource, and MUST respond <tt>200 (OK)</tt> with the
+        current Status rather than creating a second resource or reporting a
+        conflict.</t>
+
+        <t>Where a POST carries the same object <tt>id</tt> as an existing
+        resource but a different digest, the Facilitator MUST respond
+        <tt>409 (Conflict)</tt> (<tt>object-conflict</tt>). Retrying a submission is therefore safe when the same bytes are resent, and altering one never is. A record signed afresh is a different record with a different digest, not a retry: ECDSA signatures are randomized unless produced as <xref target="RFC6979"/> describes, so a client signing with ES256 or ES384 SHOULD sign deterministically or keep the bytes it sent and resend those.</t>
+      </section>
+
+      <section anchor="ep-errors"><name>Error Responses</name>
+        <t>A Facilitator MUST report failures using
+        <xref target="RFC9457"/> problem details, media type
+        <tt>application/problem+json</tt>, with a <tt>type</tt> from
+        <xref target="iana-problems"/> for a rule in this document, or from
+        the profile's own namespace for a rule in a terms profile. A problem
+        arising from a rule in this document MUST carry <tt>section</tt>, the
+        number of the section stating the rule. A problem arising from a
+        rule in a terms profile MUST carry <tt>profile</tt> and
+        <tt>profile_section</tt> instead, since <tt>section</tt> cannot name
+        a rule outside this document. Error responses name the rule that was
+        violated, because a conformance failure a caller cannot locate is a
+        failure of the specification.</t>
+
+        <sourcecode type="http-message"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/problem+json
+
+{
+  "type":   "tag:laxsharma79@gmail.com,2026:pact:problem:signatur\
+   es-unordered",
+  "title":  "Signature set not sorted",
+  "status": 422,
+  "detail": "the second entry's kid sorts before the first's afte\
+   r normalization.",
+  "section": "14.1"
+}
+        ]]></sourcecode>
+      </section>
+
+      <section anchor="ep-flow"><name>Exchange</name>
+        <figure anchor="fig-http">
+          <name>HTTP exchange for the flow in <xref target="fig-flow"/></name>
+          <artwork type="ascii-art"><![CDATA[
+ Buyer/Seller            Facilitator             Verifier
+      |                       |                      |
+      |-- POST {contract} --->|                      |
+      |<-- 201 Status --------|                      |
+      |                       |                      |
+      |-- POST {delivery} --->|                      |
+      |<-- 202 Status --------|                      |
+      |                       |                      |
+      |                       |-- GET work_uri ----->|
+      |                       |<-- POST {verdict} ---|
+      |                       |-- 201 Status ------->|
+      |                       |                      |
+      |-- GET {contract}/id ->|                      |
+      |<-- 200 Status --------|                      |
+      |                       |                      |
+      |-- GET {outcome}/id -->|                      |
+      |<-- 200 Outcome -------|                      |
+          ]]></artwork>
+        </figure>
+      </section>
+    </section>
+
+    <section anchor="conformance"><name>Conformance</name>
+      <t>Every rule a PACT conformance checker enforces is stated in this
+      document as normative text. This section collects the rules that a
+      schema language cannot express, so that an implementation built from
+      this document alone passes a conformance suite built from it. A rule
+      that lives only in a test suite is not a requirement, and an implementer
+      who cannot find it in the specification will not implement it.</t>
+
+      <section anchor="conf-sig"><name>Signatures</name>
+        <t>Every signature carried by a VTC, Delivery, Verdict, Challenge,
+        Status, Outcome Record or capability document has, for each signer, the form of one signature object of the JWS <xref target="RFC7515"/> General JSON Serialization, Section 7.2.1 of that document, with the payload detached as its Appendix F describes. The payload is BASE64URL of the JCS-canonical
+        bytes of the object with the signing member removed, so the JWS
+        Signing Input is ASCII(BASE64URL(UTF8(protected)) || "." ||
+        BASE64URL(JCS(object))) exactly as Section 5.1 of
+        <xref target="RFC7515"/> defines it. The payload is never
+        transmitted; a verifier reconstructs it from the object it holds, and
+        verifies over the protected header exactly as transmitted, never
+        over a header it re-serialized. The following constraints apply.</t>
+        <ul>
+          <li>The protected header MUST carry <tt>alg</tt>, <tt>kid</tt> and
+          <tt>typ</tt>.</li>
+          <li><tt>alg</tt> MUST be <tt>Ed25519</tt> <xref target="RFC9864"/> with an Ed25519 key, or <tt>ES256</tt> or <tt>ES384</tt> <xref target="RFC7518"/> with a P-256 or P-384 key. A verifier MUST reject any other value, including the polymorphic <tt>EdDSA</tt> identifier of <xref target="RFC8037"/> that <xref target="RFC9864"/> deprecates, and MUST reject <tt>none</tt> (<tt>algorithm-not-permitted</tt>). Absent
+          an allowlist an attacker selects the algorithm, which permits both
+          unsigned acceptance and confusion of a public key for a symmetric
+          secret.</li>
+          <li><tt>kid</tt> MUST appear inside the protected header and MUST
+          NOT be carried as a sibling of it. A key identifier outside the
+          signed bytes is rewritable in transit, which allows an attacker who
+          can publish a key document to re-attribute a genuine signature to
+          itself.</li>
+          <li>The protected header MUST NOT carry <tt>jwk</tt>, <tt>jku</tt>,
+          <tt>x5c</tt>, <tt>x5u</tt>, <tt>x5t</tt>, <tt>x5t#S256</tt> or
+          <tt>crit</tt>, and a signature entry MUST NOT carry an unprotected
+          header; a verifier MUST reject an entry carrying any of them
+          (<tt>signature-invalid</tt>). A key travels by reference and never
+          inline, so that the <tt>kid</tt> rule cannot be bypassed.</li>
+          <li>The resolved key MUST be of the type and curve <tt>alg</tt>
+          requires: Ed25519 for <tt>Ed25519</tt>, P-256 for
+          <tt>ES256</tt>, P-384 for <tt>ES384</tt>. A mismatch is
+          <tt>signature-invalid</tt>.</li>
+          <li><tt>typ</tt> MUST be the full media type of the object signed,
+          including the <tt>application/</tt> prefix, so that a signature
+          over one object type cannot be replayed as a signature over
+          another. Section 4.1.9 of <xref target="RFC7515"/> recommends
+          omitting the prefix; this document requires the full form so that
+          <tt>typ</tt> equals the registered media type character for
+          character. Explicit typing follows Section 3.11 of
+          <xref target="RFC8725"/>.</li>
+          <li>A <tt>signatures</tt> array MUST be sorted by the normalized
+          <tt>kid</tt> of its entries (<xref target="independence"/>), ties
+          broken by the unnormalized <tt>kid</tt>, both compared as
+          sequences of Unicode code points; a verifier MUST reject an
+          unsorted array (<tt>signatures-unordered</tt>). Two clients that
+          each attach their own entry and exchange the object would
+          otherwise produce two arrays, and since the digest covers the
+          array, two digests for one agreement.</li>
+          <li>An ECDSA signature MUST have its <tt>s</tt> value in the low
+          half of the curve order, that is <tt>s</tt> at most n/2 for the
+          order n of the curve <xref target="SP800-186"/>, and a verifier
+          MUST reject one that does not. <xref target="RFC7518"/> fixes the
+          encoding and not which of the two valid <tt>s</tt> values is
+          accepted; accepting both lets anyone holding a valid signature
+          produce a second one over the same bytes without the key, and a
+          second signature is a second digest. Ed25519 verification per
+          <xref target="RFC8032"/> already rejects a non-canonical
+          <tt>S</tt>, so the rule is stated for ECDSA only.</li>
+        </ul>
+
+        <section anchor="keyres"><name>Key Resolution</name>
+          <t>A <tt>kid</tt> is a URI naming a public key. A verifier MUST
+          resolve it as follows, and MUST reject a signature whose
+          <tt>kid</tt> it cannot resolve.</t>
+          <ul>
+            <li>A <tt>did:</tt> identifier is a DID URL
+            <xref target="DID-CORE"/>. The verifier resolves the DID document
+            by the method the identifier names and selects the verification
+            method its fragment identifies. Examples in this document use
+            <tt>did:web</tt> <xref target="DID-WEB"/>; no method is
+            required or excluded.</li>
+            <li>An <tt>https:</tt> identifier dereferences, over TLS, to a
+            JWK Set <xref target="RFC7517"/>; the verifier selects the key
+            whose <tt>kid</tt> member equals the fragment.</li>
+          </ul>
+          <t>The part of a <tt>kid</tt> before its fragment MUST equal, after
+          the normalization in <xref target="independence"/>, the party
+          identifier the signature is attributed to. Verifying a signature
+          establishes that the holder of that key signed; that the key
+          belongs to the party is a property of the identity method, and this
+          document does not add to it. An identity system for agents defined
+          elsewhere, such as <xref target="I-D.ietf-wimse-aims"/>, is used by naming its identifiers here in one of these two forms; a further form needs a resolution rule added to this list, which is the one change it would take.</t>
+        </section>
+      </section>
+
+      <section anchor="conf-rules"><name>Rules Not Expressible in a Schema</name>
+        <ul>
+          <li><tt>parties.buyer</tt> and <tt>parties.seller</tt> MUST be
+          distinct after the normalization in
+          <xref target="independence"/> (<tt>parties-not-distinct</tt>).</li>
+          <li>A contract MUST carry exactly one verifying signature whose
+          <tt>kid</tt> covers <tt>parties.buyer</tt>, exactly one whose
+          <tt>kid</tt> covers <tt>parties.seller</tt>, and no other
+          (<tt>signature-missing</tt>, <tt>unexpected-signer</tt>). A count
+          of signatures is not sufficient: two signatures covering one
+          identifier MUST be rejected.</li>
+          <li><tt>challenge.window_seconds</tt>, <tt>challenge.max_dispute_seconds</tt> and <tt>verification.max_verdict_seconds</tt> MUST be greater than zero, and <tt>task.deadline</tt> MUST be later than the instant of
+          acceptance (<tt>deadline-invalid</tt>).</li>
+          <li>Every URI member inside hash-committed content MUST have a
+          sibling hash member, and a validator MUST reject content carrying
+          <tt>harness_uri</tt>, <tt>rubric_uri</tt>, <tt>schema_uri</tt> or
+          <tt>sample_uri</tt> without its hash.</li>
+          <li>An <tt>acceptance</tt> object MUST carry the members required
+          for the contract's tier. An empty <tt>acceptance</tt> object MUST be
+          rejected.</li>
+          <li><tt>terms.profile</tt> and <tt>terms.profile_hash</tt> MUST
+          match an entry the Facilitator advertises, and
+          <tt>terms.parameters</tt> MUST validate against that profile's
+          schema (<tt>terms-unsupported</tt>,
+          <tt>terms-parameters-invalid</tt>).</li>
+          <li>Every object MUST validate against the schema published for its
+          media type (<tt>schema-invalid</tt>), which includes the form of
+          every amount (<xref target="conventions"/>); an amount carrying more
+          decimal places than the settlement binding named in
+          <tt>price.settlement</tt> supports is refused
+          (<tt>amount-invalid</tt>).</li>
+        </ul>
+      </section>
+
+      <section anchor="conf-vectors"><name>Test Vectors</name>
+        <t>Most rules above have an accepting and a rejecting form; the table
+        carries the ones a suite most often gets wrong. A
+        conformance suite built from this section alone, with no reference to
+        any implementation, should reach the same verdicts. Rejecting vectors
+        name the rule they violate.</t>
+
+        <table anchor="tab-vectors">
+          <name>Conformance vectors</name>
+          <thead>
+            <tr><th>ID</th><th>Mutation from a valid object</th>
+                <th>Expect</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>V-01</td><td>unmodified valid VTC</td><td>accept</td></tr>
+            <tr><td>V-02</td><td><tt>alg</tt> set to <tt>none</tt></td>
+                <td>reject</td></tr>
+            <tr><td>V-03</td><td><tt>alg</tt> set to <tt>HS256</tt></td>
+                <td>reject</td></tr>
+            <tr><td>V-04</td><td><tt>kid</tt> moved outside the protected
+                header</td><td>reject</td></tr>
+            <tr><td>V-05</td><td><tt>typ</tt> of a Delivery on a VTC
+                signature</td><td>reject</td></tr>
+            <tr><td>V-06</td><td>buyer and seller set to the same
+                identifier</td><td>reject</td></tr>
+            <tr><td>V-07</td><td>buyer and seller differing only by trailing
+                "/"</td><td>reject</td></tr>
+            <tr><td>V-08</td><td>two signatures, both from the buyer</td>
+                <td>reject</td></tr>
+            <tr><td>V-09</td><td><tt>window_seconds</tt> of 0</td>
+                <td>reject</td></tr>
+            <tr><td>V-10</td><td><tt>acceptance</tt> as an empty object</td>
+                <td>reject</td></tr>
+            <tr><td>V-11</td><td><tt>harness_uri</tt> with
+                <tt>harness_hash</tt> removed</td><td>reject</td></tr>
+            <tr><td>V-12</td><td><tt>terms.profile_hash</tt> not advertised
+                by the Facilitator</td><td>reject</td></tr>
+            <tr><td>V-13</td><td><tt>terms.parameters</tt> failing the
+                profile's schema</td><td>reject</td></tr>
+            <tr><td>V-14</td><td>Delivery with <tt>evidence</tt> absent</td>
+                <td>reject, no entry</td></tr>
+            <tr><td>V-15</td><td>child whose buyer is not the parent's
+                seller</td><td>reject</td></tr>
+            <tr><td>V-16</td><td>child with L(child) not earlier than
+                L(parent)</td><td>reject</td></tr>
+            <tr><td>V-17</td><td>Verdict signed by the seller</td>
+                <td>reject</td></tr>
+            <tr><td>V-18</td><td>object keys ordered by code point rather than UTF-16 unit, a supplementary-plane key beside one in U+E000 to U+FFFF</td><td>digest mismatch</td></tr>
+            <tr><td>V-19</td><td>buyer and seller differing only in the
+                case of a <tt>did:web</tt> path</td><td>accept</td></tr>
+            <tr><td>V-20</td><td>object carrying a member this document
+                does not define for it</td><td>reject</td></tr>
+            <tr><td>V-21</td><td><tt>signatures</tt> not sorted by
+                normalized <tt>kid</tt></td><td>reject</td></tr>
+            <tr><td>V-22</td><td>ECDSA signature with <tt>s</tt> above
+                n/2</td><td>reject</td></tr>
+            <tr><td>V-23</td><td>Verdict with <tt>delivery_hash</tt> computed
+                over the Delivery without its signature</td>
+                <td>reject</td></tr>
+            <tr><td>V-24</td><td>Outcome Record whose <tt>transfers</tt>
+                overdraw an account of the profile</td><td>reject</td></tr>
+            <tr><td>V-25</td><td>a number serialized by the host language's
+                default formatter, such as <tt>1.0</tt> for the float
+                one</td><td>digest mismatch</td></tr>
+            <tr><td>V-26</td><td>a protected header carrying a member <xref target="conf-sig"/> forbids: <tt>jwk</tt>, <tt>jku</tt>, <tt>x5c</tt>, <tt>x5u</tt>, <tt>x5t</tt>, <tt>x5t#S256</tt> or <tt>crit</tt></td>
+                <td>reject</td></tr>
+          </tbody>
+        </table>
+
+        <t>V-07 and V-18 are the two most often got wrong. V-07 fails wherever
+        party comparison is a string equality on unnormalized identifiers.
+        V-18 fails wherever canonicalization sorts keys by Unicode code point,
+        which agrees with the required UTF-16 order for every ASCII key and so
+        passes every vector an implementer would think to write. V-19 is the
+        opposite mistake, folding more than <xref target="independence"/>
+        allows, and the -01 reference validator made it. V-25 is the number
+        half of the V-18 mistake: <xref target="RFC8785"/> prints numbers as
+        ECMAScript does, so the float one is <tt>1</tt> and never
+        <tt>1.0</tt>. The -02 reference canonicalizer printed <tt>1.0</tt>
+        until this vector caught it, and the <tt>spec_hash</tt>, <tt>vtc_hash</tt> and <tt>delivery_hash</tt> of <xref target="example"/> changed when it was fixed.</t>
+      </section>
+    </section>
+
+    <section anchor="example"><name>Worked Example</name>
+      <t>The digests below are the reference repository's, at the
+      tag named in <xref target="implstatus"/>. The object figures in earlier
+      sections are the repository's objects with their signatures
+      abbreviated and the contract's <tt>parameters</tt> elided; the digests
+      here are computed over the full objects. The figures that the -01 revision printed here
+      about a bond and a required detection rate are now the profile's; <xref target="appendix-profile"/> carries the rule and the parameters.</t>
+
+      <t>A buyer commissions a data transformation at a price of 180.00 USDC
+      under the <tt>verdict-first</tt> flow, the <tt>acceptance</tt>
+      verification profile, and the terms profile of
+      <xref target="appendix-profile"/> with the parameters shown there. The
+      digests carried by the reference TaskSpec, contract and profile
+      are:</t>
+
+      <artwork type="ascii-art"><![CDATA[
+========== NOTE: '\' line wrapping per RFC 8792 ===========
+
+ spec_hash       sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef111\
+   d27ff6bee37f05531823b72
+ criteria_hash   sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b83\
+   51c9c55eb9316416265fc1b
+ profile_hash    sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956\
+   e835df2653b99d71d363a68
+ vtc_hash        sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff494\
+   9304c2c855ca1d746ba6459
+ delivery_hash   sha256:6bcbb831ea27a8754a0df9b44361be12411e45370\
+   cb3023331bc8bfbd924fcbe
+      ]]></artwork>
+
+      <t><tt>criteria_hash</tt> is the manifest digest of
+      <xref target="hashes"/> over the acceptance instrument bundle, and the
+      same value appears as <tt>acceptance.harness_hash</tt> inside the
+      TaskSpec, so the instrument is committed both by the contract and from
+      within the specification it belongs to. <tt>profile_hash</tt> is the
+      same construction over the profile bundle. <tt>vtc_hash</tt> is the
+      digest of the signed contract, and <tt>delivery_hash</tt> of the signed
+      Delivery, both per <xref target="conventions"/>.</t>
+
+      <t>The -01 revision printed three of the values above, <tt>spec_hash</tt>, <tt>criteria_hash</tt> and <tt>vtc_hash</tt>, and each differs from what it printed, for reasons recorded so that a reader comparing the two documents can account for the difference. <tt>spec_hash</tt> and <tt>vtc_hash</tt> differ because the -01 canonicalizer serialized numbers as the host language printed them (<xref target="conf-vectors"/>, V-25); <tt>spec_hash</tt> also because the TaskSpec now carries the sibling hashes <xref target="hashes"/> always required, and <tt>vtc_hash</tt> also because the contract's members changed (<xref target="changes"/>). <tt>criteria_hash</tt> carries no number; it differs because the two files of the instrument bundle were edited to drop their mention of the withdrawn call-for-bids example. <tt>profile_hash</tt> is new, and <tt>delivery_hash</tt>, which the -01 figures showed only as a placeholder, now covers the Delivery's signature.</t>
+
+      <t>The traces the reference implementation records for this contract on the path of <xref target="fig-flow"/> and on the dispute path of <xref target="fig-dispute"/> carry the event sequences of the first two vectors in the profile's bundle, and the transfer lists the profile produces for them are those vectors' lists; the vectors name their objects by placeholder digests, so the match is of sequence and lists, not of bytes. <xref target="appendix-profile"/> prints both lists.</t>
+    </section>
+
+    <section anchor="implstatus"><name>Implementation Status</name>
+      <t>This section records the status of known implementations of this
+      document per <xref target="RFC7942"/>. The section and the reference to <xref target="RFC7942"/> are to be removed before publication as an RFC, and the listing of an implementation here implies no endorsement by the IETF.</t>
+      <t>One implementation is known to the author, and the author wrote it:
+      https://github.com/pact-spec/spec, under the Apache License 2.0. At
+      tag v0.2.0 it comprises the object schemas, the examples whose digests
+      <xref target="example"/> prints, a conformance validator that runs 107 checks including every vector of
+      <xref target="conf-vectors"/>, a Facilitator serving the endpoints of
+      <xref target="endpoints"/> with the profile of
+      <xref target="appendix-profile"/>, and clients for the other roles. Its
+      previous tag, v0.1.0, implemented the -01 revision and is the source
+      of the measurements the author has published about it. No second
+      implementation exists, so nothing in <xref target="experiment"/> has
+      been tested, and this document claims no interoperability. It is an individual submission and the product of no working group; the implementation is a prototype, the information is current as of the tag named above, and the contact is the author.</t>
+    </section>
+
+    <section anchor="security"><name>Security Considerations</name>
+      <t>Most of what follows was found by adversarial review of earlier
+      revisions rather than anticipated when they were written. Each
+      subsection states the attack, why it worked, and the requirement in
+      this document that closes it. Where a threat is only mitigated rather
+      than closed, that is said. The table first: for each party, what the
+      protocol enforces against it, what it records about it, and who can
+      check the record without trusting the Facilitator.</t>
+
+      <table anchor="tab-threats">
+        <name>What the protocol enforces, records and lets others check, by party</name>
+        <thead>
+          <tr><th>Party</th><th>Enforced against it</th>
+              <th>Recorded about it</th><th>Checkable by</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Buyer</td>
+              <td>cannot alter the task, instrument or terms after signing;
+              cannot attach a child to a contract it is not party to</td>
+              <td>its signature on the contract; any Challenge it
+              signs</td>
+              <td>anyone holding the contract</td></tr>
+          <tr><td>Seller</td>
+              <td>cannot deliver against a substituted instrument or input;
+              is refused as Verifier when it signs under a party identifier; cannot re-sign a record without
+              changing every digest over it</td>
+              <td>its signature on the contract and the Delivery; the
+              Verdicts and Challenges on its Delivery</td>
+              <td>anyone holding the contract and the Delivery</td></tr>
+          <tr><td>Verifier</td>
+              <td>cannot be a party to the contract; must commit to the
+              instrument it ran and its results</td>
+              <td>its Verdicts, superseded ones included</td>
+              <td>anyone holding the Delivery and the instrument</td></tr>
+          <tr><td>Facilitator</td>
+              <td>nothing</td>
+              <td>what it chose to sign, in the order it chose, on a clock
+              that is its own</td>
+              <td>any holder of two of its Statuses, for equivocation;
+              nobody, for omission or for time, without a witness outside
+              this document</td></tr>
+        </tbody>
+      </table>
+
+      <section anchor="sec-facilitator"><name>Trust in the Facilitator</name>
+        <t>The Facilitator row is the honest one. This protocol enforces
+        nothing against a Facilitator; it makes some kinds of misbehaviour
+        attributable and says plainly which ones it does not.</t>
+        <t>Equivocation, issuing two inconsistent histories for one contract,
+        is attributable: every Status is signed, every Status's trace is a
+        prefix of every later one, and two Statuses that break that rule are
+        proof, checkable by anyone holding both, that the Facilitator signed
+        contradictory records. A Facilitator that wants to make its records
+        publicly append-only can register its Outcome Records with a SCITT
+        transparency service <xref target="RFC9943"/> and hand the receipt
+        <xref target="RFC9942"/> to the parties; this document does not
+        require it and defines no log of its own.</t>
+        <t>Omission is not attributable. A Facilitator that declines to
+        record a Delivery, or records it late, produces no signed evidence of
+        having declined, and a Status it does not issue proves nothing. A
+        client SHOULD retain every Status it receives, and a party that
+        submitted a record and holds no Status for it has a claim it can
+        make only outside this protocol. Making omission attributable needs
+        a witness the Facilitator does not control, such as the client gossip that <xref target="RFC9162"/> Section 11.3 mentions and leaves undefined, and this document specifies none.</t>
+        <t>Time is the Facilitator's. Every instant in a trace is read from
+        its clock, and nothing in this document lets a party prove that a
+        recorded instant is wrong. This document therefore states the
+        assumption rather than hiding it: the Facilitator is a trusted
+        timekeeper, and a deployment that cannot accept that should look to
+        an external timestamping service, which this document does not
+        specify and does not preclude.</t>
+        <t>Whatever a Facilitator does with anything of value under a terms
+        profile is the profile's subject and is not addressed here.</t>
+      </section>
+
+      <section anchor="sec-verifier"><name>Verifier Capture</name>
+        <t>A verification tier states how strongly work is checked. It does
+        not state who checked it, and those fail separately. A re-execution
+        transcript produced by the Seller and the same transcript produced by
+        an independent Challenger are the same method and different evidence.
+        Where a proof is generated and verified entirely inside one party,
+        the tier is satisfied and the contract is unprotected.
+        <xref target="independence"/> requires that independence be derived
+        by the evaluator from the parties named in the contract, and forbids
+        satisfying it with a self-asserted field.</t>
+      </section>
+
+      <section anchor="sec-alg"><name>Algorithm, Key and Encoding Confusion</name>
+        <t>Absent an algorithm allowlist an attacker chooses the algorithm.
+        The two consequences are <tt>alg</tt> of <tt>none</tt>, which makes
+        every signature check vacuous, and presenting an ECDSA public key as
+        an HMAC secret, which lets anyone holding the public key forge.
+        <xref target="conf-sig"/> fixes the permitted set.</t>
+        <t>A <tt>kid</tt> carried as a sibling of the protected header rather
+        than inside it is outside the signed bytes and is rewritable in
+        transit. An attacker who can publish a key document can then
+        re-attribute a victim's genuine signature to an identifier it
+        controls, without breaking any cryptography.
+        <xref target="conf-sig"/> requires <tt>kid</tt> inside the protected
+        header.</t>
+        <t>Because every digest in this document covers a signature set, a
+        second valid encoding of one signature is a second digest for one
+        record. ECDSA has two valid <tt>s</tt> values per signature and JWS
+        does not choose between them; the low-S rule in
+        <xref target="conf-sig"/> does. The order of a signature set is a
+        second source of the same problem, and the sorting rule closes
+        it.</t>
+      </section>
+
+      <section anchor="sec-substitution"><name>Substitution of Committed Content</name>
+        <t>The -00 revision committed <tt>harness_uri</tt> as a string. The
+        bytes at that URI were covered by nothing. A Buyer could therefore
+        sign a contract, replace the acceptance instrument afterwards, run the
+        replacement, and submit its failure as a textbook-valid proof of nonconformance.
+        Cost of the attack: one file overwrite. The mirror attack works
+        against a Seller that hosts the input sample.
+        <xref target="hashes"/> requires a sibling hash over the dereferenced
+        bytes for every URI inside committed content, and
+        <xref target="verdicts"/> requires a Verdict to commit to the
+        instrument it actually ran, which closes the same attack from the
+        verification side.</t>
+      </section>
+
+      <section anchor="sec-fetch"><name>Fetching Committed Content</name>
+        <t>A <tt>work_uri</tt>, <tt>results_uri</tt> or any other URI in a
+        record is supplied by a counterparty and points wherever that
+        counterparty chose. An implementation that fetches it MUST fetch over
+        HTTPS only, MUST NOT follow a redirect to a scheme other than HTTPS,
+        MUST refuse to connect to a private, loopback or link-local address
+        (the ranges of <xref target="RFC1918"/>, <xref target="RFC4193"/> and
+        their loopback and link-local counterparts), and MUST verify the
+        sibling hash over the full received bytes before any byte is used
+        for anything. A fetcher that acts on partial or unverified content
+        has handed its counterparty a way to make it execute, store or judge
+        something that was never committed to.</t>
+      </section>
+
+      <section anchor="sec-parent"><name>Children: Attachment and Omission</name>
+        <t>Naming a parent contract cost one signature in the -00 revision
+        and was checked against nothing. <xref target="tree-registration"/>
+        requires the child's Buyer to be the parent's Seller, checked by the
+        Facilitator that holds the parent against the parent's own bytes.</t>
+        <t>The converse gap is stated rather than closed: a parent's Seller
+        that never registers a failing child keeps it out of the parent's
+        record, since this document compels no registration. A profile that
+        wants children visible must make registration worth the Seller's
+        while, or a Buyer that wants them visible must ask for the child's
+        Status directly, which this document does not require the child's
+        Facilitator to give it.</t>
+      </section>
+
+      <section anchor="sec-silence"><name>Buying Silence from a Challenger</name>
+        <t>Wherever what a discoverer gains by reporting is less than what a
+        performer loses by being reported, there is a private payment that
+        leaves both better off than reporting, and silence dominates whatever
+        reward a profile designed. This document cannot close that, because
+        every figure involved is the profile's. What it does is record every
+        Challenge, in order, whoever signed it, so that a profile can act on
+        each independently, and it forbids a Facilitator from refusing a
+        Challenge because the Buyer signed it
+        (<xref target="challenges"/>), so that the party with the most to
+        recover is always admissible.</t>
+      </section>
+
+      <section anchor="sec-nondelivery"><name>Non-Delivery</name>
+        <t>Under the -00 revision a contract in which nothing was ever
+        delivered had no path to an end: the deadline carried no stated
+        consequence and no window opened because there was nothing to
+        challenge. <xref target="events"/> makes the deadline an event and
+        ABANDONED a terminal state that every contract can reach. What
+        reaching it costs anyone is the profile's, and a profile that makes
+        delivering nothing cheaper than delivering something wrong has
+        recreated the -00 incentive.</t>
+      </section>
+
+      <section anchor="sec-replay"><name>Cross-Venue Replay</name>
+        <t>A VTC that does not name its Facilitator, network and asset is a
+        signed instrument replayable against any of them; <xref target="vtc"/>
+        requires all three inside the signed content. A digest computed over
+        a contract excluding its signatures proves what was written and not
+        who agreed to it, so entries can be appended or stripped without
+        invalidating the commitment; <xref target="conventions"/> defines
+        every digest over the signature set. A Delivery, Verdict or Challenge
+        replayed against a different contract fails because each carries
+        <tt>vtc_id</tt> and a hash that binds it to one contract and one
+        Delivery, and the <tt>typ</tt> rule of <xref target="conf-sig"/>
+        stops a signature over one object type standing for another.</t>
+      </section>
+
+      <section anchor="sec-determinism"><name>Nondeterminism as Shield and as Weapon</name>
+        <t>A re-execution profile that does not state what determinism it
+        assumes cuts both ways. An honest Seller doing model-assisted work is found wrong by a re-execution that differs for ordinary reasons. A
+        cheating Seller escapes any proof of nonconformance by asserting nondeterminism,
+        unfalsifiably. A verification profile MUST state whether it is
+        deterministic and what tolerance applies, and a contract naming one
+        that does not cannot be judged safely by anyone.</t>
+      </section>
+
+      <section anchor="sec-history"><name>Fabricated History</name>
+        <t>The argument for reputation derived from Outcome Records is that
+        faking a history requires running real contracts. That argument fails
+        if records do not name the parties or carry no Facilitator signature,
+        since two cooperating identities can then manufacture history at the
+        cost of two signatures. <xref target="outcomes"/> requires both. It
+        fails in the other direction if a negative outcome requires the
+        signature of the party it records against; reputation that is
+        structurally incapable of recording a loss is not evidence of
+        anything.</t>
+      </section>
+
+      <section anchor="sec-retrieval"><name>Retrieval</name>
+        <t>A GET on a contract's Status or Outcome Record MUST be refused (<tt>retrieval-restricted</tt>) unless the requester is a party named in the contract's
+        <tt>parties</tt>, the identifier in the contract's
+        <tt>parent.facilitator</tt>, or a party the Facilitator has chosen to
+        admit; a Facilitator MAY open retrieval more widely and SHOULD say so in its capability document (<tt>retrieval</tt>, <xref target="dict-capabilities"/>). How a requester proves which identifier
+        it is, on a GET with no body to sign, is an HTTP-layer matter this
+        document leaves to the deployment. The -01 revision left retrieval
+        unauthenticated by default, which published every contract graph a
+        Facilitator held to anyone who could guess an identifier.</t>
+      </section>
+
+      <section anchor="sec-keys"><name>Key Compromise and Rotation</name>
+        <t>A signature here is a long-lived commitment, and a compromised key
+        signs contracts the party never agreed to. Rotation and revocation
+        belong to the identity method behind the <tt>kid</tt>
+        (<xref target="keyres"/>), and this document does not restate them.
+        Two things it does require: a Facilitator MUST retain, for as long as it retains a record it accepted, the key material or its digest as resolved at the time of acceptance, and SHOULD make it available to a party retrieving the record, so that a later rotation does not make an earlier signature unverifiable; and a Facilitator MUST NOT accept a record
+        whose <tt>kid</tt> resolves to a key the identity method marks as
+        revoked at the time of acceptance.</t>
+      </section>
+
+      <section anchor="sec-dos"><name>Denial of Service by Challenge</name>
+        <t>Every accepted Challenge costs an independent evaluation. Without a
+        cost to the Challenger, a party can exhaust a Verifier's or a
+        Facilitator's capacity by challenging every Delivery. A deposit required by a terms profile, advertised as <tt>challenge_deposit</tt> (<xref target="challenges"/>), is one defence, and this document requires none, since a deposit also deters the honest Challenger an open model relies on. A Facilitator whose profiles require no deposit SHOULD rate-limit Challenges per
+        Challenger and per contract, and SHOULD publish that it does so.</t>
+      </section>
+    </section>
+
+    <section anchor="privacy"><name>Privacy Considerations</name>
+      <t>PACT moves contracts and evidence about work, and both leak.</t>
+
+      <section anchor="priv-sample"><name>Input Disclosure Before Contract Formation</name>
+        <t>Publishing a representative input sample so that a counterparty can
+        price the work discloses production data to parties with whom no
+        contract exists and who may be in unknown jurisdictions. Samples
+        SHOULD be synthetic or de-identified. Where a real sample is
+        necessary, it SHOULD be disclosed only after a confidentiality
+        undertaking, and the <tt>constraints</tt> member SHOULD carry the
+        retention and deletion terms. This document cannot enforce any of
+        that and does not pretend to.</t>
+      </section>
+
+      <section anchor="priv-graph"><name>The Contract Graph</name>
+        <t>A Facilitator that publishes its Outcome Records makes the
+        contract graph public. From it a reader can reconstruct an
+        organisation's suppliers, spend and cadence, which is commercially
+        sensitive even when no individual is identifiable. Transparency and
+        counterparty privacy are in genuine tension here, and this document
+        resolves it in favour of neither: retrieval is restricted by default
+        (<xref target="sec-retrieval"/>), a Facilitator MAY publish
+        aggregates, and SHOULD NOT publish per-contract records identifying
+        both parties without their agreement. Outcome Records leak the same
+        graph by construction, since each names both parties and the
+        counterparty retains a signed copy indefinitely. Selective
+        disclosure over Outcome Records, so that a holder can prove a
+        completed contract without revealing the counterparty, is possible
+        with mechanisms specified elsewhere and is not specified here.</t>
+      </section>
+
+      <section anchor="priv-Challenger"><name>Challenger Access</name>
+        <t>An open challenge model requires that some party outside the
+        contract can obtain the deliverable and the input in order to build a
+        proof of nonconformance. That is in direct conflict with confidentiality of both.
+        The conflict is real and this document does not dissolve it. What it
+        does is make the choice visible: a contract whose content cannot be
+        disclosed to a Challenger will receive no Challenge from outside its
+        parties, and a terms profile that counts on one has counted on
+        nothing.</t>
+      </section>
+
+      <section anchor="priv-retention"><name>Retention</name>
+        <t>Retention periods stated for dispute purposes can conflict with erasure requests from a data subject. Contracts SHOULD state a
+        retention period, and implementers should be aware that a hash
+        commitment survives deletion of the content it commits to, which is
+        usually the property they want and occasionally the one they must
+        explain.</t>
+      </section>
+    </section>
+
+    <section anchor="iana"><name>IANA Considerations</name>
+      <t>This document asks IANA to register seven media types in the vendor
+      tree and one well-known URI. It creates no registry. It defines
+      problem types but does not ask for a registry of them
+      (<xref target="iana-problems"/>). The -01 revision asked for two
+      registries, one of verification profiles and one of settlement
+      bindings, and listed under the second an identifier in another
+      project's namespace that nobody had defined; both requests are
+      withdrawn. A profile of either kind is identified by a URI under its
+      definer's control and needs no registration.</t>
+
+      <section anchor="iana-media"><name>Media Types</name>
+        <t>IANA is requested to register the following in the "Media Types"
+        registry, per <xref target="RFC6838"/>, in the vendor tree. The
+        template below is given once in full; the seven registrations differ
+        only in the subtype name and the object they carry.</t>
+
+        <dl>
+          <dt>Type name:</dt><dd>application</dd>
+          <dt>Subtype name:</dt><dd>see <xref target="tab-media"/></dd>
+          <dt>Required parameters:</dt><dd>N/A</dd>
+          <dt>Optional parameters:</dt><dd>N/A</dd>
+          <dt>Encoding considerations:</dt><dd>binary; the content is JSON
+          text as defined in <xref target="RFC8259"/>, encoded in UTF-8</dd>
+          <dt>Security considerations:</dt><dd>See
+          <xref target="security"/> of this document. In particular these
+          media types carry signed objects whose signatures MUST be verified
+          under the constraints in <xref target="conf-sig"/>; accepting one
+          without algorithm restriction permits signature forgery.</dd>
+          <dt>Interoperability considerations:</dt><dd>Objects MUST be
+          canonicalized per <xref target="RFC8785"/> before hashing or
+          signing. Implementations that canonicalize by sorting object keys
+          on Unicode code point rather than UTF-16 code unit can produce a divergent digest when a key outside the Basic Multilingual Plane is compared with one whose first differing unit lies in U+E000 to U+FFFF.</dd>
+          <dt>Published specification:</dt><dd>This document</dd>
+          <dt>Applications that use this media type:</dt><dd>Services and
+          autonomous agents forming and recording task contracts under this
+          specification</dd>
+          <dt>Fragment identifier considerations:</dt><dd>As specified for
+          <tt>application/json</tt></dd>
+          <dt>Additional information:</dt><dd>Deprecated alias names: none.
+          Magic numbers: none. File extensions: .json. Macintosh file type
+          code: TEXT</dd>
+          <dt>Person &amp; email address to contact:</dt><dd>Laxmikant Sharma
+          &lt;laxsharma79@gmail.com&gt;</dd>
+          <dt>Intended usage:</dt><dd>COMMON</dd>
+          <dt>Restrictions on usage:</dt><dd>None</dd>
+          <dt>Author:</dt><dd>Laxmikant Sharma</dd>
+          <dt>Change controller:</dt><dd>Laxmikant Sharma</dd>
+        </dl>
+
+        <table anchor="tab-media">
+          <name>Media types registered by this document</name>
+          <thead>
+            <tr><th>Subtype name</th><th>Object</th><th>Defined in</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>vnd.pact.contract+json</td><td>Verifiable Task Contract</td>
+                <td><xref target="vtc"/></td></tr>
+            <tr><td>vnd.pact.delivery+json</td><td>Delivery</td>
+                <td><xref target="delivery"/></td></tr>
+            <tr><td>vnd.pact.verdict+json</td><td>Verdict</td>
+                <td><xref target="verdicts"/></td></tr>
+            <tr><td>vnd.pact.challenge+json</td><td>Challenge</td>
+                <td><xref target="challenges"/></td></tr>
+            <tr><td>vnd.pact.status+json</td><td>Contract Status</td>
+                <td><xref target="status"/></td></tr>
+            <tr><td>vnd.pact.outcome+json</td><td>Outcome Record</td>
+                <td><xref target="outcomes"/></td></tr>
+            <tr><td>vnd.pact.facilitator+json</td><td>Capability document</td>
+                <td><xref target="wellknown"/></td></tr>
+          </tbody>
+        </table>
+
+        <t>The -01 revision asked for these in the standards tree under the
+        names <tt>pact-contract+json</tt> and so on. Registration in that
+        tree from outside the IETF stream needs approval this document does
+        not have (<xref target="RFC6838"/>, Section 3.1), and <xref target="RFC6838"/> Section 3.2 opens the vendor tree to anyone who interchanges files associated with a publicly available product.</t>
+      </section>
+
+      <section anchor="iana-wellknown"><name>Well-Known URI</name>
+        <t>IANA is requested to register the following in the "Well-Known
+        URIs" registry, per <xref target="RFC8615"/>.</t>
+        <dl>
+          <dt>URI suffix:</dt><dd>pact-facilitator</dd>
+          <dt>Change controller:</dt><dd>Laxmikant Sharma</dd>
+          <dt>Specification document(s):</dt><dd>This document,
+          <xref target="wellknown"/></dd>
+          <dt>Status:</dt><dd>provisional</dd>
+          <dt>Related information:</dt><dd>The resource is served with media
+          type <tt>application/vnd.pact.facilitator+json</tt> and MUST be
+          signed.</dd>
+        </dl>
+      </section>
+
+      <section anchor="iana-problems"><name>Problem Types</name>
+        <t>This document creates no registry for its problem types.
+        <xref target="RFC9457"/> Section 4.2 establishes the "HTTP Problem
+        Types" registry for types intended for reuse across applications;
+        the types below are specific to this protocol and are identified by
+        URIs in a namespace this document defines, which that specification
+        permits without registration. Each is the identifier in the table
+        appended to the prefix
+        <tt>tag:laxsharma79@gmail.com,2026:pact:problem:</tt>, a tag URI
+        <xref target="RFC4151"/> under the author's control. A tag URI is an identifier and does not dereference. <xref target="RFC9457"/> Section 4 says a type URI SHOULD resolve to documentation; this document departs from that on purpose, so that an identifier does not change when hosting does, which the -01 revision's prefix on a code-hosting site could not promise, and the section named for each type is its documentation. The list of types, each with its status and the section that defines it, is printed by the reference implementation in the repository named in <xref target="implstatus"/>, and the section named for each type says what it means. Each entry carries the identifier, the
+        HTTP status it accompanies, and the section stating the rule it
+        reports. A terms profile that refuses a request defines its own
+        types under its own prefix and reports them as
+        <xref target="ep-errors"/> says.</t>
+
+        <table anchor="tab-problems">
+          <name>Problem types defined by this document</name>
+          <thead>
+            <tr><th>Identifier</th><th>Status</th><th>Defined in</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>algorithm-not-permitted</td><td>400</td>
+                <td><xref target="conf-sig"/></td></tr>
+            <tr><td>amount-invalid</td><td>422</td>
+                <td><xref target="conf-rules"/></td></tr>
+            <tr><td>challenge-window-closed</td><td>409</td>
+                <td><xref target="challenges"/></td></tr>
+            <tr><td>child-outcome-invalid</td><td>422</td>
+                <td><xref target="tree-registration"/></td></tr>
+            <tr><td>deadline-invalid</td><td>422</td>
+                <td><xref target="conf-rules"/></td></tr>
+            <tr><td>evidence-nonconformant</td><td>422</td>
+                <td><xref target="delivery"/></td></tr>
+            <tr><td>facilitator-mismatch</td><td>422</td>
+                <td><xref target="ep-propose"/></td></tr>
+            <tr><td>finality-ordering-violation</td><td>422</td>
+                <td><xref target="tree-timing"/></td></tr>
+            <tr><td>flow-unsupported</td><td>422</td>
+                <td><xref target="flows"/></td></tr>
+            <tr><td>internal-error</td><td>500</td>
+                <td><xref target="endpoints"/></td></tr>
+            <tr><td>no-recorded-delivery</td><td>409</td>
+                <td><xref target="verdicts"/></td></tr>
+            <tr><td>object-conflict</td><td>409</td>
+                <td><xref target="ep-idempotency"/></td></tr>
+            <tr><td>parent-unresolvable</td><td>422</td>
+                <td><xref target="tree-registration"/></td></tr>
+            <tr><td>parties-not-distinct</td><td>422</td>
+                <td><xref target="conf-rules"/></td></tr>
+            <tr><td>payload-too-large</td><td>413</td>
+                <td><xref target="endpoints"/></td></tr>
+            <tr><td>proof-nonconformant</td><td>422</td>
+                <td><xref target="challenges"/></td></tr>
+            <tr><td>retrieval-restricted</td><td>403</td>
+                <td><xref target="sec-retrieval"/></td></tr>
+            <tr><td>schema-invalid</td><td>422</td>
+                <td><xref target="conf-rules"/></td></tr>
+            <tr><td>settlement-unsupported</td><td>422</td>
+                <td><xref target="ep-propose"/></td></tr>
+            <tr><td>signature-invalid</td><td>400</td>
+                <td><xref target="conf-sig"/></td></tr>
+            <tr><td>signature-missing</td><td>400</td>
+                <td><xref target="conf-rules"/></td></tr>
+            <tr><td>signatures-unordered</td><td>422</td>
+                <td><xref target="conf-sig"/></td></tr>
+            <tr><td>terms-parameters-invalid</td><td>422</td>
+                <td><xref target="terms"/></td></tr>
+            <tr><td>terms-unsupported</td><td>422</td>
+                <td><xref target="terms"/></td></tr>
+            <tr><td>unexpected-signer</td><td>422</td>
+                <td><xref target="conf-rules"/></td></tr>
+            <tr><td>unknown-contract</td><td>404</td>
+                <td><xref target="endpoints"/></td></tr>
+            <tr><td>verdict-nonconformant</td><td>422</td>
+                <td><xref target="verdicts"/></td></tr>
+            <tr><td>verifier-not-independent</td><td>422</td>
+                <td><xref target="independence"/></td></tr>
+            <tr><td>wrong-state</td><td>409</td>
+                <td><xref target="events"/></td></tr>
+          </tbody>
+        </table>
+
+        <t>The table is generated from the reference implementation's own
+        list, so that every type an implementation of this document emits
+        has a line here. The -01 revision listed eight of the twenty-nine its
+        implementation used.</t>
+      </section>
+    </section>
+
+  </middle>
+
+  <back>
+    <references><name>Normative References</name>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8785.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9457.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7515.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7518.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8037.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9864.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8032.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7517.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8615.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6838.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8259.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9162.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.3339.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9110.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9325.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.4151.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.1918.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.4193.xml"/>
+      <reference anchor="DID-CORE" target="https://www.w3.org/TR/2022/REC-did-core-20220719/">
+        <front><title>Decentralized Identifiers (DIDs) v1.0</title>
+          <author><organization>W3C</organization></author>
+          <date day="19" month="July" year="2022"/></front>
+        <refcontent>W3C Recommendation</refcontent>
+      </reference>
+      <reference anchor="DID-WEB" target="https://w3c-ccg.github.io/did-method-web/">
+        <front><title>did:web Method Specification</title>
+          <author><organization>W3C Credentials Community Group</organization></author>
+          <date/></front>
+        <refcontent>Unofficial draft, undated; accessed 16 September 2026</refcontent>
+      </reference>
+          <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.bhutton-json-schema.xml"/>
+    </references>
+
+    <references><name>Informative References</name>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9334.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6979.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9711.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9943.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9942.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8725.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7942.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8792.xml"/>
+      <reference anchor="CAIP-2" target="https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md">
+        <front><title>CAIP-2: Blockchain ID Specification</title>
+          <author><organization>Chain Agnostic Standards Alliance</organization></author>
+          <date day="5" month="December" year="2019"/></front>
+        <refcontent>Status: Final</refcontent>
+      </reference>
+      <reference anchor="X402COMPLIANCE" target="https://github.com/x402-foundation/x402/pull/2853">
+        <front>
+          <title>Extension: compliance-fields</title>
+          <author><organization>wowlegend (Tersign), pull request author</organization></author>
+          <date month="July" year="2026"/>
+        </front>
+        <refcontent>Open pull request 2853 to x402-foundation/x402, specs/extensions/compliance_fields.md, unmerged as of September 2026</refcontent>
+      </reference>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8555.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.5280.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.3647.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.2801.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-httpapi-idempotency-key-header.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-satp-core.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.hood-agtp-commerce.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.ietf-wimse-aims.xml"/>
+      <reference anchor="I-D.stone-vcap-ap2-binding" target="https://datatracker.ietf.org/doc/html/draft-stone-vcap-ap2-binding-01">
+        <front>
+          <title>VCAP-AP2 Binding: Verified Delivery Settlement for the Agent Payments Protocol</title>
+          <author fullname="Ben Stone" initials="B." surname="Stone">
+            <organization>SwarmSync.AI</organization>
+          </author>
+          <date day="4" month="September" year="2026"/>
+          <abstract>
+            <t>This document defines a binding between Verified Commerce for Agent Protocols (VCAP) and the Agent Payments Protocol (AP2). AP2 supplies agent-commerce authorization evidence through IntentMandate, CartMandate, and PaymentMandate artifacts. VCAP supplies delivery verification, settlement evidence, escrow directives, timeout handling, and dispute handoff. This revision deliberately does not model AP2 as an escrow or settlement state machine. Current AP2 positions itself as an authorization and security layer used within a surrounding commerce protocol, including Universal Commerce Protocol (UCP). Accordingly, this binding references AP2 mandates by cryptographic digest or opaque identifier and leaves payment capture, refund, and settlement transitions to the commerce protocol and payment rail.</t>
+          </abstract>
+        </front>
+        <seriesInfo name="Internet-Draft" value="draft-stone-vcap-ap2-binding-01"/>
+      </reference>
+      <reference anchor="I-D.sahu-agent-action-receipts" target="https://datatracker.ietf.org/doc/html/draft-sahu-agent-action-receipts-00">
+        <front>
+          <title>Signed, Hash-Chained Action Receipts for AI Agents</title>
+          <author fullname="Nancy Sahu" initials="N." surname="Sahu">
+            <organization>kriya native</organization>
+          </author>
+          <date day="16" month="August" year="2026"/>
+          <abstract>
+            <t>This document specifies a format for action receipts: compact, individually signed JSON records that state that a specific AI agent attempted a specific action at a specific time, under a specific policy decision, and what the outcome was. Receipts are linked into an append-only hash chain so that deletion, insertion, reordering, or modification of any previously recorded receipt is detectable by a verifier that holds only the records and the signer's public key. The format is deliberately small and self-contained. Verification requires no network access, no service operated by the producer of the receipts, and no state beyond the records themselves and a trust anchor obtained out of band. This document specifies the record fields, the canonical byte sequence that is signed, the chain linkage rule, the verification procedure, and test vectors.</t>
+          </abstract>
+        </front>
+        <seriesInfo name="Internet-Draft" value="draft-sahu-agent-action-receipts-00"/>
+      </reference>
+      <reference anchor="I-D.mih-sato-agent-accountability-composition" target="https://datatracker.ietf.org/doc/html/draft-mih-sato-agent-accountability-composition-01">
+        <front>
+          <title>Agent Accountability: Composition and Conformance</title>
+          <author fullname="Steven Mih" initials="S." surname="Mih">
+            <organization>Action State Group, Inc.</organization>
+          </author>
+          <author fullname="Tom Sato" initials="T." surname="Sato">
+            <organization>MyAuberge K.K.</organization>
+          </author>
+          <author fullname="Iman Schrock" initials="I." surname="Schrock">
+            <organization>EMILIA Protocol, Inc.</organization>
+          </author>
+          <author fullname="Songbo Bu" initials="S." surname="Bu">
+            <organization>Independent</organization>
+          </author>
+          <author fullname="Anton Sokolov" initials="A." surname="Sokolov">
+            <organization>Tyche Institute</organization>
+          </author>
+          <date day="16" month="August" year="2026"/>
+        </front>
+        <seriesInfo name="Internet-Draft" value="draft-mih-sato-agent-accountability-composition-01"/>
+      </reference>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.asor-wimse-agent-delegation-chain.xml"/>
+      <xi:include href="https://bib.ietf.org/public/rfc/bibxml3/reference.I-D.pinto-agent-authz-contestability.xml"/>
+      <reference anchor="I-D.laxsharma-pact-01" target="https://www.ietf.org/archive/id/draft-laxsharma-pact-01.html">
+        <front>
+          <title>PACT: Liability and Settlement for Autonomous Agent Contracts</title>
+          <author initials="L." surname="Sharma"/>
+          <date day="4" month="September" year="2026"/>
+        </front>
+        <refcontent>Internet-Draft, draft-laxsharma-pact-01, superseded by this document</refcontent>
+      </reference>
+      <reference anchor="I-D.laxsharma-pact-00" target="https://www.ietf.org/archive/id/draft-laxsharma-pact-00.html">
+        <front>
+          <title>PACT: A Contract Layer for Autonomous Agent Commerce</title>
+          <author initials="L." surname="Sharma"/>
+          <date day="27" month="July" year="2026"/>
+        </front>
+        <refcontent>Internet-Draft, draft-laxsharma-pact-00, superseded</refcontent>
+      </reference>
+      <reference anchor="ASOKAN98" target="https://doi.org/10.1109/secpri.1998.674826">
+        <front>
+          <title>Asynchronous Protocols for Optimistic Fair Exchange</title>
+          <author initials="N." surname="Asokan"/>
+          <author initials="V." surname="Shoup"/>
+          <author initials="M." surname="Waidner"/>
+          <date year="1998"/>
+        </front>
+        <refcontent>Proceedings of the IEEE Symposium on Security and Privacy</refcontent>
+      </reference>
+      <reference anchor="BELENKIY08" target="https://doi.org/10.1145/1403027.1403046">
+        <front>
+          <title>Incentivizing Outsourced Computation</title>
+          <author initials="M." surname="Belenkiy"/>
+          <author initials="M." surname="Chase"/>
+          <author initials="C.C." surname="Erway"/>
+          <author initials="J." surname="Jannotti"/>
+          <author initials="A." surname="Kupcu"/>
+          <author initials="A." surname="Lysyanskaya"/>
+          <date year="2008"/>
+        </front>
+        <refcontent>Proceedings of the 3rd International Workshop on Economics
+        of Networked Systems (NetEcon '08), pp. 85-90</refcontent>
+      </reference>
+      <reference anchor="POLINSKY99">
+        <front>
+          <title>Public Enforcement of Law</title>
+          <author initials="A.M." surname="Polinsky"/>
+          <author initials="S." surname="Shavell"/>
+          <date year="1999"/>
+        </front>
+        <refcontent>Encyclopedia of Law and Economics, entry 8000,
+        Edward Elgar. The result is attributed therein to Bentham (1789)</refcontent>
+      </reference>
+      <reference anchor="SP800-186" target="https://doi.org/10.6028/NIST.SP.800-186">
+        <front>
+          <title>Recommendations for Discrete Logarithm-based Cryptography: Elliptic Curve Domain Parameters</title>
+          <author><organization>National Institute of Standards and Technology</organization></author>
+          <date month="February" year="2023"/>
+        </front>
+        <refcontent>NIST Special Publication 800-186</refcontent>
+      </reference>
+    </references>
+
+    <section anchor="appendix-profile"><name>An Example Terms Profile: bonded-restitution</name>
+      <t>This appendix is not normative. It carries one terms profile,
+      under an example identifier and unregistered, so that the experiment
+      in <xref target="experiment"/> has something to run against and the
+      vectors in the reference repository have something to reproduce. It
+      is the -01 revision's settlement content written as a schedule over
+      the events of <xref target="events"/>, with the choices the -01 revision left open now made and two of its own choices changed where the arithmetic or its text required (<xref target="profile-schedule"/>), and it is offered as an example of the
+      form a profile takes, not as a recommendation of these terms. What the
+      figures below mean between the parties to a contract that names this
+      profile is a question this document does not answer and its author is
+      not qualified to answer; a profile meant for use needs an owner who is. Until such a profile exists, this one is also the only profile a Facilitator can list, since <tt>terms_profiles</tt> must have an entry; that is a fact about the present and not a rule of this document.</t>
+
+      <section anchor="profile-identity"><name>Identity and Bundle</name>
+        <t>Identifier:
+        <tt>tag:laxsharma79@gmail.com,2026:pact:bonded-restitution</tt>.
+        The bundle in the reference repository, under
+        <tt>profiles/bonded-restitution/</tt>, contains
+        <tt>README.md</tt> (the prose of this appendix, in Markdown), <tt>parameters.schema.json</tt> and
+        <tt>vectors.json</tt>; <tt>profile_hash</tt> is the manifest digest
+        over those three files and <xref target="example"/> prints it.
+        Problem types this profile reports are under the prefix
+        <tt>tag:laxsharma79@gmail.com,2026:pact:bonded-restitution:problem:</tt>.</t>
+      </section>
+
+      <section anchor="profile-parameters"><name>Parameters</name>
+        <dl>
+          <dt><tt>seller_bond</tt>:</dt><dd>amount, required. What the
+          Seller posts before performance.</dd>
+          <dt><tt>verification_fund</tt>:</dt><dd>amount, required. What the Seller posts to pay for checking; the -01 prose never said who posts it and its figure drew it from the Seller, which this profile follows.</dd>
+          <dt><tt>cap</tt>:</dt><dd>amount, required. The most that leaves the bond under this contract; it bounds ranks 3 to 5 together, and what the bond holds beyond it returns to the Seller.</dd>
+          <dt><tt>restitution_basis</tt>:</dt><dd>string, required.
+          <tt>released</tt> or <tt>price</tt>.</dd>
+          <dt><tt>remainder_to</tt>:</dt><dd>string, optional.
+          <tt>buyer</tt> or <tt>sink</tt>; <tt>sink</tt> when absent.</dd>
+          <dt><tt>verifier_fee</tt>:</dt><dd>amount, optional. Paid from
+          the fund at each Verdict; <tt>0.00</tt> when absent.</dd>
+          <dt><tt>principal_on</tt>:</dt><dd>string, required. The event at
+          which the price moves to the Seller: <tt>verdict</tt> (a PASS
+          Verdict), <tt>delivered</tt>, or <tt>window-closed</tt>.</dd>
+          <dt><tt>assurance</tt>:</dt><dd>object, required. <tt>mode</tt>
+          (<tt>certain</tt>, <tt>committed-sample</tt> or <tt>open</tt>),
+          <tt>q_min</tt> (a number greater than zero and at most one) and,
+          under <tt>committed-sample</tt>, <tt>sample_rate</tt> (a number
+          greater than zero and at most one: the declared fraction of
+          deliveries verified; the draw MUST derive from a seed the Buyer committed before the Delivery was submitted, combined with the Delivery's digest; how the seed is committed is outside the
+          profile).</dd>
+        </dl>
+        <t>This profile defines no Challenge deposit; a Facilitator that
+        advertises <tt>challenge_deposit</tt> does not do so under this
+        profile.</t>
+        <t>The -01 revision's four release modes map onto <tt>flow</tt> and
+        <tt>principal_on</tt> as <xref target="changes"/> shows.</t>
+      </section>
+
+      <section anchor="profile-accounts"><name>Accounts</name>
+        <t>Three internal accounts, opened empty: <tt>escrow</tt>,
+        <tt>bond</tt>, <tt>fund</tt>. External accounts, unbounded as sources
+        and sinks: <tt>buyer</tt>, <tt>seller</tt>, <tt>verifier</tt>,
+        <tt>challenger:&lt;kid&gt;</tt> for each Challenger, and
+        <tt>sink</tt>. Closure requires the three internal accounts to hold
+        zero after the last entry.</t>
+      </section>
+
+      <section anchor="profile-admission"><name>Admission</name>
+        <t>At <tt>accepted</tt> the profile evaluates, exactly and in the
+        contract's currency, with P the price, B <tt>seller_bond</tt>, q
+        <tt>assurance.q_min</tt>, and E equal to P when <tt>principal_on</tt>
+        is <tt>delivered</tt> and zero otherwise:</t>
+        <artwork type="ascii-art"><![CDATA[
+        B  >=  P * (1 - q) / q  +  E
+        ]]></artwork>
+        <t>and reports <tt>assurance-constraint-unsatisfied</tt> when it does
+        not hold, or when <tt>assurance.mode</tt> is <tt>open</tt> alone. The
+        inequality is the classical deterrence bound
+        (<xref target="POLINSKY99"/>; <xref target="BELENKIY08"/> Theorem 1
+        for outsourced computation), with E the one term the -01 revision added: principal that moves before any Verdict is outside what the Verifier's check can withhold, so it raises what the Seller must post one for one. The bound deters nonconformance against that check and says nothing about what a later Challenge recovers; after a PASS is overturned the restitution of the schedule is bounded by the bond and the cap, whatever <tt>principal_on</tt> was. A
+        contract whose <tt>seller_bond</tt> or <tt>verification_fund</tt>
+        exceeds <tt>cap</tt> is reported as
+        <tt>parameters-inconsistent</tt>.</t>
+        <t>The rule is falsified, and this profile with it, if the constraint
+        proves unworkable at the prices and verification costs real
+        deployments exhibit. That was the -01 revision's own failure
+        condition, restated here where the rule now lives.</t>
+      </section>
+
+      <section anchor="profile-schedule"><name>Schedule</name>
+        <t>For each event the schedule emits the entries below, in the order
+        listed, omitting any entry whose amount is zero. Every event of
+        <xref target="tab-events"/> not named here emits nothing. Amounts
+        are computed from the contract and the trace prefix; "released" is
+        the sum of <tt>principal</tt> entries emitted so far.</t>
+        <dl>
+          <dt><tt>funded</tt>:</dt><dd>buyer to escrow, P, <tt>lock</tt>;
+          seller to bond, B, <tt>bond</tt>; seller to fund,
+          <tt>verification_fund</tt>, <tt>fund</tt>.</dd>
+          <dt><tt>delivered</tt>:</dt><dd>if <tt>principal_on</tt> is
+          <tt>delivered</tt>: escrow to seller, the escrow balance,
+          <tt>principal</tt>.</dd>
+          <dt><tt>verdict</tt>:</dt><dd>fund to verifier, the lesser of
+          <tt>verifier_fee</tt> and the fund balance,
+          <tt>verification</tt>; then if the outcome is PASS, no Challenge is
+          answered, and <tt>principal_on</tt> is <tt>verdict</tt>: escrow to
+          seller, the escrow balance, <tt>principal</tt>.</dd>
+          <dt><tt>window-closed</tt>:</dt><dd>if <tt>principal_on</tt> is
+          <tt>window-closed</tt> and the standing Verdict is not FAIL: escrow
+          to seller, the escrow balance, <tt>principal</tt>.</dd>
+          <dt><tt>terminal</tt>, FINAL:</dt><dd>escrow to seller, the escrow
+          balance, <tt>principal</tt>; bond to seller, the bond balance,
+          <tt>return</tt>; fund to seller, the fund balance,
+          <tt>fund-return</tt>.</dd>
+          <dt><tt>terminal</tt>, ABANDONED:</dt><dd>escrow to buyer, the
+          escrow balance, <tt>reverse</tt>; bond to seller, the bond balance,
+          <tt>return</tt>; fund to seller, the fund balance,
+          <tt>fund-return</tt>. The -01 revision said the bond was slashed "to the extent of" the basis here, and its Section 5.3 defined the basis as an amount, the value already released or the full price, without relating either to a loss; with the price reversed the Buyer's loss is zero under either basis, so this profile slashes nothing here, which under basis <tt>price</tt> is a departure.</dd>
+          <dt><tt>terminal</tt>, SETTLED:</dt><dd>in five ranks, each drawing
+          only what remains. (1) escrow to buyer, the escrow balance,
+          <tt>reverse</tt>. (2) if <tt>challenge_upheld</tt>: fund to the
+          Challenger whose Challenge the standing Verdict answers, the lesser
+          of that Challenge's <tt>costs</tt> when stated in the contract's currency (otherwise nothing) and the fund balance,
+          <tt>costs</tt>. (3) bond to buyer, the lesser of the bond balance, the cap room and the Buyer's loss, <tt>restitution</tt>; the loss
+          is "released" under basis <tt>released</tt> and P minus the rank-1
+          entry under basis <tt>price</tt>, which coincide under this schedule, since every principal entry moves the whole escrow balance; the parameter is kept for a profile that adds partial release. (4) if <tt>challenge_upheld</tt>: bond to that Challenger, the lesser of the bond balance and the cap room, <tt>bounty</tt>. (5) bond to buyer or sink per <tt>remainder_to</tt>, the lesser of the bond balance and the cap room, <tt>remainder</tt>. Then bond to seller, the bond balance, <tt>return</tt>, which is what the cap kept; then fund to seller, the fund balance, <tt>fund-return</tt>. The cap room at each rank is <tt>cap</tt> less what the entries so far have moved out of the bond.</dd>
+        </dl>
+        <t>Ranks 2 and 4 pay one Challenger, the one whose Challenge the standing Verdict answers. The -01 revision required the reward to be non-exclusive, paying every independent discoverer in full; one bond cannot fund that for two discoverers, so this profile pays one and records the departure here. A Challenge that was not answered by the
+        standing Verdict, whether lapsed, rejected or superseded, receives
+        nothing. Rank 4 gives the whole remaining bond, because the -01
+        revision forbade capping it at a fraction chosen for tidiness and
+        fixed no figure; a profile owner who wants a different rule changes
+        this line and the vectors with it.</t>
+      </section>
+
+      <section anchor="profile-vectors"><name>Vectors</name>
+        <t>With P 180.00, B 18.00, fund 0.50, cap 180.00, basis
+        <tt>released</tt>, remainder to <tt>sink</tt>, no verifier fee,
+        <tt>principal_on</tt> <tt>verdict</tt>, assurance <tt>certain</tt>
+        with q 1.0, under the <tt>verdict-first</tt> flow, and a Challenge
+        claiming costs of 1.20. Amounts are in USDC. Trace indexes count
+        from zero. The lists below are what <tt>vectors.json</tt> carries
+        for the two paths in the figures of this document; the repository's file also carries the SETTLED-by-Verifier, ABANDONED, verdict-lapsed and delivery-first paths, the <tt>price</tt> basis, and two admission vectors, one refused and one admitted at the boundary of the constraint.</t>
+
+        <figure anchor="fig-vector-final">
+          <name>FINAL: the path of <xref target="fig-flow"/></name>
+          <artwork type="ascii-art"><![CDATA[
+ trace   0 accepted  1 funded  2 delivered  3 verdict PASS
+         4 window-opened  5 window-closed  6 children-final
+         7 terminal FINAL
+
+ event  from     to        amount   code
+   1    buyer    escrow    180.00   lock
+   1    seller   bond       18.00   bond
+   1    seller   fund        0.50   fund
+   3    escrow   seller    180.00   principal
+   7    bond     seller     18.00   return
+   7    fund     seller      0.50   fund-return
+          ]]></artwork>
+        </figure>
+
+        <figure anchor="fig-vector-overturned">
+          <name>SETTLED on an upheld Challenge: the path of <xref target="fig-dispute"/></name>
+          <artwork type="ascii-art"><![CDATA[
+ trace   0 accepted  1 funded  2 delivered  3 verdict PASS
+         4 window-opened  5 challenge  6 verdict FAIL (answers 5,
+         supersedes 3)  7 children-final  8 terminal SETTLED,
+         challenge_upheld true
+
+ event  from     to               amount   code
+   1    buyer    escrow           180.00   lock
+   1    seller   bond              18.00   bond
+   1    seller   fund               0.50   fund
+   3    escrow   seller           180.00   principal
+   8    fund     challenger:<kid>   0.50   costs
+   8    bond     buyer             18.00   restitution
+          ]]></artwork>
+        </figure>
+
+        <t>In the second vector rank 1 emits nothing because the escrow is
+        empty, rank 2 pays the lesser of 1.20 and the fund's 0.50, rank 3
+        pays the whole bond because the Buyer's loss (180.00 released) exceeds
+        it, and ranks 4 and 5 and the fund return emit nothing because
+        nothing remains. Both lists satisfy closure: after the last entry the
+        three internal accounts hold zero.</t>
+      </section>
+    </section>
+
+    <section anchor="changes"><name>Changes from -01</name>
+      <t>This revision separates the protocol from the meaning of its terms.
+      The -01 revision, in its title, abstract, Section 1.2 and throughout,
+      made who owed whom the subject of the document; one reader on the IETF dispatch list, Rich Salz, read it in September 2026 as a legal framework with a protocol attached, and another, John C Klensin, wrote that its framing was tied closely enough to legal terminology that the IETF was the wrong place to evaluate it; both were right. What
+      follows is the list of what changed, with the wire consequences
+      first.</t>
+      <ul>
+        <li>The <tt>pact</tt> version is 0.2 and every committed digest
+        changed (<xref target="example"/>).
+        The -01 digests were computed by a canonicalizer that serialized
+        the number one as <tt>1.0</tt>, which <xref target="RFC8785"/>
+        does not allow, so the <tt>spec_hash</tt> and <tt>vtc_hash</tt>
+        the -01 revision printed are not what a conforming implementation
+        computes over the -01 example objects. V-25 in
+        <xref target="conf-vectors"/> pins the rule and the -02 examples
+        were minted after the correction.</li>
+        <li>The <tt>liability</tt> member is gone. A contract carries
+        <tt>terms</tt>: a profile URI, a digest over the profile's bundle,
+        and an opaque parameter object (<xref target="terms"/>). The -01
+        figures are the parameters of the profile in
+        <xref target="appendix-profile"/>. <tt>assurance</tt> moved into
+        that profile's parameters; <tt>parent</tt> moved to the top level
+        and gained <tt>facilitator</tt>.</li>
+        <li>The four release modes are replaced by three flows and a
+        profile parameter: <tt>on-verification</tt> is
+        <tt>verdict-first</tt> with <tt>principal_on</tt> <tt>verdict</tt>;
+        <tt>on-window</tt> is <tt>delivery-first</tt> with
+        <tt>window-closed</tt>; <tt>optimistic</tt> is
+        <tt>delivery-first</tt> with <tt>delivered</tt>;
+        <tt>unsecured</tt> is <tt>no-window</tt> with <tt>delivered</tt>
+        (<xref target="flows"/>).</li>
+        <li><tt>verification.max_verdict_seconds</tt> is added, with the
+        <tt>verdict-lapsed</tt> event, so a silent Verifier cannot hold a
+        contract in DELIVERED forever (<xref target="verdicts"/>).</li>
+        <li>The Work Attestation is the Outcome Record, with the RATS
+        collision explained (<xref target="related"/>). Its <tt>subject</tt>,
+        <tt>role</tt>, <tt>amounts</tt> and <tt>outcome</tt> vocabulary are
+        replaced by <tt>parties</tt>, an <tt>outcome</tt> object, the full
+        trace, and <tt>terms_result</tt> (<xref target="outcomes"/>). One
+        record per contract.</li>
+        <li>Every response is a signed Contract Status carrying the trace,
+        replacing the unsigned <tt>state</tt> member the -01 revision added
+        to echoed objects (<xref target="status"/>).</li>
+        <li>The event trace and the state machine over it are new
+        (<xref target="events"/>); RELEASING and PROPOSED are gone,
+        AWAITING_CHILDREN is added.</li>
+        <li><tt>delivery_hash</tt> covers the Delivery's signature; every
+        digest covers the signature set (<xref target="conventions"/>).
+        Signature sets are sorted and ECDSA is low-S
+        (<xref target="conf-sig"/>). Merkle leaves cover signatures
+        (<xref target="merkle"/>).</li>
+        <li>A nonconformant Delivery is refused and recorded nowhere; the
+        -01 revision treated it as a FAIL Verdict
+        (<xref target="delivery"/>). The Buyer countersignature sentence is
+        withdrawn.</li>
+        <li>A Verdict may carry <tt>challenge_hash</tt>; a Challenge may
+        carry <tt>costs</tt>; a Seller-signed Challenge is refused
+        (<xref target="verification"/>).</li>
+        <li>Contract trees work across Facilitators: child registration,
+        child outcome supply, <tt>child-unresolved</tt>, a finite latest
+        finality instant per contract and the rule L(child) before
+        L(parent); the depth and cycle rules are withdrawn with the reason
+        (<xref target="trees"/>). The -01 Section 10.2, which had liability cascade upward as recovery and not downward as discharge, is withdrawn to the profile; <xref target="tree-timing"/> says only that this document does not state what a child's outcome means for its parent.</li>
+        <li>Section 3 is a data dictionary and a role table
+        (<xref target="dictionary"/>); no sentence in it requires anything of
+        a party.</li>
+        <li>Media types move to the vendor tree; the two registries and
+        the <tt>pact-escrow</tt> row are withdrawn; problem types move to a
+        tag URI namespace and the table lists every type the implementation
+        emits (<xref target="iana"/>).</li>
+        <li>Retrieval is restricted by default and fetch discipline is
+        stated (<xref target="sec-retrieval"/>, <xref target="sec-fetch"/>).
+        The threat model says plainly what is enforced against a
+        Facilitator, which is nothing, and what is attributable
+        (<xref target="sec-facilitator"/>).</li>
+        <li>The experiment is restated over protocol observables
+        (<xref target="experiment"/>).</li>
+        <li>A contract carries exactly one signature per party and no other;
+        the -01 revision accepted further signers (<xref target="conf-rules"/>).</li>
+        <li><tt>verification.arbiter</tt> is withdrawn; nothing read it.</li>
+        <li>The capability document gains <tt>issued_at</tt> and
+        <tt>retrieval</tt>, and its flows must list <tt>verdict-first</tt> (<xref target="flows"/>). The
+        well-known URI is registered provisionally, with the author as change
+        controller.</li>
+        <li>A Verdict is accepted while one stands only in answer to a
+        Challenge (<xref target="events"/>).</li>
+        <li>The -01 rule that confidential content MUST NOT declare open
+        assurance is the profile's now; <xref target="profile-admission"/>
+        refuses open assurance alone.</li>
+        <li><tt>signature-invalid</tt> and <tt>signature-missing</tt> are 400
+        and not 401, since no HTTP authentication scheme is involved; V-26
+        names the protected-header members a verifier rejects
+        (<xref target="conf-sig"/>).</li>
+        <li><xref target="implstatus"/> names the repository licence, Apache License 2.0; the -01 said Revised BSD, which was wrong.</li>
+        <li><tt>alg</tt> names are the fully specified ones of <xref target="RFC9864"/>, <tt>Ed25519</tt> for an Ed25519 key; the polymorphic <tt>EdDSA</tt> identifier the -01 used is refused.</li>
+      </ul>
+    </section>
+
+    <section anchor="acks" numbered="false"><name>Acknowledgements</name>
+      <t>On the IETF dispatch list in September 2026, Rich Salz read the -01
+      revision as a legal framework with a protocol attached and said so, and
+      John C Klensin wrote that the framing of its terms was tied closely enough
+      to legal terminology that the IETF was the wrong place to evaluate it.
+      Both were right; this revision's split between records and terms is
+      the consequence, and the author is grateful for the reading. The UTF-16 key-ordering vector that exposed
+      a latent canonicalization defect in the reference validator, and the
+      formulation of verifier independence as a relation the evaluator
+      derives rather than a field the record declares, came from Tersign
+      (wowlegend) on x402-foundation/x402 issue 3065. The observation that
+      verification tiers say how work is checked and never who checks it
+      came from msaleme on the same thread. Rich Smith's A2A Settlement
+      Extension was the clearest instance of the pattern the -01 revision
+      corrected, and he engaged with the critique on a2aproject/A2A
+      discussion 1576.</t>
+    </section>
+  </back>
+</rfc>

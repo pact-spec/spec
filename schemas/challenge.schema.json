@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "challenge.schema.json",
-  "title": "PACT Challenge",
+  "title": "PACT Challenge (0.2)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,7 +14,7 @@
   ],
   "properties": {
     "pact": {
-      "type": "string"
+      "const": "0.2"
     },
     "type": {
       "const": "Challenge"
@@ -42,7 +42,7 @@
         },
         "results_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         },
         "failing_checks": {
           "type": "array",
@@ -51,8 +51,26 @@
           }
         }
       },
-      "$comment": "Section 7.5. Profile-conditional members enforced in code.",
-      "additionalProperties": false
+      "$comment": "Section 7.3. Profile-conditional members enforced in code. Members beyond those named are the verification profile's (Section 2); for acceptance, instrument_hash and results_hash are required.",
+      "additionalProperties": true,
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "acceptance"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "profile",
+          "instrument_hash",
+          "results_hash"
+        ]
+      }
+    },
+    "costs": {
+      "$ref": "common.schema.json#/$defs/amount_with_currency",
+      "$comment": "Section 3.6: a figure the Challenger asserts; recorded in the trace and read by the terms profile only."
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"

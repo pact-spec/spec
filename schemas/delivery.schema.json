@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "delivery.schema.json",
-  "title": "PACT Delivery",
+  "title": "PACT Delivery (0.2)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,7 +15,7 @@
   ],
   "properties": {
     "pact": {
-      "type": "string"
+      "const": "0.2"
     },
     "type": {
       "const": "Delivery"
@@ -31,14 +31,10 @@
     },
     "work_uri": {
       "type": "string",
-      "format": "uri"
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
     },
     "input_hash": {
       "$ref": "common.schema.json#/$defs/hash"
-    },
-    "delivered_at": {
-      "type": "string",
-      "format": "date-time"
     },
     "evidence": {
       "type": "object",
@@ -57,11 +53,25 @@
         },
         "results_uri": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s]+$"
         }
       },
-      "$comment": "Section 6. Tier-conditional members enforced in code.",
-      "additionalProperties": false
+      "$comment": "Section 6. Tier- and profile-conditional members are enforced in code. delivered_at is gone: the trace carries the Facilitator's time. Members beyond those named are the verification profile's (Section 2); for acceptance, instrument_hash and results_hash are required.",
+      "additionalProperties": true,
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "acceptance"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "profile",
+          "instrument_hash",
+          "results_hash"
+        ]
+      }
     },
     "signature": {
       "$ref": "common.schema.json#/$defs/signature"

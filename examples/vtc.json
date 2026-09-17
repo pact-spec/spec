@@ -1,5 +1,5 @@
 {
-  "pact": "0.1",
+  "pact": "0.2",
   "type": "VerifiableTaskContract",
   "id": "vtc_9f2c11",
   "parties": {
@@ -9,38 +9,51 @@
     "verifier": "did:web:audit.example"
   },
   "task": {
-    "spec_hash": "sha256:bb0e87ce522479b7c2f7bcfa26df7ecd7ff67aeb8b415bbd70c22d97c47adf35",
+    "spec_hash": "sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef111d27ff6bee37f05531823b72",
     "spec_uri": "https://buyer.example/specs/taskspec.json",
-    "deadline": "2026-08-01T00:00:00Z"
+    "deadline": "2026-11-14T00:00:00Z"
   },
   "price": {
     "amount": "180.00",
     "currency": "USDC",
-    "settlement": "pact-escrow",
+    "settlement": "https://settle.example/bindings/ledger-1",
     "network": "eip155:8453"
   },
   "verification": {
     "tier": "T0-reexec",
     "profile": "acceptance",
-    "criteria_hash": "sha256:d9205d4f2922afd55c0a2dc4ab00d8ee5a512343430bcf5e9abf0c76d66c69f7"
+    "criteria_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b8351c9c55eb9316416265fc1b",
+    "max_verdict_seconds": 86400
   },
-  "assurance": {
-    "mode": "certain",
-    "q_min": 1.0
-  },
-  "release": "on-verification",
-  "liability": {
-    "seller_bond": "18.00",
-    "verification_fund": "0.50",
-    "cap": "180.00",
-    "restitution_basis": "released"
+  "flow": "verdict-first",
+  "terms": {
+    "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+    "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956e835df2653b99d71d363a68",
+    "parameters": {
+      "seller_bond": "18.00",
+      "verification_fund": "0.50",
+      "cap": "180.00",
+      "restitution_basis": "released",
+      "remainder_to": "sink",
+      "principal_on": "verdict",
+      "assurance": {
+        "mode": "certain",
+        "q_min": 1.0
+      }
+    }
   },
   "challenge": {
     "window_seconds": 3600,
     "max_dispute_seconds": 86400
   },
   "signatures": [
-    { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YnV5ZXIuZXhhbXBsZTphZ2VudHM6cHJvY3VyZS0xI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0", "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" },
-    { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZGF0YWZvcmdlLmV4YW1wbGU6YWdlbnRzOmV0bC0zI2sxIiwidHlwIjoiYXBwbGljYXRpb24vcGFjdC1jb250cmFjdCtqc29uIn0", "signature": "ILLUSTRATIVE-NOT-A-REAL-SIGNATURE" }
+    {
+      "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpidXllci5leGFtcGxlOmFnZW50czpwcm9jdXJlLTEjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5jb250cmFjdCtqc29uIn0",
+      "signature": "XTmTlYvMegh86T8JcpRAxEiAfd_pcPIg3CI73bvRkymDrCalxCDV43Q8yW97WSGhr5KNaibi99K56gLlErsUCw"
+    },
+    {
+      "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpkYXRhZm9yZ2UuZXhhbXBsZTphZ2VudHM6ZXRsLTMjazEiLCJ0eXAiOiJhcHBsaWNhdGlvbi92bmQucGFjdC5jb250cmFjdCtqc29uIn0",
+      "signature": "UBgQmb7JBzwc6bLzi3uJpl2fXhD5sATF-70rmazKrQ__-HYcupeF0J8YN_5KAff0f6W7qtDuaja70wgIpOZ2AA"
+    }
   ]
 }

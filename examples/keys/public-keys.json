@@ -1,0 +1,32 @@
+{
+  "buyer": {
+    "kid": "did:web:buyer.example:agents:procure-1#k1",
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "ZI4mO5NKdU9Q8BUR9mmFDg4lMFSRjsMmrZyM2QYVj6o"
+  },
+  "seller": {
+    "kid": "did:web:dataforge.example:agents:etl-3#k1",
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "ftMBufL7i1hk3JvMK8tGXqWDAJGvktvqbt6hH6XgJ_A"
+  },
+  "facilitator": {
+    "kid": "did:web:settle.example#k1",
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "CKxgOGR0BWmuX_SDlDWEb5J3cVewJ0q4An4qpcP7MhY"
+  },
+  "verifier": {
+    "kid": "did:web:audit.example#k1",
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "f9HxRcwZDRgYxD2dFplf6JSB40FJlQ73DoG6pCQDHh8"
+  },
+  "challenger": {
+    "kid": "did:web:watch.example#k1",
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "cF4KdQZLE2HZOow_B8iPTDzcLpzp-RFhmslIxOXFLkI"
+  }
+}

@@ -84,7 +84,7 @@ change; the ones with wire consequences:
 | `examples/keys/` | The public keys that verify those signatures; the private keys derive from public seeds and are not secrets |
 | `examples/task-content/` | The three files the TaskSpec commits to by sibling hash |
 | `examples/acceptance-harness/` | The instrument `criteria_hash` commits to, as a manifest |
-| `examples/legacy-00/` | The -00 call-for-bids, bid and capability objects, kept so the published -00 stays checkable; not part of the conformance surface |
+| `examples/legacy-00/` | The -00 call-for-bids, bid and capability objects, kept so the published -00 stays checkable with the schemas and validator at commit `8b490ce` (see the folder's README); not part of the conformance surface |
 | `profiles/bonded-restitution/` | The example terms profile bundle: README, parameter schema, vectors. `profile_hash` is the manifest digest over these three files |
 | `tools/` | The validator, the example minter, and the reference implementation; see `tools/README.md` |
 | `diagrams/` | Protocol diagrams |
@@ -113,9 +113,9 @@ pip install jsonschema referencing cryptography
 python3 tools/validate.py
 ```
 
-107 checks, in the validator's own words: 10 schema conformance; 4 canonicalization (RFC 8785); 18 hash commitments; 21 rules of the document; 9 signature verification; 11 terms profile: bonded-restitution; 6 Merkle tree hash (RFC 9162); 28 conformance vectors of Section 14.3, through the reference Facilitator. `pactcore.jcs` is a full RFC 8785 canonicalizer for
-the JSON value types, including UTF-16 key order and ECMAScript number
-formatting; both are pinned by vectors because both were got wrong once.
+189 checks, in the validator's own words: 14 schema conformance; 4 canonicalization (RFC 8785); 18 hash commitments; 48 rules of the document; 9 signature verification; 15 terms profile: bonded-restitution; 6 Merkle tree hash (RFC 9162); 65 conformance vectors of Section 14.3, through the reference Facilitator; 10 reference implementation checks. `pactcore.jcs` is an RFC 8785 canonicalizer for
+the values PACT objects carry, including UTF-16 key order and ECMAScript
+number formatting; both are pinned by vectors because both were got wrong once.
 
 ## Building the draft
 

@@ -820,6 +820,258 @@
     }
   },
   {
+    "name": "FINAL with a verifier fee of 0.105, fund 0.51",
+    "contract": {
+      "price": {
+        "amount": "180.00",
+        "currency": "USDC"
+      },
+      "flow": "verdict-first",
+      "terms": {
+        "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+        "parameters": {
+          "seller_bond": "18.00",
+          "verification_fund": "0.51",
+          "cap": "180.00",
+          "restitution_basis": "released",
+          "remainder_to": "sink",
+          "principal_on": "verdict",
+          "assurance": {
+            "mode": "certain",
+            "q_min": 1.0
+          },
+          "verifier_fee": "0.105"
+        }
+      }
+    },
+    "trace": [
+      {
+        "event": "accepted",
+        "at": "2026-11-01T10:00:00Z",
+        "object": "sha256:vtc0000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "event": "funded",
+        "at": "2026-11-01T10:00:00Z"
+      },
+      {
+        "event": "delivered",
+        "at": "2026-11-10T08:30:12Z",
+        "object": "sha256:delivery00000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "event": "verdict",
+        "at": "2026-11-10T09:14:30Z",
+        "object": "sha256:verdict100000000000000000000000000000000000000000000000000000000",
+        "signer": "did:web:audit.example#k1",
+        "outcome": "PASS"
+      },
+      {
+        "event": "window-opened",
+        "at": "2026-11-10T09:14:30Z",
+        "closes_at": "2026-11-10T10:14:30Z"
+      },
+      {
+        "event": "window-closed",
+        "at": "2026-11-10T10:14:31Z"
+      },
+      {
+        "event": "children-final",
+        "at": "2026-11-10T10:14:31Z"
+      },
+      {
+        "event": "terminal",
+        "at": "2026-11-10T10:14:31Z",
+        "state": "FINAL",
+        "challenge_upheld": false
+      }
+    ],
+    "transfers": [
+      {
+        "event": 1,
+        "from": "buyer",
+        "to": "escrow",
+        "amount": "180.00",
+        "code": "lock"
+      },
+      {
+        "event": 1,
+        "from": "seller",
+        "to": "bond",
+        "amount": "18.00",
+        "code": "bond"
+      },
+      {
+        "event": 1,
+        "from": "seller",
+        "to": "fund",
+        "amount": "0.51",
+        "code": "fund"
+      },
+      {
+        "event": 3,
+        "from": "fund",
+        "to": "verifier",
+        "amount": "0.105",
+        "code": "verification"
+      },
+      {
+        "event": 3,
+        "from": "escrow",
+        "to": "seller",
+        "amount": "180.00",
+        "code": "principal"
+      },
+      {
+        "event": 7,
+        "from": "bond",
+        "to": "seller",
+        "amount": "18.00",
+        "code": "return"
+      },
+      {
+        "event": 7,
+        "from": "fund",
+        "to": "seller",
+        "amount": "0.405",
+        "code": "fund-return"
+      }
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
+  },
+  {
+    "name": "FINAL with a verifier fee of 0.105, fund 0.50",
+    "contract": {
+      "price": {
+        "amount": "180.00",
+        "currency": "USDC"
+      },
+      "flow": "verdict-first",
+      "terms": {
+        "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+        "parameters": {
+          "seller_bond": "18.00",
+          "verification_fund": "0.50",
+          "cap": "180.00",
+          "restitution_basis": "released",
+          "remainder_to": "sink",
+          "principal_on": "verdict",
+          "assurance": {
+            "mode": "certain",
+            "q_min": 1.0
+          },
+          "verifier_fee": "0.105"
+        }
+      }
+    },
+    "trace": [
+      {
+        "event": "accepted",
+        "at": "2026-11-01T10:00:00Z",
+        "object": "sha256:vtc0000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "event": "funded",
+        "at": "2026-11-01T10:00:00Z"
+      },
+      {
+        "event": "delivered",
+        "at": "2026-11-10T08:30:12Z",
+        "object": "sha256:delivery00000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "event": "verdict",
+        "at": "2026-11-10T09:14:30Z",
+        "object": "sha256:verdict100000000000000000000000000000000000000000000000000000000",
+        "signer": "did:web:audit.example#k1",
+        "outcome": "PASS"
+      },
+      {
+        "event": "window-opened",
+        "at": "2026-11-10T09:14:30Z",
+        "closes_at": "2026-11-10T10:14:30Z"
+      },
+      {
+        "event": "window-closed",
+        "at": "2026-11-10T10:14:31Z"
+      },
+      {
+        "event": "children-final",
+        "at": "2026-11-10T10:14:31Z"
+      },
+      {
+        "event": "terminal",
+        "at": "2026-11-10T10:14:31Z",
+        "state": "FINAL",
+        "challenge_upheld": false
+      }
+    ],
+    "transfers": [
+      {
+        "event": 1,
+        "from": "buyer",
+        "to": "escrow",
+        "amount": "180.00",
+        "code": "lock"
+      },
+      {
+        "event": 1,
+        "from": "seller",
+        "to": "bond",
+        "amount": "18.00",
+        "code": "bond"
+      },
+      {
+        "event": 1,
+        "from": "seller",
+        "to": "fund",
+        "amount": "0.50",
+        "code": "fund"
+      },
+      {
+        "event": 3,
+        "from": "fund",
+        "to": "verifier",
+        "amount": "0.105",
+        "code": "verification"
+      },
+      {
+        "event": 3,
+        "from": "escrow",
+        "to": "seller",
+        "amount": "180.00",
+        "code": "principal"
+      },
+      {
+        "event": 7,
+        "from": "bond",
+        "to": "seller",
+        "amount": "18.00",
+        "code": "return"
+      },
+      {
+        "event": 7,
+        "from": "fund",
+        "to": "seller",
+        "amount": "0.395",
+        "code": "fund-return"
+      }
+    ],
+    "accounts": {
+      "internal": [
+        "escrow",
+        "bond",
+        "fund"
+      ]
+    }
+  },
+  {
     "name": "admission: refused, seller_bond 17.99 at q_min 0.9091 on 180.00",
     "contract": {
       "price": {
@@ -873,6 +1125,34 @@
     },
     "admission": {
       "admitted": true
+    }
+  },
+  {
+    "name": "admission: refused, q_min 0.3333333333333333 on 0.01 with a seller_bond whose B*q falls 1e-34 short of P*(1-q)",
+    "contract": {
+      "price": {
+        "amount": "0.01",
+        "currency": "USDC"
+      },
+      "flow": "verdict-first",
+      "terms": {
+        "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
+        "parameters": {
+          "seller_bond": "0.020000000000000003",
+          "verification_fund": "0.01",
+          "cap": "0.03",
+          "restitution_basis": "released",
+          "remainder_to": "sink",
+          "principal_on": "verdict",
+          "assurance": {
+            "mode": "certain",
+            "q_min": 0.3333333333333333
+          }
+        }
+      }
+    },
+    "admission": {
+      "refused": "assurance-constraint-unsatisfied"
     }
   }
 ]

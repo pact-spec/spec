@@ -1,18 +1,21 @@
 """Shared PACT primitives: canonicalization, digests, JWS, and the assurance constraint.
 
-This module is the part of the reference implementation that both the
-Facilitator (facilitator.py) and the party agents (agents.py) need. It is
-deliberately separate from tools/validate.py, which stays a self-contained
-conformance checker over the committed examples and must keep passing on a
-machine with nothing but jsonschema installed.
+This module is the part of the reference implementation that the Facilitator
+(facilitator.py), the party agents (agents.py), the terms profile (profile.py)
+and the validator (validate.py) all import, so the validator checks the
+committed examples with the same canonicalizer, digests and normalization the
+Facilitator runs. What it pins, it pins with vectors, not with a second copy.
+Nothing here needs more than the standard library, except signing and
+verification, which need cryptography; validate.py still runs without it and
+prints [skip] for those checks.
 
 Two things here are worth reading before trusting a number produced with it.
 
-The canonicalizer is the same restricted RFC 8785 implementation validate.py
-uses. It is correct for the value types PACT objects carry and is not a
-conforming general JCS implementation; what it does get right, and what the
-Section 14.3 vectors pin, is the UTF-16 code unit key order of RFC 8785
-section 3.2.3, which json.dumps(sort_keys=True) does not implement.
+The canonicalizer is a restricted RFC 8785 implementation. It is correct for
+the value types PACT objects carry and is not a conforming general JCS
+implementation; what it does get right, and what the Section 14.3 vectors
+pin, is the UTF-16 code unit key order of RFC 8785 section 3.2.3, which
+json.dumps(sort_keys=True) does not implement.
 
 The signatures are real. Section 14.1 fixes the JWS Signing Input as
 ASCII(BASE64URL(UTF8(protected)) || "." || BASE64URL(JCS(object))) over the
@@ -34,8 +37,11 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
+import string
 import unicodedata
 from decimal import Decimal
+from fractions import Fraction
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -208,47 +214,176 @@ def attach(obj: dict, entry: dict, array: bool) -> dict:
 # Identifier normalization, Section 9.1
 # --------------------------------------------------------------------------
 
+# RFC 3986 Section 2.3. Built from the string module, not written out: a
+# literal run of hex digits reads as a digest prefix to digest-scan.py.
+UNRESERVED = frozenset(string.ascii_letters + string.digits + "-._~")
+HEXDIG = frozenset(string.hexdigits)
+SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*\Z")
+# DID Core 1.0 Section 3.1: "did:" method-name ":" method-specific-id, with
+# method-char = %x61-7A / DIGIT and idchar = ALPHA / DIGIT / "." / "-" / "_" /
+# pct-encoded; every "%" was already checked to begin a well-formed escape.
+DID = re.compile(r"did:[a-z0-9]+:(?:[A-Za-z0-9._%-]*:)*[A-Za-z0-9._%-]+\Z")
+PORT_DID_WEB = re.compile(r"%3A", re.I)
+# RFC 3986 Appendix A, for the https form: path-abempty [ "?" query ] after the
+# authority (the fragment is gone by then) and a reg-name host. An IP-literal
+# host is refused by step 6, so no rule for one is needed here.
+_UNRES = r"A-Za-z0-9\-._~"
+_SUBDELIMS = r"!$&'()*+,;="
+_PCHAR = rf"(?:[{_UNRES}{_SUBDELIMS}:@]|%[0-9A-Fa-f]{{2}})"
+HTTPS_TAIL = re.compile(rf"(?:/{_PCHAR}*)*(?:\?(?:{_PCHAR}|[/?])*)?\Z")
+REG_NAME = re.compile(rf"[{_UNRES}{_SUBDELIMS}]*\Z")
+
+
+class NotEvaluable(ValueError):
+    """Section 9.1: an identifier that does not parse is never compared."""
+
+
+def _upper_escapes(x: str) -> str:
+    return re.sub(r"%[0-9A-Fa-f]{2}", lambda e: e.group(0).upper(), x)
+
+
+def _port_ok(port: str) -> bool:
+    """Digits with no leading zero, or empty (step 10 removes an empty port)."""
+    return port == "" or (port.isdigit() and port[0] != "0")
+
+
+def _numeric_host(host: str) -> bool:
+    """Step 6: the last label of the host that is not empty begins with a
+    digit. The rule is the draft's own choice and wider than an IPv4
+    reading: it refuses every host written as an IPv4 address in the
+    decimal, octal or hexadecimal forms some URL parsers accept
+    ("192.0.2.1", "0300.0.2.1", "0xc0.0.2.1", one address spelled three
+    ways), and some host names besides ("example.1x")."""
+    labels = [x for x in host.split(".") if x]
+    return bool(labels) and labels[-1][0].isdigit()
+
+
 def norm(identifier: str) -> str:
-    """Normalize a party identifier per Section 9.1, exactly as written.
+    """Normalize a party identifier or a kid by the ten steps of Section 9.1,
+    in the order the text gives them, and return the normalized form.
 
-    "strip leading and trailing whitespace; lower-case the scheme and, for
-    did:web and https identifiers, the host; remove any fragment (a "#" and
-    everything after it) and any trailing "/" or ".". Percent-encoding MUST NOT
-    be decoded, since an open-ended decoder is its own attack surface."
-
-    Note what this does NOT do. It does not case-fold the whole identifier: the
-    path of a did:web is case sensitive, and folding it would merge two
-    distinct parties. An earlier version of this function folded everything and
-    never stripped the fragment, which is both too permissive and too strict in
-    different places.
+    Raises NotEvaluable, and never returns, for an identifier that does not
+    parse: a character outside %x21-7E, an escape of an unreserved character
+    or a stray "%", a scheme other than did and https, a did that fails the
+    DID Core syntax (did:WEB, did:web:), an https identifier that is not an
+    RFC 3986 URI with an authority, userinfo, a host with an escape, an
+    IP-literal host or one whose last non-empty label begins with a digit, a
+    port that is not digits or begins with "0", a "." or ".." segment, "//"
+    in an https path or "::" in a did:web identifier, an empty query, a host
+    that is empty. Nothing is decoded and no path is rewritten. Two
+    identifiers are equivalent when norm() returns the same string for both;
+    nothing here says who controls either.
     """
-    s = identifier.strip()
+    s = identifier
+    # 1. Printable ASCII only, %x21 to %x7E, the fragment included. Nothing is
+    #    stripped, so no whitespace can survive into a comparison (audit A1),
+    #    and a U-label host never parses (row 10).
+    if not isinstance(s, str) or not s or any(not ("!" <= ch <= "~") for ch in s):
+        raise NotEvaluable("a character outside %x21-7E")
+    # 2. The fragment: the first "#" and everything after it.
     s = s.split("#", 1)[0]
-
-    if ":" in s:
-        scheme, rest = s.split(":", 1)
-        scheme = scheme.lower()
-        if scheme == "did":
-            parts = rest.split(":")
-            if len(parts) > 1 and parts[0] == "web":
-                parts[1] = parts[1].lower()               # the did:web host only
-            rest = ":".join(parts)
-        elif scheme == "https" and rest.startswith("//"):
-            authority, sep, tail = rest[2:].partition("/")
-            authority, q, query = authority.partition("?")   # a query with no path
-            userinfo, at, hostport = authority.rpartition("@")
-            if hostport.startswith("["):                      # IPv6 literal
-                end = hostport.find("]") + 1
-                hostname, port = hostport[:end], hostport[end:]
-            else:
-                hostname, colon, port = hostport.partition(":")
-                port = colon + port
-            rest = "//" + userinfo + at + hostname.lower() + port + q + query + sep + tail
-        s = scheme + ":" + rest
-
-    while s.endswith(("/", ".")):
-        s = s[:-1]
-    return s
+    # 3. Escapes, read once from left to right. A "%" must begin "%" HEXDIG
+    #    HEXDIG; an escape of an unreserved character is refused (row 6);
+    #    nothing is decoded, so "%2541" is "%25" then "41" (row 12).
+    i = s.find("%")
+    while i != -1:
+        hx = s[i + 1:i + 3]
+        if len(hx) != 2 or not set(hx) <= HEXDIG:
+            raise NotEvaluable("a '%' that does not begin an escape")
+        if chr(int(hx, 16)) in UNRESERVED:
+            raise NotEvaluable(f"%{hx} encodes an unreserved character")
+        i = s.find("%", i + 3)
+    # 4. Every "/" at the end of the identifier. A "." is left alone here: at
+    #    the end of a host step 9 removes it, and at the end of a path segment
+    #    it is part of a different identifier.
+    s = s.rstrip("/")
+    # 5. The scheme, lower-cased; did and https are the two forms of 14.1.1.
+    scheme, colon, rest = s.partition(":")
+    if not colon or not SCHEME.match(scheme):
+        raise NotEvaluable("no scheme")
+    scheme = scheme.lower()
+    if scheme == "did":
+        # 6. Parse: DID Core syntax; did:WEB is not a case variant, it does not parse.
+        if not DID.match("did:" + rest):
+            raise NotEvaluable("not a DID (DID Core Section 3.1)")
+        method, _, msid = rest.partition(":")
+        if method != "web":
+            # 7, 9 and 10 concern a host, which only did:web has here; 8 applies.
+            return "did:" + _upper_escapes(rest)
+        if any(part in (".", "..") for part in msid.split(":")):
+            raise NotEvaluable("a '.' or '..' segment in a did:web identifier")
+        if "::" in msid:
+            raise NotEvaluable("an empty segment ('::') in a did:web identifier")
+        seg, sep, tail = msid.partition(":")
+        m = PORT_DID_WEB.search(seg)
+        host, port_sep, port = (seg[:m.start()], seg[m.start():m.end()], seg[m.end():]) if m else (seg, "", "")
+        if "%" in host or (port_sep and not _port_ok(port)):
+            raise NotEvaluable("a did:web host with an escape, or a port that is not digits "
+                               "or begins with '0'")
+        if _numeric_host(host):
+            raise NotEvaluable("a did:web host whose last non-empty label begins with a digit")
+        # 7. Host lower-cased; the segments after the host keep their case.
+        host = host.lower()
+        # 8. Escape case: upper-case hex digits (RFC 3986 6.2.2.1). Before step 10.
+        port_sep = port_sep.upper()
+        tail = _upper_escapes(tail)
+        # 9. Every "." at the end of the host; an empty host is not evaluable.
+        host = host.rstrip(".")
+        if not host:
+            raise NotEvaluable("an empty did:web host")
+        # 10. Default port: "%3A443" or an empty "%3A", as a fixed string.
+        if port_sep + port in ("%3A443", "%3A"):
+            port_sep = port = ""
+        return "did:web:" + host + port_sep + port + sep + tail
+    if scheme == "https":
+        # 6. Parse against RFC 3986: "//" authority path-abempty ["?" query],
+        #    no userinfo, a reg-name host with no escape and no last non-empty
+        #    label that begins with a digit (no IP-literal), a port of digits
+        #    with no leading zero, no "." or ".." path segment, no "//" in the
+        #    path, and no empty query.
+        if not rest.startswith("//"):
+            raise NotEvaluable("an https identifier with no authority")
+        body = rest[2:]
+        cut = min([j for j in (body.find("/"), body.find("?")) if j != -1], default=len(body))
+        authority, tail = body[:cut], body[cut:]
+        if "@" in authority:
+            raise NotEvaluable("userinfo in an https identifier")
+        if authority.startswith("["):
+            raise NotEvaluable("an IP-literal host")
+        host, c, port = authority.partition(":")
+        port_part = c + port
+        if "%" not in host and not REG_NAME.match(host):
+            raise NotEvaluable("a host character that RFC 3986 does not admit")
+        if "%" in host:
+            raise NotEvaluable("an https host with an escape")
+        if _numeric_host(host):
+            raise NotEvaluable("an https host whose last non-empty label begins with a digit")
+        if port_part and (port_part[0] != ":" or not _port_ok(port_part[1:])):
+            raise NotEvaluable("a port that is not digits or begins with '0'")
+        if not HTTPS_TAIL.match(tail):
+            raise NotEvaluable("a path or query character that RFC 3986 does not admit")
+        path, query_mark, query = tail.partition("?")
+        if any(part in (".", "..") for part in path.split("/")[1:]):
+            raise NotEvaluable("a '.' or '..' path segment")
+        if "//" in path:
+            raise NotEvaluable("an empty path segment ('//')")
+        if query_mark and not query:
+            raise NotEvaluable("an empty query")
+        # 7. Host lower-cased; path and query keep their case.
+        host = host.lower()
+        # 8. Escape case, before step 10.
+        tail = _upper_escapes(tail)
+        # 9. Every "." at the end of the host; an empty host is not evaluable.
+        host = host.rstrip(".")
+        if not host:
+            raise NotEvaluable("an https identifier with an empty host")
+        # 10. Default port ":443" or an empty ":", and a path of exactly "/".
+        if port_part in (":443", ":"):
+            port_part = ""
+        if tail == "/" or tail.startswith("/?"):
+            tail = tail[1:]
+        return "https://" + host + port_part + tail
+    raise NotEvaluable(f"scheme {scheme!r} is neither did nor https (Section 14.1.1)")
 
 
 def same_party(a: str, b: str) -> bool:
@@ -275,19 +410,143 @@ def signatures_ordered(obj: dict) -> tuple[bool, str]:
 # The assurance constraint, Appendix A.4 of -02 (Section 7.2 of -01)
 # --------------------------------------------------------------------------
 
+def exact(x: str | float | int | Decimal) -> Fraction:
+    """The exact value of an amount or a JSON number, as the record prints it.
+
+    An amount is a decimal string and is read as written. A JSON number such
+    as q_min is read as its RFC 8785 form, which for a float is the shortest
+    decimal that round-trips (Python's repr), so 0.9091 is nine thousand and
+    ninety-one ten-thousandths and not the binary value nearest to it.
+    """
+    if isinstance(x, Fraction):
+        return x
+    return Fraction(Decimal(str(x)))
+
+
 def assurance_holds(price: str | float, bond: str | float, q_min: str | float,
                     released: str | float = "0") -> bool:
-    """B >= P(1-q)/q + E, evaluated exactly.
+    """B >= P(1-q)/q + E, evaluated exactly (Appendix A.4).
 
-    Multiplied through by q (which is positive) this is B*q >= P*(1-q) + E*q,
-    which needs no division and no rounding. An earlier version rounded both
-    sides to the nearest cent first, and a bond one hundredth of a cent short
-    of the bound passed.
+    Multiplied through by q (which is positive) this is B*q >= P*(1-q) + E*q.
+    The products are rational numbers with no rounding at all. An earlier
+    version rounded both sides to the nearest cent, and a bond one hundredth of
+    a cent short of the bound passed; the version after it used Decimal's
+    default 28-digit context, which rounded B*q, so P 0.01, B
+    0.020000000000000003 and q 0.3333333333333333 passed too, although B*q
+    falls 1e-34 short of P*(1-q) and B is about 3e-34 below the bound
+    (audit A3).
     """
-    P, B, q, E = (Decimal(str(x)) for x in (price, bond, q_min, released))
+    P, B, q, E = (exact(x) for x in (price, bond, q_min, released))
     if q <= 0:
         raise ValueError("q must be greater than zero")
     return B * q >= P * (1 - q) + E * q
+
+
+def required_bond(price, q_min, released="0") -> Fraction:
+    """P(1-q)/q + E, exactly; the smallest bond the admission rule accepts."""
+    P, q, E = exact(price), exact(q_min), exact(released)
+    return P * (1 - q) / q + E
+
+
+def amount_str(x: Fraction | Decimal | str, places: int | None = None, up: bool = False) -> str:
+    """An amount string (Section 2) for an exact value.
+
+    With places None the value must be a terminating decimal and is written
+    exactly, with the fewest decimal places that keep it and never fewer than
+    two: 0.105 is "0.105", 0.5 is "0.50", 180 is "180.00". With places given
+    the value is written at that many places, rounded up when up is true and
+    refused otherwise; only the text of a refusal uses that form.
+    """
+    v = exact(x) if not isinstance(x, Fraction) else x
+    if v < 0:
+        raise ValueError("an amount has no sign")
+    if places is None:
+        k = 0
+        while (v * 10 ** k).denominator != 1:
+            k += 1
+            if k > 18:
+                raise ValueError(f"{v} has more than eighteen decimal places")
+        places = max(k, 2)
+    scaled = v * 10 ** places
+    if scaled.denominator != 1:
+        if not up:
+            raise ValueError(f"{v} does not fit {places} decimal places")
+        scaled = Fraction(-((-scaled.numerator) // scaled.denominator))
+    # Section 2 puts no bound on the integer part. str(int) refuses an integer
+    # of more than 4300 digits (Python's limit on int-to-str conversion), and
+    # Decimal's own formatting has no such limit, so the digits come from it.
+    digits = format(Decimal(int(scaled)), "f").rjust(places + 1, "0")
+    return digits[:-places] + "." + digits[-places:]
+
+
+def places_of(amount: str) -> int:
+    """Decimal places as written: "180.00" has two, "0.105" three."""
+    return max(0, -Decimal(amount).as_tuple().exponent)
+
+
+# --------------------------------------------------------------------------
+# What an Outcome Record says about its own trace (Section 12 of -03)
+# --------------------------------------------------------------------------
+
+def standing_verdict(trace: list[dict]) -> dict | None:
+    """Section 4.2: the last verdict entry that no later entry supersedes.
+
+    A Verdict is accepted while one stands only in answer to a Challenge, and
+    it then supersedes the one that stood, so this is the last verdict entry.
+    """
+    verdicts = [e for e in trace if e.get("event") == "verdict"]
+    return verdicts[-1] if verdicts else None
+
+
+def outcome_verdict(trace: list[dict]) -> str:
+    """outcome.verdict: the digest of the Verdict standing at the terminal
+    entry; else "verdict-lapsed" when the trace records that event; else
+    "none" (no Verdict was recorded and none was waited for and missed)."""
+    st = standing_verdict(trace)
+    if st is not None:
+        return st["object"]
+    if any(e.get("event") == "verdict-lapsed" for e in trace):
+        return "verdict-lapsed"
+    return "none"
+
+
+def outcome_scope(vtc: dict) -> dict:
+    """The members an Outcome Record copies from its contract besides parties."""
+    return {"task": {"spec_hash": vtc["task"]["spec_hash"]},
+            "verification": dict(vtc["verification"]),
+            "flow": vtc["flow"]}
+
+
+def outcome_errors(record: dict, vtc: dict | None = None, delivery: dict | None = None) -> list[str]:
+    """Every rule of Section 12 a holder can check: outcome.verdict against the
+    record's own trace; work_hash present exactly when a Delivery was recorded;
+    with the contract, the copied members; with the Delivery the delivered
+    entry names, its work_hash. Returns the problems found, none when sound."""
+    errs: list[str] = []
+    trace = record.get("trace") or []
+    got = (record.get("outcome") or {}).get("verdict")
+    want = outcome_verdict(trace)
+    if got != want:
+        errs.append(f"outcome.verdict is {got!r}; the trace gives {want!r}")
+    delivered = [e for e in trace if e.get("event") == "delivered"]
+    if delivered and "work_hash" not in record:
+        errs.append("work_hash is absent though the trace has a delivered entry")
+    if not delivered and "work_hash" in record:
+        errs.append("work_hash is present though the trace has no delivered entry")
+    if delivery is not None and delivered:
+        if digest_over(delivery) != delivered[0].get("object"):
+            errs.append("the Delivery given is not the one the delivered entry names")
+        elif record.get("work_hash") != delivery.get("work_hash"):
+            errs.append("work_hash is not the work_hash of the Delivery the delivered entry names")
+    if vtc is not None:
+        if record.get("vtc_hash") != digest_over(vtc):
+            errs.append("vtc_hash is not the digest of the contract given")
+        if record.get("parties") != vtc.get("parties"):
+            errs.append("parties is not the contract's, copied")
+        for member, value in outcome_scope(vtc).items():
+            if record.get(member) != value:
+                errs.append(f"{member} is not the contract's, copied")
+    return errs
 
 
 # --------------------------------------------------------------------------
@@ -523,7 +782,8 @@ def kid_covers(kid: str, party: str) -> bool:
     this is an equality test. It used to be a prefix test, which is a hole:
     did:web:seller.example.evil starts with did:web:seller.example and would have
     signed as its neighbour. Section 14.1 of the draft requires equality of the
-    normalized identifier, not containment.
+    normalized identifier, not containment. Raises NotEvaluable, never
+    returns False, for an identifier that does not parse (Section 9.1).
     """
     return norm(kid) == norm(party)
 
@@ -570,23 +830,5 @@ def mth(items: list[bytes]) -> bytes:
     while k * 2 < len(items):
         k *= 2
     return hashlib.sha256(b"\x01" + mth(items[:k]) + mth(items[k:])).digest()
-
-
-# --------------------------------------------------------------------------
-# Money. Contracts carry decimal strings; arithmetic happens in cents.
-# --------------------------------------------------------------------------
-
-def cents(amount: str | float) -> int:
-    """Whole cents. Amounts with more than two decimal places are refused at
-    propose by the Facilitator (it settles in cents); this never rounds."""
-    d = Decimal(str(amount))
-    scaled = d * 100
-    if scaled != scaled.to_integral_value():
-        raise ValueError(f"amount {amount!r} is not a whole number of cents")
-    return int(scaled)
-
-
-def money(c: int) -> str:
-    return f"{c / 100:.2f}"
 
 

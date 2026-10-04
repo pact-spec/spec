@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "status.schema.json",
-  "title": "PACT Contract Status (0.2)",
+  "title": "PACT Contract Status (0.3)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -16,7 +16,7 @@
   ],
   "properties": {
     "pact": {
-      "const": "0.2"
+      "const": "0.3"
     },
     "type": {
       "const": "ContractStatus"

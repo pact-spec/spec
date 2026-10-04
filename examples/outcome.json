@@ -1,24 +1,35 @@
 {
-  "pact": "0.2",
+  "pact": "0.3",
   "type": "OutcomeRecord",
   "vtc_id": "vtc_9f2c11",
-  "vtc_hash": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff4949304c2c855ca1d746ba6459",
+  "vtc_hash": "sha256:2db525ce98c8ee4b4cb63785450439487513ef2a2d95a87de407e2f4717a53f0",
   "parties": {
     "buyer": "did:web:buyer.example:agents:procure-1",
     "seller": "did:web:dataforge.example:agents:etl-3",
     "facilitator": "did:web:settle.example",
     "verifier": "did:web:audit.example"
   },
+  "task": {
+    "spec_hash": "sha256:9491d28ac7a3fcd3f0bf279f78e793547cd4ef111d27ff6bee37f05531823b72"
+  },
+  "verification": {
+    "tier": "T0-reexec",
+    "profile": "acceptance",
+    "criteria_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b8351c9c55eb9316416265fc1b",
+    "max_verdict_seconds": 86400
+  },
+  "flow": "verdict-first",
   "outcome": {
     "state": "SETTLED",
-    "challenge_upheld": true
+    "challenge_upheld": true,
+    "verdict": "sha256:b8afa3db5aac3af7c1414d26a397dc7a62b90374339150f36bf9a27b506d0ef8"
   },
   "work_hash": "sha256:a26dc519a79ac70835a71ea58c9e34f0625778aee280a3170b6b9a5037036ef0",
   "trace": [
     {
       "event": "accepted",
       "at": "2026-11-01T10:00:00Z",
-      "object": "sha256:7af52ecee9592740ca9a8b3e0bbd097cf765ff4949304c2c855ca1d746ba6459"
+      "object": "sha256:2db525ce98c8ee4b4cb63785450439487513ef2a2d95a87de407e2f4717a53f0"
     },
     {
       "event": "funded",
@@ -27,12 +38,12 @@
     {
       "event": "delivered",
       "at": "2026-11-10T08:30:12Z",
-      "object": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45370cb3023331bc8bfbd924fcbe"
+      "object": "sha256:dfabe6a5d1aaf23868dec65e1517dc0dfa911b41054ea10d641bb919aed34c95"
     },
     {
       "event": "verdict",
       "at": "2026-11-10T09:14:30Z",
-      "object": "sha256:1ac94d72dbdd1f51e523ecddb3a3b360703976215b13324485db355c948adfc0",
+      "object": "sha256:12d21e99864c7c85c517fc5cd51b49eb0a3ca281ef8f885ac6451eb1788ab085",
       "signer": "did:web:audit.example#k1",
       "outcome": "PASS"
     },
@@ -44,7 +55,7 @@
     {
       "event": "challenge",
       "at": "2026-11-10T09:40:00Z",
-      "object": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093ec2c6795962e67a6e2ff55ff",
+      "object": "sha256:298494c02feb0a51def024b5e22acf11aa65d0f4e175271f07962215f26e71a9",
       "signer": "did:web:watch.example#k1",
       "costs": {
         "amount": "1.20",
@@ -54,11 +65,11 @@
     {
       "event": "verdict",
       "at": "2026-11-10T09:58:05Z",
-      "object": "sha256:10d537e7b8face8bd7695541d36d32568394a53197653280c404e2d84a63d46d",
+      "object": "sha256:b8afa3db5aac3af7c1414d26a397dc7a62b90374339150f36bf9a27b506d0ef8",
       "signer": "did:web:audit.example#k1",
       "outcome": "FAIL",
-      "answers": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093ec2c6795962e67a6e2ff55ff",
-      "supersedes": "sha256:1ac94d72dbdd1f51e523ecddb3a3b360703976215b13324485db355c948adfc0"
+      "answers": "sha256:298494c02feb0a51def024b5e22acf11aa65d0f4e175271f07962215f26e71a9",
+      "supersedes": "sha256:12d21e99864c7c85c517fc5cd51b49eb0a3ca281ef8f885ac6451eb1788ab085"
     },
     {
       "event": "children-final",
@@ -73,7 +84,7 @@
   ],
   "terms_result": {
     "profile": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-    "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956e835df2653b99d71d363a68",
+    "profile_hash": "sha256:c6b85fc09b885fb082e79a2e833356628e77c18a3211f81fc0accf8b07057192",
     "currency": "USDC",
     "transfers": [
       {
@@ -123,7 +134,7 @@
   "signatures": [
     {
       "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpzZXR0bGUuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3ZuZC5wYWN0Lm91dGNvbWUranNvbiJ9",
-      "signature": "aCCOZ9nppKxHUDSzPWgHryznQCNXaNtClwPUQPgpwGKe05D3FrXDVnsbsFSSyUeYW9Qq3I99SaF4oD2VZi5QAA"
+      "signature": "ai1pxHkb_gFjKgFzNDWIQ805xJlVFCAMcf0mvct12sNb6HTrAamV0eyHssgSWKF7FUml5pKUhs4dtEZ7bL31AQ"
     }
   ]
 }

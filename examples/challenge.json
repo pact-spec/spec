@@ -1,8 +1,8 @@
 {
-  "pact": "0.2",
+  "pact": "0.3",
   "type": "Challenge",
   "vtc_id": "vtc_9f2c11",
-  "delivery_hash": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45370cb3023331bc8bfbd924fcbe",
+  "delivery_hash": "sha256:dfabe6a5d1aaf23868dec65e1517dc0dfa911b41054ea10d641bb919aed34c95",
   "proof": {
     "profile": "acceptance",
     "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b8351c9c55eb9316416265fc1b",
@@ -19,6 +19,6 @@
   },
   "signature": {
     "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjp3YXRjaC5leGFtcGxlI2sxIiwidHlwIjoiYXBwbGljYXRpb24vdm5kLnBhY3QuY2hhbGxlbmdlK2pzb24ifQ",
-    "signature": "O-Rv_I-1ae8fnpQQ118HPC1swAOfi0G-vI4IkAvTx-yskjhuZZ_BwbCVe12zxZ-ZH3DFnA_xllI3jxSydneiBw"
+    "signature": "uVHzXamolK8O5wU2lJeWXh0sD8qNgcePTgBT83-Z6QWitVs_TKhRHpE3QcDu3mb-30QeheTIDGOjU0EbmqaMBQ"
   }
 }

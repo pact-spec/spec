@@ -9,8 +9,9 @@
     },
     "party": {
       "type": "string",
-      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+$",
-      "$comment": "A party identifier is a URI (Section 2); did:web and https are the forms the document exercises. Compared only after the normalization of Section 9.1."
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[!-~]+$",
+      "not": {"pattern": "[^!-~]"},
+      "$comment": "A party identifier is a URI (Section 2), so it is ASCII, and this pattern checks only that: %x21-7E, no space. Passing it does not make a string a URI. The not clause repeats the rule for regex engines whose $ also matches before a final newline. Section 9.1 refuses, before any comparison, an identifier that does not parse: a did that is not a DID, an https identifier that is not an RFC 3986 URI, and the other forms its steps name."
     },
     "money": {
       "type": "string",
@@ -31,6 +32,33 @@
         "delivery-first",
         "no-window"
       ]
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "tier",
+        "profile",
+        "criteria_hash",
+        "max_verdict_seconds"
+      ],
+      "properties": {
+        "tier": {
+          "$ref": "common.schema.json#/$defs/tier"
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criteria_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "max_verdict_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "$comment": "Section 7.2: bounds the wait for a first Verdict under verdict-first; makes L finite (Section 10.3)."
+        }
+      },
+      "additionalProperties": false
     },
     "state": {
       "enum": [
@@ -218,8 +246,41 @@
           "type": "boolean"
         }
       },
-      "$comment": "Section 4.2, Table 2. Which optional members an event carries is stated there and checked in code.",
-      "additionalProperties": false
+      "$comment": "Section 4.2, Table 2: each event carries the members the table names for it and no other; ref, answers, supersedes and costs are the optional ones. What the values must be (closes_at is at plus window_seconds, the order of the entries, the terminal state) is stated there and is not a schema's to check.",
+      "additionalProperties": false,
+      "allOf": [
+        {"if": {"required": ["event"], "properties": {"event": {"const": "accepted"}}},
+         "then": {"required": ["object"], "propertyNames": {"enum": ["event", "at", "object"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "funded"}}},
+         "then": {"propertyNames": {"enum": ["event", "at", "ref"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "deadline-passed"}}},
+         "then": {"propertyNames": {"enum": ["event", "at"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "delivered"}}},
+         "then": {"required": ["object"], "propertyNames": {"enum": ["event", "at", "object"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "window-opened"}}},
+         "then": {"required": ["closes_at"], "propertyNames": {"enum": ["event", "at", "closes_at"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "verdict"}}},
+         "then": {"required": ["object", "signer", "outcome"],
+                  "propertyNames": {"enum": ["event", "at", "object", "signer", "outcome", "answers", "supersedes"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "verdict-lapsed"}}},
+         "then": {"propertyNames": {"enum": ["event", "at"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "challenge"}}},
+         "then": {"required": ["object", "signer"], "propertyNames": {"enum": ["event", "at", "object", "signer", "costs"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "dispute-lapsed"}}},
+         "then": {"required": ["object"], "propertyNames": {"enum": ["event", "at", "object"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "window-closed"}}},
+         "then": {"propertyNames": {"enum": ["event", "at"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "child-registered"}}},
+         "then": {"required": ["object", "facilitator"], "propertyNames": {"enum": ["event", "at", "object", "facilitator"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "child-final"}}},
+         "then": {"required": ["object", "child"], "propertyNames": {"enum": ["event", "at", "object", "child"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "child-unresolved"}}},
+         "then": {"required": ["child"], "propertyNames": {"enum": ["event", "at", "child"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "children-final"}}},
+         "then": {"propertyNames": {"enum": ["event", "at"]}}},
+        {"if": {"required": ["event"], "properties": {"event": {"const": "terminal"}}},
+         "then": {"required": ["state", "challenge_upheld"], "propertyNames": {"enum": ["event", "at", "state", "challenge_upheld"]}}}
+      ]
     },
     "transfer": {
       "type": "object",

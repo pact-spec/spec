@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "outcome.schema.json",
-  "title": "PACT Outcome Record (0.2)",
+  "title": "PACT Outcome Record (0.3)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,6 +10,9 @@
     "vtc_id",
     "vtc_hash",
     "parties",
+    "task",
+    "verification",
+    "flow",
     "outcome",
     "trace",
     "terms_result",
@@ -17,7 +20,7 @@
   ],
   "properties": {
     "pact": {
-      "const": "0.2"
+      "const": "0.3"
     },
     "type": {
       "const": "OutcomeRecord"
@@ -31,11 +34,33 @@
     "parties": {
       "$ref": "common.schema.json#/$defs/parties"
     },
+    "task": {
+      "type": "object",
+      "required": [
+        "spec_hash"
+      ],
+      "properties": {
+        "spec_hash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        }
+      },
+      "additionalProperties": false,
+      "$comment": "Section 12: the contract's task.spec_hash, copied; the rest of task is not."
+    },
+    "verification": {
+      "$ref": "common.schema.json#/$defs/verification",
+      "$comment": "Section 12: the contract's verification object, copied."
+    },
+    "flow": {
+      "$ref": "common.schema.json#/$defs/flow",
+      "$comment": "Section 12: the contract's flow, copied."
+    },
     "outcome": {
       "type": "object",
       "required": [
         "state",
-        "challenge_upheld"
+        "challenge_upheld",
+        "verdict"
       ],
       "properties": {
         "state": {
@@ -47,12 +72,27 @@
         },
         "challenge_upheld": {
           "type": "boolean"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/hash"
+            },
+            {
+              "enum": [
+                "verdict-lapsed",
+                "none"
+              ]
+            }
+          ],
+          "$comment": "Section 12: the digest of the Verdict standing at the terminal entry; else verdict-lapsed when the trace records that event; else none. Agreement with the trace is checked in code."
         }
       },
       "additionalProperties": false
     },
     "work_hash": {
-      "$ref": "common.schema.json#/$defs/hash"
+      "$ref": "common.schema.json#/$defs/hash",
+      "$comment": "Section 12: the work_hash of the Delivery the delivered entry names; present exactly when the trace has a delivered entry. Equality with that Delivery is checked in code."
     },
     "trace": {
       "type": "array",
@@ -76,6 +116,35 @@
         "$ref": "common.schema.json#/$defs/signature"
       },
       "$comment": "MUST include the Facilitator's; code checks which."
+    }
+  },
+  "if": {
+    "properties": {
+      "trace": {
+        "contains": {
+          "type": "object",
+          "required": [
+            "event"
+          ],
+          "properties": {
+            "event": {
+              "const": "delivered"
+            }
+          }
+        }
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "work_hash"
+    ]
+  },
+  "else": {
+    "not": {
+      "required": [
+        "work_hash"
+      ]
     }
   }
 }

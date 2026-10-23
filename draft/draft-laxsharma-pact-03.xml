@@ -10,7 +10,7 @@
       <address><email>laxsharma79@gmail.com</email></address>
     </author>
     <!-- PLACEHOLDER: set to the posting day before the last build -->
-    <date year="2026" month="October" day="1"/>
+    <date year="2026" month="October" day="30"/>
     <keyword>autonomous agents</keyword>
     <keyword>agent commerce</keyword>
     <keyword>signed records</keyword>
@@ -2510,13 +2510,14 @@ Content-Type: application/problem+json
       document per <xref target="RFC7942"/>. The section and the reference to <xref target="RFC7942"/> are to be removed before publication as an RFC, and the listing of an implementation here implies no endorsement by the IETF.</t>
       <t>One implementation is known to the author, and the author wrote it:
       https://github.com/pact-spec/spec, under the Apache License 2.0. At
-      tag v0.2.0 it comprises the object schemas, the examples whose digests
-      <xref target="example"/> prints, a conformance validator that runs 107 checks including every vector of
+      tag v0.3.0 it comprises the object schemas, the examples whose digests
+      <xref target="example"/> prints, a conformance validator that runs 189 checks including every vector of
       <xref target="conf-vectors"/>, a Facilitator serving the endpoints of
       <xref target="endpoints"/> with the profile of
       <xref target="appendix-profile"/>, and clients for the other roles. Its
-      previous tag, v0.1.0, implemented the -01 revision and is the source
-      of the measurements the author has published about it. No second
+      earlier tags, v0.1.0 and v0.2.0, implemented the -01 and -02 revisions,
+      and v0.1.0 is the source of the measurements the author has published
+      about it. No second
       implementation exists, so nothing in <xref target="experiment"/> has
       been tested, and this document claims no interoperability. It is an individual submission and the product of no working group; the implementation is a prototype, the information is current as of the tag named above, and the contact is the author.</t>
     </section>

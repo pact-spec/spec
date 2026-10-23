@@ -1,7 +1,7 @@
 # tools
 
 Seven programs. Two check what is committed; the rest are a working
-implementation of draft-laxsharma-pact-02.
+implementation of draft-laxsharma-pact-03.
 
 | File | What it is |
 |---|---|

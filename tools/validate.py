@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the committed examples against draft-laxsharma-pact-02.
+"""Check the committed examples against draft-laxsharma-pact-03.
 
 Every value the draft prints comes from examples/ and profiles/, and this
 program is how the repository knows those files still say what the document

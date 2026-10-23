@@ -28,15 +28,60 @@ and it is normative nowhere.
 
 ## Status
 
-- Source of record for **revision -02** is `draft/draft-laxsharma-pact-02.*`
-  at tag `v0.2.0`. The revision the IETF Datatracker shows as current is at
+- Source of record for **revision -03** is `draft/draft-laxsharma-pact-03.*`
+  at tag `v0.3.0`. The revision the IETF Datatracker shows as current is at
   [draft-laxsharma-pact](https://datatracker.ietf.org/doc/draft-laxsharma-pact/);
-  -01 was posted 4 September 2026 and stays checkable at its archive URL.
+  -02 was posted 17 September 2026 and -01 on 4 September 2026, and both
+  stay checkable at their archive URLs.
 - An individual submission with no formal standing in the standards
   process. Not adopted by any working group, not endorsed by the IETF.
-- The -00 (27 July 2026) and -01 sources stay in `draft/` so that citations
-  remain checkable. The review that led from -00 to -01, with dispositions,
-  is in [issue #1](https://github.com/pact-spec/spec/issues/1).
+- The -00 (27 July 2026), -01 and -02 sources stay in `draft/` so that
+  citations remain checkable. The review that led from -00 to -01, with
+  dispositions, is in [issue #1](https://github.com/pact-spec/spec/issues/1);
+  the review of -02 that led to -03 is in
+  [issue #12](https://github.com/pact-spec/spec/issues/12).
+
+### What -03 changed
+
+A review of the whole -02 on
+[issue #12](https://github.com/pact-spec/spec/issues/12), and an audit of
+the reference implementation in October 2026, led to -03. Appendix B of the
+draft lists every change; the ones with wire consequences:
+
+- `pact` is `0.3`, and the Outcome Record gained required members, so every
+  example digest changed. `spec_hash` and `criteria_hash` did not.
+  `profile_hash` did: the profile bundle gained three vectors and a
+  paragraph saying that its schedule never rounds.
+- Identifier normalization (Section 9.1) is a numbered procedure in a fixed
+  order, and the reference implementation follows the same steps. An
+  identifier that does not parse, or that carries whitespace, userinfo, a
+  percent-encoded unreserved character, an IP-address host or an empty
+  segment, is not evaluable (`identifier-not-evaluable`), and party
+  identifiers are ASCII. Under the -02 rules a Seller could spell its own
+  identifier in a form they kept distinct and name it as the Verifier.
+- The Outcome Record copies `task.spec_hash`, `verification` and `flow`
+  from the contract, and `outcome.verdict` names the Verdict that stood, so
+  a verified PASS, a lapsed Verdict and a flow without Verdicts no longer
+  end in the same record. Its `work_hash` must be the recorded Delivery's.
+- Section 7.2 says how a Verdict reaches the delivered bytes, and Section 6
+  refuses a Delivery whose evidence names an instrument other than the one
+  the contract committed to.
+- Sections 3.3, 9 and 18.1 say that this document evaluates nothing in
+  `constraints`; a verification profile states whether it does.
+- A parent's Facilitator checks a child's Outcome Record against the
+  registered child contract, and refuses one that differs from the record
+  it holds, or a child with no record once the parent has its terminal
+  entry (Section 10.2).
+- The trace entry schema requires, for each event, the members Table 2
+  requires and admits no other. Each problem type's row names every section
+  a refusal of that type cites, and each refusal cites the section stating
+  the rule it broke.
+- Contract ids exclude `.` and `..`; a contract whose latest finality
+  instant falls after the year 9999 is refused; a transfer amount carries
+  the fewest decimal places that keep its value and never fewer than two.
+- Twelve defects in the -02 text and its reference implementation, found
+  after -02 was posted, are corrected, among them two that let a Seller
+  pass as its own Verifier. Vectors V-27 to V-61 pin the rules above.
 
 ### What -02 changed
 
@@ -78,8 +123,8 @@ change; the ones with wire consequences:
 
 | Path | Contents |
 |---|---|
-| `draft/` | The Internet-Draft, -02, -01 and -00 (XML source, plain text, HTML) |
-| `schemas/` | JSON Schema (2020-12) for every -02 object |
+| `draft/` | The Internet-Draft, -03, -02, -01 and -00 (XML source, plain text, HTML) |
+| `schemas/` | JSON Schema (2020-12) for every -03 object |
 | `examples/` | The worked example the draft prints: contract, Delivery, two Verdicts, Challenge, Status, Outcome Record, capability document, with real signatures |
 | `examples/keys/` | The public keys that verify those signatures; the private keys derive from public seeds and are not secrets |
 | `examples/task-content/` | The three files the TaskSpec commits to by sibling hash |
@@ -121,7 +166,7 @@ number formatting; both are pinned by vectors because both were got wrong once.
 
 ```
 pip install xml2rfc
-xml2rfc --text --html draft/draft-laxsharma-pact-02.xml
+xml2rfc --text --html draft/draft-laxsharma-pact-03.xml
 ```
 
 Figures wider than the page are folded per RFC 8792 and say so in their

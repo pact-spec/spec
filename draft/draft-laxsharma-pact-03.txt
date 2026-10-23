@@ -4,8 +4,8 @@
 
 Network Working Group                                          L. Sharma
 Internet-Draft                                               Independent
-Intended status: Experimental                             1 October 2026
-Expires: 4 April 2027
+Intended status: Experimental                            30 October 2026
+Expires: 3 May 2027
 
 
    PACT: Co-Signed Task Contracts, Delivery and Verdict Records, and
@@ -49,11 +49,11 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 4 April 2027.
+   This Internet-Draft will expire on 3 May 2027.
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 1]
+Sharma                     Expires 3 May 2027                   [Page 1]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 2]
+Sharma                     Expires 3 May 2027                   [Page 2]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -146,15 +146,15 @@ Internet-Draft                    PACT                      October 2026
      17.7.  Buying Silence from a Challenger . . . . . . . . . . . .  66
      17.8.  Non-Delivery . . . . . . . . . . . . . . . . . . . . . .  66
      17.9.  Cross-Venue Replay . . . . . . . . . . . . . . . . . . .  66
-     17.10. Nondeterminism as Shield and as Weapon . . . . . . . . .  67
+     17.10. Nondeterminism as Shield and as Weapon . . . . . . . . .  66
      17.11. Fabricated History . . . . . . . . . . . . . . . . . . .  67
      17.12. Retrieval  . . . . . . . . . . . . . . . . . . . . . . .  67
      17.13. Key Compromise and Rotation  . . . . . . . . . . . . . .  67
-     17.14. Denial of Service by Challenge . . . . . . . . . . . . .  68
+     17.14. Denial of Service by Challenge . . . . . . . . . . . . .  67
    18. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  68
      18.1.  Input Disclosure Before Contract Formation . . . . . . .  68
      18.2.  The Contract Graph . . . . . . . . . . . . . . . . . . .  68
-     18.3.  Challenger Access  . . . . . . . . . . . . . . . . . . .  69
+     18.3.  Challenger Access  . . . . . . . . . . . . . . . . . . .  68
      18.4.  Retention  . . . . . . . . . . . . . . . . . . . . . . .  69
    19. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  69
      19.1.  Media Types  . . . . . . . . . . . . . . . . . . . . . .  69
@@ -165,7 +165,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 3]
+Sharma                     Expires 3 May 2027                   [Page 3]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -221,7 +221,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 4]
+Sharma                     Expires 3 May 2027                   [Page 4]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -277,7 +277,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 5]
+Sharma                     Expires 3 May 2027                   [Page 5]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -333,7 +333,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 6]
+Sharma                     Expires 3 May 2027                   [Page 6]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -389,7 +389,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 7]
+Sharma                     Expires 3 May 2027                   [Page 7]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -445,7 +445,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 8]
+Sharma                     Expires 3 May 2027                   [Page 8]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -501,7 +501,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                  [Page 9]
+Sharma                     Expires 3 May 2027                   [Page 9]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -557,7 +557,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 10]
+Sharma                     Expires 3 May 2027                  [Page 10]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -613,7 +613,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 11]
+Sharma                     Expires 3 May 2027                  [Page 11]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -669,7 +669,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 12]
+Sharma                     Expires 3 May 2027                  [Page 12]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -725,7 +725,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 13]
+Sharma                     Expires 3 May 2027                  [Page 13]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -781,7 +781,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 14]
+Sharma                     Expires 3 May 2027                  [Page 14]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -837,7 +837,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 15]
+Sharma                     Expires 3 May 2027                  [Page 15]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -893,7 +893,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 16]
+Sharma                     Expires 3 May 2027                  [Page 16]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -949,7 +949,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 17]
+Sharma                     Expires 3 May 2027                  [Page 17]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1005,7 +1005,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 18]
+Sharma                     Expires 3 May 2027                  [Page 18]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1061,7 +1061,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 19]
+Sharma                     Expires 3 May 2027                  [Page 19]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1117,7 +1117,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 20]
+Sharma                     Expires 3 May 2027                  [Page 20]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1173,7 +1173,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 21]
+Sharma                     Expires 3 May 2027                  [Page 21]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1229,7 +1229,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 22]
+Sharma                     Expires 3 May 2027                  [Page 22]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1285,7 +1285,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 23]
+Sharma                     Expires 3 May 2027                  [Page 23]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1341,7 +1341,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 24]
+Sharma                     Expires 3 May 2027                  [Page 24]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1397,7 +1397,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 25]
+Sharma                     Expires 3 May 2027                  [Page 25]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1453,7 +1453,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 26]
+Sharma                     Expires 3 May 2027                  [Page 26]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1509,7 +1509,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 27]
+Sharma                     Expires 3 May 2027                  [Page 27]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1565,7 +1565,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 28]
+Sharma                     Expires 3 May 2027                  [Page 28]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1621,7 +1621,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 29]
+Sharma                     Expires 3 May 2027                  [Page 29]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1677,7 +1677,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 30]
+Sharma                     Expires 3 May 2027                  [Page 30]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1733,7 +1733,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 31]
+Sharma                     Expires 3 May 2027                  [Page 31]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1789,7 +1789,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 32]
+Sharma                     Expires 3 May 2027                  [Page 32]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1845,7 +1845,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 33]
+Sharma                     Expires 3 May 2027                  [Page 33]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1901,7 +1901,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 34]
+Sharma                     Expires 3 May 2027                  [Page 34]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -1957,7 +1957,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 35]
+Sharma                     Expires 3 May 2027                  [Page 35]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2013,7 +2013,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 36]
+Sharma                     Expires 3 May 2027                  [Page 36]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2069,7 +2069,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 37]
+Sharma                     Expires 3 May 2027                  [Page 37]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2125,7 +2125,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 38]
+Sharma                     Expires 3 May 2027                  [Page 38]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2181,7 +2181,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 39]
+Sharma                     Expires 3 May 2027                  [Page 39]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2237,7 +2237,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 40]
+Sharma                     Expires 3 May 2027                  [Page 40]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2293,7 +2293,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 41]
+Sharma                     Expires 3 May 2027                  [Page 41]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2349,7 +2349,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 42]
+Sharma                     Expires 3 May 2027                  [Page 42]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2405,7 +2405,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 43]
+Sharma                     Expires 3 May 2027                  [Page 43]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2461,7 +2461,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 44]
+Sharma                     Expires 3 May 2027                  [Page 44]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2517,7 +2517,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 45]
+Sharma                     Expires 3 May 2027                  [Page 45]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2573,7 +2573,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 46]
+Sharma                     Expires 3 May 2027                  [Page 46]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2629,7 +2629,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 47]
+Sharma                     Expires 3 May 2027                  [Page 47]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2685,7 +2685,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 48]
+Sharma                     Expires 3 May 2027                  [Page 48]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2741,7 +2741,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 49]
+Sharma                     Expires 3 May 2027                  [Page 49]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2797,7 +2797,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 50]
+Sharma                     Expires 3 May 2027                  [Page 50]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2853,7 +2853,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 51]
+Sharma                     Expires 3 May 2027                  [Page 51]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2909,7 +2909,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 52]
+Sharma                     Expires 3 May 2027                  [Page 52]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -2965,7 +2965,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 53]
+Sharma                     Expires 3 May 2027                  [Page 53]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3021,7 +3021,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 54]
+Sharma                     Expires 3 May 2027                  [Page 54]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3077,7 +3077,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 55]
+Sharma                     Expires 3 May 2027                  [Page 55]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3133,7 +3133,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 56]
+Sharma                     Expires 3 May 2027                  [Page 56]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3189,7 +3189,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 57]
+Sharma                     Expires 3 May 2027                  [Page 57]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3245,7 +3245,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 58]
+Sharma                     Expires 3 May 2027                  [Page 58]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3301,7 +3301,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 59]
+Sharma                     Expires 3 May 2027                  [Page 59]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3357,7 +3357,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 60]
+Sharma                     Expires 3 May 2027                  [Page 60]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3404,25 +3404,26 @@ Internet-Draft                    PACT                      October 2026
 
    One implementation is known to the author, and the author wrote it:
    https://github.com/pact-spec/spec, under the Apache License 2.0.  At
-   tag v0.2.0 it comprises the object schemas, the examples whose
-   digests Section 15 prints, a conformance validator that runs 107
+   tag v0.3.0 it comprises the object schemas, the examples whose
+   digests Section 15 prints, a conformance validator that runs 189
    checks including every vector of Section 14.3, a Facilitator serving
    the endpoints of Section 13 with the profile of Appendix A, and
-   clients for the other roles.  Its previous tag, v0.1.0, implemented
-   the -01 revision and is the source of the measurements the author has
+   clients for the other roles.  Its earlier tags, v0.1.0 and v0.2.0,
+   implemented the -01 and -02 revisions, and v0.1.0 is the source of
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 61]
+Sharma                     Expires 3 May 2027                  [Page 61]
 
 Internet-Draft                    PACT                      October 2026
 
 
-   published about it.  No second implementation exists, so nothing in
-   Section 1.4 has been tested, and this document claims no
-   interoperability.  It is an individual submission and the product of
-   no working group; the implementation is a prototype, the information
-   is current as of the tag named above, and the contact is the author.
+   the measurements the author has published about it.  No second
+   implementation exists, so nothing in Section 1.4 has been tested, and
+   this document claims no interoperability.  It is an individual
+   submission and the product of no working group; the implementation is
+   a prototype, the information is current as of the tag named above,
+   and the contact is the author.
 
 17.  Security Considerations
 
@@ -3465,15 +3466,15 @@ Internet-Draft                    PACT                      October 2026
    |             | identifier equivalent  | superseded | Delivery and  |
    |             | to the Buyer's, the    | ones       | the           |
    |             | Seller's or the        | included   | instrument    |
-   |             | Facilitator's; must    |            |               |
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 62]
+Sharma                     Expires 3 May 2027                  [Page 62]
 
 Internet-Draft                    PACT                      October 2026
 
 
+   |             | Facilitator's; must    |            |               |
    |             | commit to the          |            |               |
    |             | instrument it ran and  |            |               |
    |             | its results            |            |               |
@@ -3510,26 +3511,6 @@ Internet-Draft                    PACT                      October 2026
    parties; this document does not require it and defines no log of its
    own.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Sharma                    Expires 4 April 2027                 [Page 63]
-
-Internet-Draft                    PACT                      October 2026
-
-
    Omission is not attributable.  A Facilitator that declines to record
    a Delivery, or records it late, produces no signed evidence of having
    declined, and a Status it does not issue proves nothing.  A client
@@ -3541,6 +3522,14 @@ Internet-Draft                    PACT                      October 2026
    document specifies none.  A caller that relies on a performer's own
    word that a contract is complete, before the terminal entry is
    recorded, relies on something no record here carries, and the refusal
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 63]
+
+Internet-Draft                    PACT                      October 2026
+
+
    of an early Outcome Record (Section 13) does nothing for it; what a
    party can ask for instead is the Facilitator's signed Status
    (Section 11).
@@ -3576,16 +3565,6 @@ Internet-Draft                    PACT                      October 2026
    lets anyone holding the public key forge.  Section 14.1 fixes the
    permitted set.
 
-
-
-
-
-
-Sharma                    Expires 4 April 2027                 [Page 64]
-
-Internet-Draft                    PACT                      October 2026
-
-
    A kid carried as a sibling of the protected header rather than inside
    it is outside the signed bytes and is rewritable in transit.  An
    attacker who can publish a key document can then re-attribute a
@@ -3599,6 +3578,13 @@ Internet-Draft                    PACT                      October 2026
    choose between them; the low-S rule in Section 14.1 does.  The order
    of a signature set is a second source of the same problem, and the
    sorting rule closes it.
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 64]
+
+Internet-Draft                    PACT                      October 2026
+
 
 17.4.  Substitution of Committed Content
 
@@ -3633,15 +3619,6 @@ Internet-Draft                    PACT                      October 2026
    to be the parent's Seller, checked by the Facilitator that holds the
    parent against the parent's own bytes.
 
-
-
-
-
-Sharma                    Expires 4 April 2027                 [Page 65]
-
-Internet-Draft                    PACT                      October 2026
-
-
    The converse gap is stated rather than closed: a parent's Seller that
    never registers a failing child keeps it out of the parent's record,
    since this document compels no registration.  A profile that wants
@@ -3649,6 +3626,21 @@ Internet-Draft                    PACT                      October 2026
    a Buyer that wants them visible must ask for the child's Status
    directly, which this document does not require the child's
    Facilitator to give it.
+
+
+
+
+
+
+
+
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 65]
+
+Internet-Draft                    PACT                      October 2026
+
 
 17.7.  Buying Silence from a Challenger
 
@@ -3686,18 +3678,6 @@ Internet-Draft                    PACT                      October 2026
    Section 14.1 stops a signature over one object type standing for
    another.
 
-
-
-
-
-
-
-
-Sharma                    Expires 4 April 2027                 [Page 66]
-
-Internet-Draft                    PACT                      October 2026
-
-
 17.10.  Nondeterminism as Shield and as Weapon
 
    A re-execution profile that does not state what determinism it
@@ -3707,6 +3687,16 @@ Internet-Draft                    PACT                      October 2026
    nondeterminism, unfalsifiably.  A verification profile MUST state
    whether it is deterministic and what tolerance applies, and a
    contract naming one that does not cannot be judged safely by anyone.
+
+
+
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 66]
+
+Internet-Draft                    PACT                      October 2026
+
 
 17.11.  Fabricated History
 
@@ -3746,14 +3736,6 @@ Internet-Draft                    PACT                      October 2026
    record, so that a later rotation does not make an earlier signature
    unverifiable; and a Facilitator MUST NOT accept a record whose kid
    resolves to a key the identity method marks as revoked at the time of
-
-
-
-Sharma                    Expires 4 April 2027                 [Page 67]
-
-Internet-Draft                    PACT                      October 2026
-
-
    acceptance.
 
 17.14.  Denial of Service by Challenge
@@ -3764,6 +3746,14 @@ Internet-Draft                    PACT                      October 2026
    required by a terms profile, advertised as challenge_deposit
    (Section 7.3), is one defence, and this document requires none, since
    a deposit also deters the honest Challenger an open model relies on.
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 67]
+
+Internet-Draft                    PACT                      October 2026
+
+
    A Facilitator whose profiles require no deposit SHOULD rate-limit
    Challenges per Challenger and per contract, and SHOULD publish that
    it does so.
@@ -3803,13 +3793,6 @@ Internet-Draft                    PACT                      October 2026
    counterparty, is possible with mechanisms specified elsewhere and is
    not specified here.
 
-
-
-Sharma                    Expires 4 April 2027                 [Page 68]
-
-Internet-Draft                    PACT                      October 2026
-
-
 18.3.  Challenger Access
 
    An open challenge model requires that some party outside the contract
@@ -3819,6 +3802,14 @@ Internet-Draft                    PACT                      October 2026
    What it does is make the choice visible: a contract whose content
    cannot be disclosed to a Challenger will receive no Challenge from
    outside its parties, and a terms profile that counts on one has
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 68]
+
+Internet-Draft                    PACT                      October 2026
+
+
    counted on nothing.
 
 18.4.  Retention
@@ -3859,19 +3850,22 @@ Internet-Draft                    PACT                      October 2026
    Encoding considerations:  binary; the content is JSON text as defined
       in [RFC8259], encoded in UTF-8
 
-
-
-Sharma                    Expires 4 April 2027                 [Page 69]
-
-Internet-Draft                    PACT                      October 2026
-
-
    Security considerations:  See Section 17 of this document.  In
       particular these media types carry signed objects whose signatures
       MUST be verified under the constraints in Section 14.1; accepting
       one without algorithm restriction permits signature forgery.
 
    Interoperability considerations:  Objects MUST be canonicalized per
+
+
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 69]
+
+Internet-Draft                    PACT                      October 2026
+
+
       [RFC8785] before hashing or signing.  Implementations that
       canonicalize by sorting object keys on Unicode code point rather
       than UTF-16 code unit can produce a divergent digest when a key
@@ -3917,7 +3911,13 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 70]
+
+
+
+
+
+
+Sharma                     Expires 3 May 2027                  [Page 70]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -3973,7 +3973,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 71]
+Sharma                     Expires 3 May 2027                  [Page 71]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4029,7 +4029,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 72]
+Sharma                     Expires 3 May 2027                  [Page 72]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4085,7 +4085,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 73]
+Sharma                     Expires 3 May 2027                  [Page 73]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4141,7 +4141,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 74]
+Sharma                     Expires 3 May 2027                  [Page 74]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4197,7 +4197,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 75]
+Sharma                     Expires 3 May 2027                  [Page 75]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4253,7 +4253,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 76]
+Sharma                     Expires 3 May 2027                  [Page 76]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4309,7 +4309,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 77]
+Sharma                     Expires 3 May 2027                  [Page 77]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4331,19 +4331,19 @@ Internet-Draft                    PACT                      October 2026
               <https://www.rfc-editor.org/info/rfc2801>.
 
    [I-D.ietf-httpapi-idempotency-key-header]
-              Jena, J. and S. Dalal, "The Idempotency-Key HTTP Header
-              Field", Work in Progress, Internet-Draft, draft-ietf-
-              httpapi-idempotency-key-header-07, 15 October 2025,
-              <https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-
-              idempotency-key-header-07>.
+              Jena, J., Dalal, S., and D. Tishkin, "The Idempotency-Key
+              HTTP Header Field", Work in Progress, Internet-Draft,
+              draft-ietf-httpapi-idempotency-key-header-08, 22 October
+              2026, <https://datatracker.ietf.org/doc/html/draft-ietf-
+              httpapi-idempotency-key-header-08>.
 
    [I-D.ietf-satp-core]
               Hargreaves, M., Hardjono, T., Belchior, R., Ramakrishna,
               V., and A. Chiriac, "Secure Asset Transfer Protocol (SATP)
               Core", Work in Progress, Internet-Draft, draft-ietf-satp-
-              core-16, 13 August 2026,
+              core-17, 25 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-satp-
-              core-16>.
+              core-17>.
 
    [I-D.hood-agtp-commerce]
               Hood, C., "AGTP-Commerce: Open Commerce Specification for
@@ -4365,7 +4365,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 78]
+Sharma                     Expires 3 May 2027                  [Page 78]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4395,9 +4395,9 @@ Internet-Draft                    PACT                      October 2026
    [I-D.asor-wimse-agent-delegation-chain]
               Asor, R., "Verifiable Attenuated Delegation for AI Agent
               Chains", Work in Progress, Internet-Draft, draft-asor-
-              wimse-agent-delegation-chain-01, 3 September 2026,
+              wimse-agent-delegation-chain-02, 15 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-asor-wimse-
-              agent-delegation-chain-01>.
+              agent-delegation-chain-02>.
 
    [I-D.pinto-agent-authz-contestability]
               Pinto, T., "Contestability Bindings for Authorized Agent
@@ -4421,7 +4421,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 79]
+Sharma                     Expires 3 May 2027                  [Page 79]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4477,7 +4477,7 @@ Appendix A.  An Example Terms Profile: bonded-restitution
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 80]
+Sharma                     Expires 3 May 2027                  [Page 80]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4533,7 +4533,7 @@ A.2.  Parameters
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 81]
+Sharma                     Expires 3 May 2027                  [Page 81]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4589,7 +4589,7 @@ A.4.  Admission
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 82]
+Sharma                     Expires 3 May 2027                  [Page 82]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4645,7 +4645,7 @@ A.5.  Schedule
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 83]
+Sharma                     Expires 3 May 2027                  [Page 83]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4701,7 +4701,7 @@ A.6.  Vectors
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 84]
+Sharma                     Expires 3 May 2027                  [Page 84]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4757,7 +4757,7 @@ Appendix B.  Changes from -02
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 85]
+Sharma                     Expires 3 May 2027                  [Page 85]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4813,7 +4813,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 86]
+Sharma                     Expires 3 May 2027                  [Page 86]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4869,7 +4869,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 87]
+Sharma                     Expires 3 May 2027                  [Page 87]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4925,7 +4925,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 88]
+Sharma                     Expires 3 May 2027                  [Page 88]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -4981,7 +4981,7 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 89]
+Sharma                     Expires 3 May 2027                  [Page 89]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -5037,7 +5037,7 @@ Author's Address
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 90]
+Sharma                     Expires 3 May 2027                  [Page 90]
 
 Internet-Draft                    PACT                      October 2026
 
@@ -5093,4 +5093,4 @@ Internet-Draft                    PACT                      October 2026
 
 
 
-Sharma                    Expires 4 April 2027                 [Page 91]
+Sharma                     Expires 3 May 2027                  [Page 91]

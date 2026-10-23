@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pact-spec.github.io/spec/schemas/common.schema.json",
-  "$comment": "Shared definitions for the -02 objects. Everything about what a party owes, posts or receives left this file with the liability member; a terms profile carries its own parameters.schema.json.",
+  "$comment": "Shared definitions for the -03 objects. Everything about what a party owes, posts or receives left this file with the liability member; a terms profile carries its own parameters.schema.json.",
   "$defs": {
     "hash": {
       "type": "string",

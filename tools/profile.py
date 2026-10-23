@@ -3,7 +3,7 @@
 A terms profile is a total, deterministic function from a contract and a trace
 prefix to the entries it emits at the last event of that prefix. This module
 is that function for the one profile in the repository, the non-normative
-Appendix A of draft-laxsharma-pact-02, whose bundle lives under
+Appendix A of draft-laxsharma-pact-03, whose bundle lives under
 profiles/bonded-restitution/. The Facilitator calls it at every event and
 never decides anything about value itself; validate.py calls it to reproduce
 the vectors; nothing in the Internet-Draft depends on what it computes.
@@ -37,7 +37,7 @@ INTERNAL = ("escrow", "bond", "fund")
 class ProfileRefusal(Exception):
     """A refusal arising from a rule of the profile, not of the document.
 
-    Reported per -02 Section 13.3 with `profile` and `profile_section` in the
+    Reported per Section 13.3 with `profile` and `profile_section` in the
     problem body instead of `section`.
     """
 

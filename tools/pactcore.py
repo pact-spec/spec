@@ -27,7 +27,7 @@ are implemented here and exercised by the measurement harness.
 
 The committed examples under examples/ carry real Ed25519 signatures minted by
 mint_examples.py from public seeds, so anyone can reproduce their bytes and the
-digests the -02 prints; the -01 examples kept placeholder signature values, and
+digests the draft prints; the -01 examples kept placeholder signature values, and
 the -01 text printed digests over them. The measurement harness still mints fresh
 keys and contracts at run time.
 """
@@ -407,7 +407,7 @@ def signatures_ordered(obj: dict) -> tuple[bool, str]:
 
 
 # --------------------------------------------------------------------------
-# The assurance constraint, Appendix A.4 of -02 (Section 7.2 of -01)
+# The assurance constraint, Appendix A.4 (Section 7.2 of -01)
 # --------------------------------------------------------------------------
 
 def exact(x: str | float | int | Decimal) -> Fraction:

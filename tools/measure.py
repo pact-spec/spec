@@ -1,4 +1,4 @@
-"""Measure the reference pair end to end, on the -02 protocol.
+"""Measure the reference pair end to end, on the -03 protocol.
 
 Runs the Facilitator in-process on a loopback port with a clock the harness
 advances, drives every path of Section 4 with real keys and real signatures,
@@ -1104,7 +1104,7 @@ def main() -> None:
         h.close()
 
     hw = f"{platform.machine()}, {platform.system()} {platform.release()}, Python {platform.python_version()}"
-    print(f"reference pair, draft-laxsharma-pact-02; {hw}; loopback, in-memory, clock advanced by the harness")
+    print(f"reference pair, draft-laxsharma-pact-03; {hw}; loopback, in-memory, clock advanced by the harness")
     print(f"terms profile {terms.ID}\n  profile_hash {h.profile.profile_hash}\n")
     print("PATHS")
     print(f"  {'path':58} {'exch':>4} {'out':>6} {'back':>6} {'ms':>6}  state / value moved")

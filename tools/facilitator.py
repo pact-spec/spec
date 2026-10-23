@@ -1,8 +1,8 @@
-"""A reference Facilitator for draft-laxsharma-pact-02: the eight operations of
+"""A reference Facilitator for draft-laxsharma-pact-03: the eight operations of
 Section 13, the state machine of Section 4 over a signed event trace, and an
 Outcome Record per contract.
 
-This is the first implementation that speaks the -02 protocol, written by the
+This is the first implementation that speaks the -03 protocol, written by the
 author of the draft, which is the weakest evidence that a specification is
 implementable. Two independent Facilitators producing the same trace from the
 same posted records, and the same transfer list from the same trace and
@@ -108,7 +108,7 @@ Section 17.13 the public key resolved for every accepted signature is recorded w
 """
 
 CHOICES = """
-Where the -02 text leaves a choice to the implementer this implementation chose, and says so:
+Where the -03 text leaves a choice to the implementer this implementation chose, and says so:
 C1  funded is recorded in the same call as accepted: there is no rail, so nothing can be
     observed and the Status of a 201 already reads FUNDED.
 C2  Retrieval (GET) is open on the loopback interface. Section 17.12 restricts it by default

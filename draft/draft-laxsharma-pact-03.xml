@@ -1686,8 +1686,9 @@
       can do with it. The Outcome Record's trace is the last such
       sequence.</t>
 
-      <t>A Status is evidence of the contract's state and trace at its
-      <tt>issued_at</tt>, and of nothing after it. It cannot still be
+      <t>A Status is evidence of the contract's state and trace as the
+      Facilitator that signed it held them at its <tt>issued_at</tt>, and
+      of nothing after that instant. It cannot still be
       current after the next instant at which the Facilitator's clock alone
       changes the state, which its trace, the contract and each registered
       child's contract give:

@@ -3429,7 +3429,14 @@ li > p:last-of-type:only-child {
       to the TaskSpec's <code>acceptance</code> member alone; a profile that
       evaluates any part of
       <code>constraints</code> reports that result only in the results document
-      its <code>results_hash</code> commits to. The three entries above are sketches, and a full profile document completes each; a profile defined elsewhere states them in its own document.<a href="#section-9-5" class="pilcrow">¶</a></p>
+      its <code>results_hash</code> commits to. Where <code>acceptance</code> passes
+      and such a profile finds a constraint violated, the Verdict is PASS
+      and the violation is visible only in that results document: a result
+      on <code>constraints</code> never changes <code>outcome</code>, and a
+      condition that is to decide a Verdict belongs in <code>acceptance</code>,
+      which <code>criteria_hash</code> commits to. The three entries above are
+      sketches, and a full profile document completes each; a profile
+      defined elsewhere states them in its own document.<a href="#section-9-5" class="pilcrow">¶</a></p>
 <div id="independence">
 <section id="section-9.1">
         <h3 id="name-verifier-independence-and-i">
@@ -3880,20 +3887,26 @@ li > p:last-of-type:only-child {
       fabricated history requires a Facilitator's key rather than two
       identities.<a href="#section-12-2" class="pilcrow">¶</a></p>
 <p id="section-12-3">The record also says what was checked, and how the contract ended,
-      without a fetch of the contract. It copies <code>task.spec_hash</code>,
-      <code>verification</code> and <code>flow</code> from the contract, as it
-      copies <code>parties</code>; <code>vtc_hash</code> already commits to all of
-      them. <code>outcome.verdict</code> is the digest of the Verdict standing
-      at the <code>terminal</code> entry (<a href="#events" class="auto internal xref">Section 4.2</a>); where none
-      stands it is <code>verdict-lapsed</code> when the trace has a
-      <code>verdict-lapsed</code> entry, and <code>none</code> otherwise. A verified
-      PASS, a Verdict that never came and a flow that accepts none
+      without a fetch of the contract. A Facilitator MUST copy
+      <code>task.spec_hash</code>, <code>verification</code> and <code>flow</code> from
+      the contract, as it copies <code>parties</code>; <code>vtc_hash</code> already
+      commits to all of them. A Facilitator MUST set
+      <code>outcome.verdict</code> to the digest of the Verdict standing at the
+      <code>terminal</code> entry (<a href="#events" class="auto internal xref">Section 4.2</a>); where none stands,
+      to <code>verdict-lapsed</code> when the trace has a
+      <code>verdict-lapsed</code> entry, and to <code>none</code> otherwise. A
+      verified PASS, a Verdict that never came and a flow that accepts none
       therefore end in three different records, though all three end in
-      FINAL. A Facilitator MUST copy <code>work_hash</code> from the Delivery
-      whose digest the <code>delivered</code> entry carries, and MUST NOT
-      include it where the trace has no <code>delivered</code> entry. Each of
-      these members follows from the contract, the trace and the Delivery,
-      so any holder of those can check it.<a href="#section-12-3" class="pilcrow">¶</a></p>
+      FINAL. A <code>delivery-first</code> contract that ended FINAL with no
+      Verdict recorded carries <code>none</code> as a <code>no-window</code>
+      contract does, since <code>verdict-lapsed</code> is recorded only under
+      <code>verdict-first</code>, so <code>outcome.verdict</code> is read together
+      with <code>flow</code>, which says whether a Verdict could have been
+      recorded. A Facilitator MUST copy <code>work_hash</code> from the
+      Delivery whose digest the <code>delivered</code> entry carries, and MUST
+      NOT include it where the trace has no <code>delivered</code> entry. Each
+      of these members follows from the contract, the trace and the
+      Delivery, so any holder of those can check it.<a href="#section-12-3" class="pilcrow">¶</a></p>
 <span id="name-an-outcome-record-for-a-con"></span><div id="fig-outcome">
 <figure id="figure-12">
         <div class="breakable lang-json sourcecode" id="section-12-4.1">
@@ -4924,6 +4937,15 @@ Content-Type: application/problem+json
                 contract's</td>
               <td class="text-left" rowspan="1" colspan="1">reject</td>
             </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">V-62</td>
+              <td class="text-left" rowspan="1" colspan="1">Outcome Record of a
+                <code>delivery-first</code> contract that ended FINAL with no
+                Verdict recorded, with <code>outcome.verdict</code> other than
+                <code>none</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">reject</td>
+            </tr>
           </tbody>
         </table>
 </div>
@@ -4956,10 +4978,13 @@ Content-Type: application/problem+json
         as written, which the -02 reference implementation did, and V-43
         wherever a path of "/" is kept before a query, which the -02 text
         did.<a href="#section-14.3-5" class="pilcrow">¶</a></p>
-<p id="section-14.3-6">V-44 to V-47 are checks any holder of an Outcome Record can make:
-        V-45 to V-47 against the record's own trace, V-44 against the
-        Delivery as well. V-45 to V-47 are the three contracts that the -02
-        revision ended in the same FINAL.<a href="#section-14.3-6" class="pilcrow">¶</a></p>
+<p id="section-14.3-6">V-44 to V-47 and V-62 are checks any holder of an Outcome Record
+        can make: V-45 to V-47 and V-62 against the record's own trace, V-44
+        against the Delivery as well. V-45 to V-47 are the three contracts
+        that the -02 revision ended in the same FINAL. V-62 is a fourth
+        FINAL, a <code>delivery-first</code> contract with no Verdict recorded,
+        whose record carries <code>none</code> as a <code>no-window</code> record
+        does and differs from it in <code>flow</code>.<a href="#section-14.3-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -5026,7 +5051,7 @@ Content-Type: application/problem+json
 <p id="section-16-2">One implementation is known to the author, and the author wrote it:
       https://github.com/pact-spec/spec, under the Apache License 2.0. At
       tag v0.3.0 it comprises the object schemas, the examples whose digests
-      <a href="#example" class="auto internal xref">Section 15</a> prints, a conformance validator that runs 189 checks including every vector of
+      <a href="#example" class="auto internal xref">Section 15</a> prints, a conformance validator that runs 190 checks including every vector of
       <a href="#conf-vectors" class="auto internal xref">Section 14.3</a>, a Facilitator serving the endpoints of
       <a href="#endpoints" class="auto internal xref">Section 13</a> with the profile of
       <a href="#appendix-profile" class="auto internal xref">Appendix A</a>, and clients for the other roles. Its
@@ -6503,7 +6528,8 @@ Content-Type: application/problem+json
         sends retention and deletion terms there as though something read
         them, and <a href="#profiles" class="auto internal xref">Section 9</a> asks of a verification profile a
         sixth statement: whether it evaluates any of <code>constraints</code>,
-        and how a Verdict reports the result.<a href="#appendix-B-2.9" class="pilcrow">¶</a>
+        and how a Verdict reports the result, and says that a result on
+        <code>constraints</code> never changes <code>outcome</code>.<a href="#appendix-B-2.9" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="appendix-B-2.10">The Outcome Record copies <code>task.spec_hash</code>,
         <code>verification</code> and <code>flow</code> from the contract, and
@@ -6511,8 +6537,8 @@ Content-Type: application/problem+json
         <code>verdict-lapsed</code> or <code>none</code>, so a verified PASS, a
         lapsed Verdict and a flow without Verdicts no longer end in the same
         record. <a href="#outcomes" class="auto internal xref">Section 12</a> requires <code>work_hash</code> to be
-        the recorded Delivery's. V-45 to V-47 test <code>outcome.verdict</code>,
-        and V-44 tests <code>work_hash</code>.<a href="#appendix-B-2.10" class="pilcrow">¶</a>
+        the recorded Delivery's. V-45 to V-47 and V-62 test
+        <code>outcome.verdict</code>, and V-44 tests <code>work_hash</code>.<a href="#appendix-B-2.10" class="pilcrow">¶</a>
 </li>
         <li class="normal" id="appendix-B-2.11">The <code>pact</code> version is 0.3. The Outcome Record gained
         required members (<a href="#dict-outcome" class="auto internal xref">Section 3.8</a>), and
@@ -6726,7 +6752,10 @@ Content-Type: application/problem+json
       <span>[<a href="#RFC3986" class="cite xref">RFC3986</a>]</span> and should say so, and that the -02 promise
       to fold toward the same party claimed more than a comparison of
       strings can deliver. The cases behind V-27 to V-30, V-32 and V-33
-      are the ones msaleme named.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+      are the ones msaleme named. msaleme also read this revision against
+      the -02 before it was posted; V-62 and the sentence in
+      <a href="#profiles" class="auto internal xref">Section 9</a> on constraint results answer that
+      reading.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

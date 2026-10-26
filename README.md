@@ -62,12 +62,15 @@ draft lists every change; the ones with wire consequences:
 - The Outcome Record copies `task.spec_hash`, `verification` and `flow`
   from the contract, and `outcome.verdict` names the Verdict that stood, so
   a verified PASS, a lapsed Verdict and a flow without Verdicts no longer
-  end in the same record. Its `work_hash` must be the recorded Delivery's.
+  end in the same record; a `delivery-first` contract that ended with no
+  Verdict recorded carries `none` as a `no-window` one does, and `flow`
+  tells them apart. Its `work_hash` must be the recorded Delivery's.
 - Section 7.2 says how a Verdict reaches the delivered bytes, and Section 6
   refuses a Delivery whose evidence names an instrument other than the one
   the contract committed to.
 - Sections 3.3, 9 and 18.1 say that this document evaluates nothing in
-  `constraints`; a verification profile states whether it does.
+  `constraints`; a verification profile states whether it does, and a
+  result on `constraints` never changes a Verdict's `outcome`.
 - A parent's Facilitator checks a child's Outcome Record against the
   registered child contract, and refuses one that differs from the record
   it holds, or a child with no record once the parent has its terminal
@@ -81,7 +84,7 @@ draft lists every change; the ones with wire consequences:
   the fewest decimal places that keep its value and never fewer than two.
 - Twelve defects in the -02 text and its reference implementation, found
   after -02 was posted, are corrected, among them two that let a Seller
-  pass as its own Verifier. Vectors V-27 to V-61 pin the rules above.
+  pass as its own Verifier. Vectors V-27 to V-62 pin the rules above.
 
 ### What -02 changed
 
@@ -158,7 +161,7 @@ pip install jsonschema referencing cryptography
 python3 tools/validate.py
 ```
 
-189 checks, in the validator's own words: 14 schema conformance; 4 canonicalization (RFC 8785); 18 hash commitments; 48 rules of the document; 9 signature verification; 15 terms profile: bonded-restitution; 6 Merkle tree hash (RFC 9162); 65 conformance vectors of Section 14.3, through the reference Facilitator; 10 reference implementation checks. `pactcore.jcs` is an RFC 8785 canonicalizer for
+190 checks, in the validator's own words: 14 schema conformance; 4 canonicalization (RFC 8785); 18 hash commitments; 49 rules of the document; 9 signature verification; 15 terms profile: bonded-restitution; 6 Merkle tree hash (RFC 9162); 65 conformance vectors of Section 14.3, through the reference Facilitator; 10 reference implementation checks. `pactcore.jcs` is an RFC 8785 canonicalizer for
 the values PACT objects carry, including UTF-16 key order and ECMAScript
 number formatting; both are pinned by vectors because both were got wrong once.
 

@@ -1317,7 +1317,14 @@
       to the TaskSpec's <tt>acceptance</tt> member alone; a profile that
       evaluates any part of
       <tt>constraints</tt> reports that result only in the results document
-      its <tt>results_hash</tt> commits to. The three entries above are sketches, and a full profile document completes each; a profile defined elsewhere states them in its own document.</t>
+      its <tt>results_hash</tt> commits to. Where <tt>acceptance</tt> passes
+      and such a profile finds a constraint violated, the Verdict is PASS
+      and the violation is visible only in that results document: a result
+      on <tt>constraints</tt> never changes <tt>outcome</tt>, and a
+      condition that is to decide a Verdict belongs in <tt>acceptance</tt>,
+      which <tt>criteria_hash</tt> commits to. The three entries above are
+      sketches, and a full profile document completes each; a profile
+      defined elsewhere states them in its own document.</t>
 
       <section anchor="independence"><name>Verifier Independence and Identifier Normalization</name>
         <t>Independence is a relation between the identifier that signs a
@@ -1736,20 +1743,26 @@
       identities.</t>
 
       <t>The record also says what was checked, and how the contract ended,
-      without a fetch of the contract. It copies <tt>task.spec_hash</tt>,
-      <tt>verification</tt> and <tt>flow</tt> from the contract, as it
-      copies <tt>parties</tt>; <tt>vtc_hash</tt> already commits to all of
-      them. <tt>outcome.verdict</tt> is the digest of the Verdict standing
-      at the <tt>terminal</tt> entry (<xref target="events"/>); where none
-      stands it is <tt>verdict-lapsed</tt> when the trace has a
-      <tt>verdict-lapsed</tt> entry, and <tt>none</tt> otherwise. A verified
-      PASS, a Verdict that never came and a flow that accepts none
+      without a fetch of the contract. A Facilitator MUST copy
+      <tt>task.spec_hash</tt>, <tt>verification</tt> and <tt>flow</tt> from
+      the contract, as it copies <tt>parties</tt>; <tt>vtc_hash</tt> already
+      commits to all of them. A Facilitator MUST set
+      <tt>outcome.verdict</tt> to the digest of the Verdict standing at the
+      <tt>terminal</tt> entry (<xref target="events"/>); where none stands,
+      to <tt>verdict-lapsed</tt> when the trace has a
+      <tt>verdict-lapsed</tt> entry, and to <tt>none</tt> otherwise. A
+      verified PASS, a Verdict that never came and a flow that accepts none
       therefore end in three different records, though all three end in
-      FINAL. A Facilitator MUST copy <tt>work_hash</tt> from the Delivery
-      whose digest the <tt>delivered</tt> entry carries, and MUST NOT
-      include it where the trace has no <tt>delivered</tt> entry. Each of
-      these members follows from the contract, the trace and the Delivery,
-      so any holder of those can check it.</t>
+      FINAL. A <tt>delivery-first</tt> contract that ended FINAL with no
+      Verdict recorded carries <tt>none</tt> as a <tt>no-window</tt>
+      contract does, since <tt>verdict-lapsed</tt> is recorded only under
+      <tt>verdict-first</tt>, so <tt>outcome.verdict</tt> is read together
+      with <tt>flow</tt>, which says whether a Verdict could have been
+      recorded. A Facilitator MUST copy <tt>work_hash</tt> from the
+      Delivery whose digest the <tt>delivered</tt> entry carries, and MUST
+      NOT include it where the trace has no <tt>delivered</tt> entry. Each
+      of these members follows from the contract, the trace and the
+      Delivery, so any holder of those can check it.</t>
 
       <figure anchor="fig-outcome">
         <name>An Outcome Record for a contract that reached SETTLED on an upheld Challenge</name>
@@ -2412,6 +2425,10 @@ Content-Type: application/problem+json
                 Facilitator its registration recorded, whose
                 <tt>verification</tt> is not the registered child
                 contract's</td><td>reject</td></tr>
+            <tr><td>V-62</td><td>Outcome Record of a
+                <tt>delivery-first</tt> contract that ended FINAL with no
+                Verdict recorded, with <tt>outcome.verdict</tt> other than
+                <tt>none</tt></td><td>reject</td></tr>
           </tbody>
         </table>
 
@@ -2447,10 +2464,13 @@ Content-Type: application/problem+json
         wherever a path of "/" is kept before a query, which the -02 text
         did.</t>
 
-        <t>V-44 to V-47 are checks any holder of an Outcome Record can make:
-        V-45 to V-47 against the record's own trace, V-44 against the
-        Delivery as well. V-45 to V-47 are the three contracts that the -02
-        revision ended in the same FINAL.</t>
+        <t>V-44 to V-47 and V-62 are checks any holder of an Outcome Record
+        can make: V-45 to V-47 and V-62 against the record's own trace, V-44
+        against the Delivery as well. V-45 to V-47 are the three contracts
+        that the -02 revision ended in the same FINAL. V-62 is a fourth
+        FINAL, a <tt>delivery-first</tt> contract with no Verdict recorded,
+        whose record carries <tt>none</tt> as a <tt>no-window</tt> record
+        does and differs from it in <tt>flow</tt>.</t>
       </section>
     </section>
 
@@ -2512,7 +2532,7 @@ Content-Type: application/problem+json
       <t>One implementation is known to the author, and the author wrote it:
       https://github.com/pact-spec/spec, under the Apache License 2.0. At
       tag v0.3.0 it comprises the object schemas, the examples whose digests
-      <xref target="example"/> prints, a conformance validator that runs 189 checks including every vector of
+      <xref target="example"/> prints, a conformance validator that runs 190 checks including every vector of
       <xref target="conf-vectors"/>, a Facilitator serving the endpoints of
       <xref target="endpoints"/> with the profile of
       <xref target="appendix-profile"/>, and clients for the other roles. Its
@@ -3459,15 +3479,16 @@ Content-Type: application/problem+json
         sends retention and deletion terms there as though something read
         them, and <xref target="profiles"/> asks of a verification profile a
         sixth statement: whether it evaluates any of <tt>constraints</tt>,
-        and how a Verdict reports the result.</li>
+        and how a Verdict reports the result, and says that a result on
+        <tt>constraints</tt> never changes <tt>outcome</tt>.</li>
         <li>The Outcome Record copies <tt>task.spec_hash</tt>,
         <tt>verification</tt> and <tt>flow</tt> from the contract, and
         <tt>outcome.verdict</tt> names the standing Verdict or says
         <tt>verdict-lapsed</tt> or <tt>none</tt>, so a verified PASS, a
         lapsed Verdict and a flow without Verdicts no longer end in the same
         record. <xref target="outcomes"/> requires <tt>work_hash</tt> to be
-        the recorded Delivery's. V-45 to V-47 test <tt>outcome.verdict</tt>,
-        and V-44 tests <tt>work_hash</tt>.</li>
+        the recorded Delivery's. V-45 to V-47 and V-62 test
+        <tt>outcome.verdict</tt>, and V-44 tests <tt>work_hash</tt>.</li>
         <li>The <tt>pact</tt> version is 0.3. The Outcome Record gained
         required members (<xref target="dict-outcome"/>), and
         <xref target="conventions"/> makes extension a new version rather
@@ -3646,7 +3667,10 @@ Content-Type: application/problem+json
       <xref target="RFC3986"/> and should say so, and that the -02 promise
       to fold toward the same party claimed more than a comparison of
       strings can deliver. The cases behind V-27 to V-30, V-32 and V-33
-      are the ones msaleme named.</t>
+      are the ones msaleme named. msaleme also read this revision against
+      the -02 before it was posted; V-62 and the sentence in
+      <xref target="profiles"/> on constraint results answer that
+      reading.</t>
     </section>
   </back>
 </rfc>

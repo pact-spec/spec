@@ -351,6 +351,13 @@ def main() -> int:
             "V-46 FINAL after verdict-lapsed with no Verdict: outcome.verdict must be verdict-lapsed")
     r.check(verdict_vector(nowin_tr, "none", ("verdict-lapsed", pass_digest)),
             "V-47 FINAL under no-window: outcome.verdict must be none; three FINAL records, three values")
+    # delivery-first: the window opens at delivered and no Verdict is recorded; verdict-lapsed is a
+    # verdict-first event, so the record carries none, the value a no-window record carries
+    df_tr = next(t for n, t in vec_trace.items() if n.startswith("FINAL under delivery-first"))
+    r.check(verdict_vector(df_tr, "none", ("verdict-lapsed", pass_digest))
+            and pc.outcome_verdict(df_tr) == pc.outcome_verdict(nowin_tr) == "none",
+            "V-62 FINAL under delivery-first with no Verdict recorded: outcome.verdict must be none, as under "
+            "no-window; the copied flow tells the two records apart")
     ok, why = pc.signatures_ordered(vtc)
     r.check(ok, "contract signatures are sorted by normalized kid", why)
 

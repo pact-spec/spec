@@ -5,7 +5,7 @@ implementation of draft-laxsharma-pact-03.
 
 | File | What it is |
 |---|---|
-| `validate.py` | The conformance validator: 189 checks over the committed examples and the profile bundle. Schemas, canonicalization, every digest the objects commit to, every signature (with the public keys in `examples/keys/`), the profile's vectors and the two lists printed in Appendix A.6, the RFC 9162 tree, and every vector of Section 14.3, the ones that concern a Facilitator through the reference Facilitator and the rest at the schema, canonicalizer or profile level. |
+| `validate.py` | The conformance validator: 190 checks over the committed examples and the profile bundle. Schemas, canonicalization, every digest the objects commit to, every signature (with the public keys in `examples/keys/`), the profile's vectors and the two lists printed in Appendix A.6, the RFC 9162 tree, and every vector of Section 14.3, the ones that concern a Facilitator through the reference Facilitator and the rest at the schema, canonicalizer or profile level. |
 | `mint_examples.py` | Mints `examples/` from public seeds. Ed25519 is deterministic, so anyone who runs it gets the same bytes and the same digests the draft prints; `--check` diffs against disk. |
 | `pactcore.py` | RFC 8785 canonicalization including ECMAScript number formatting, digests, JWS signing and verification over the transmitted protected header, identifier normalization, sorted signature sets, low-S ECDSA, the manifest digest, and the RFC 9162 Merkle tree. |
 | `profile.py` | The example terms profile of Appendix A, `bonded-restitution`: its admission rule, its schedule over a trace, its two invariants, and the generator of `profiles/bonded-restitution/vectors.json` (nine traces and three admission vectors). The only file in this directory that knows what an amount is for. |
@@ -22,7 +22,7 @@ python3 tools/facilitator.py --rules
 
 `validate.py` runs without `cryptography`, printing `[skip]` for the signature
 checks and the vectors that go through the Facilitator, which need it. The
-count of 189 is with all three packages installed, and that is what CI runs.
+count of 190 is with all three packages installed, and that is what CI runs.
 The Facilitator refuses to start without `jsonschema`, because Section 14.2
 makes schema conformance a MUST and a Facilitator that skips it is not one.
 

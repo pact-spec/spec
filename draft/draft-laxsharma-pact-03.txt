@@ -4451,9 +4451,9 @@ Internet-Draft                    PACT                      October 2026
    [I-D.asor-wimse-agent-delegation-chain]
               Asor, R., "Verifiable Attenuated Delegation for AI Agent
               Chains", Work in Progress, Internet-Draft, draft-asor-
-              wimse-agent-delegation-chain-02, 15 October 2026,
+              wimse-agent-delegation-chain-03, 27 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-asor-wimse-
-              agent-delegation-chain-02>.
+              agent-delegation-chain-03>.
 
    [I-D.pinto-agent-authz-contestability]
               Pinto, T., "Contestability Bindings for Authorized Agent

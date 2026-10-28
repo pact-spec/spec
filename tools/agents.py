@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
@@ -33,6 +34,11 @@ MEDIA_FACILITATOR = "application/vnd.pact.facilitator+json"
 BASE_PATH = "/pact/v2"
 
 
+def seg(vid: str) -> str:
+    """A contract id as one path segment of {contract}/{id} (Section 13)."""
+    return urllib.parse.quote(vid, safe="")
+
+
 @dataclass
 class Wire:
     """A record of one request and response, for the measurement harness."""
@@ -42,6 +48,7 @@ class Wire:
     request_bytes: int
     response_bytes: int
     seconds: float
+    location: str | None = None   # the Location header, when the response carries one
 
 
 class Client:
@@ -60,11 +67,13 @@ class Client:
             with urllib.request.urlopen(req) as resp:
                 out = resp.read()
                 status = resp.status
+                location = resp.headers.get("Location")
         except urllib.error.HTTPError as exc:
             out = exc.read()
             status = exc.code
+            location = exc.headers.get("Location")
         elapsed = time.perf_counter() - started
-        self.wire.append(Wire(method, path, status, len(raw or b""), len(out), elapsed))
+        self.wire.append(Wire(method, path, status, len(raw or b""), len(out), elapsed, location))
         return status, json.loads(out or b"{}")
 
     def post(self, path: str, body: dict, ct: str) -> tuple[int, dict]:
@@ -75,15 +84,15 @@ class Client:
 
     # -- the operations of Section 13 -------------------------------------
     def propose(self, vtc): return self.post(f"{BASE_PATH}/contracts", vtc, MEDIA_CONTRACT)
-    def status(self, vid): return self.get(f"{BASE_PATH}/contracts/{vid}")
+    def status(self, vid): return self.get(f"{BASE_PATH}/contracts/{seg(vid)}")
     def register_child(self, parent_id, child_vtc):
-        return self.post(f"{BASE_PATH}/contracts/{parent_id}/children", child_vtc, MEDIA_CONTRACT)
+        return self.post(f"{BASE_PATH}/contracts/{seg(parent_id)}/children", child_vtc, MEDIA_CONTRACT)
     def supply_child_outcome(self, parent_id, child_hash, record):
-        return self.post(f"{BASE_PATH}/contracts/{parent_id}/children/{child_hash}", record, MEDIA_OUTCOME)
+        return self.post(f"{BASE_PATH}/contracts/{seg(parent_id)}/children/{child_hash}", record, MEDIA_OUTCOME)
     def deliver(self, d): return self.post(f"{BASE_PATH}/deliveries", d, MEDIA_DELIVERY)
     def verdict(self, v): return self.post(f"{BASE_PATH}/verdicts", v, MEDIA_VERDICT)
     def challenge(self, c): return self.post(f"{BASE_PATH}/challenges", c, MEDIA_CHALLENGE)
-    def outcome(self, vid): return self.get(f"{BASE_PATH}/outcomes/{vid}")
+    def outcome(self, vid): return self.get(f"{BASE_PATH}/outcomes/{seg(vid)}")
     def capability(self): return self.get("/.well-known/pact-facilitator")
 
 
@@ -129,14 +138,15 @@ def draft_contract(vid: str, buyer: str, seller: str, facilitator: str,
                    spec_hash: str | None = None, criteria_hash: str | None = None,
                    profile_id: str | None = None, profile_hash: str | None = None,
                    parent: dict | None = None,
-                   settlement: str = "https://settle.example/bindings/ledger-1") -> dict:
-    """An unsigned 0.2 contract in the shape schemas/vtc.schema.json requires."""
+                   settlement: str = "https://settle.example/bindings/ledger-1",
+                   verifier_fee: str | None = None) -> dict:
+    """An unsigned 0.3 contract in the shape schemas/vtc.schema.json requires."""
     parties = {"buyer": buyer, "seller": seller, "facilitator": facilitator}
     if verifier is not None:
         parties["verifier"] = verifier   # absent: Section 9.1 is derived per signer
     prof = default_profile()
     vtc = {
-        "pact": "0.2",
+        "pact": "0.3",
         "type": "VerifiableTaskContract",
         "id": vid,
         "parties": parties,
@@ -168,6 +178,8 @@ def draft_contract(vid: str, buyer: str, seller: str, facilitator: str,
         "challenge": {"window_seconds": window_seconds,
                       "max_dispute_seconds": max_dispute_seconds},
     }
+    if verifier_fee is not None:
+        vtc["terms"]["parameters"]["verifier_fee"] = verifier_fee
     if parent is not None:
         vtc["parent"] = parent
     return vtc
@@ -190,7 +202,7 @@ def sort_signatures(entries: list[dict]) -> list[dict]:
 
 def make_delivery(vtc: dict, seller: Party, work: bytes, results: bytes) -> dict:
     d = {
-        "pact": "0.2",
+        "pact": "0.3",
         "type": "Delivery",
         "vtc_id": vtc["id"],
         "vtc_hash": pc.digest_over(vtc),
@@ -210,7 +222,7 @@ def make_delivery(vtc: dict, seller: Party, work: bytes, results: bytes) -> dict
 def make_verdict(vtc: dict, delivery: dict, verifier: Party, outcome: str,
                  challenge: dict | None = None) -> dict:
     v = {
-        "pact": "0.2",
+        "pact": "0.3",
         "type": "Verdict",
         "vtc_id": vtc["id"],
         "delivery_hash": pc.digest_over(delivery),
@@ -228,7 +240,7 @@ def make_verdict(vtc: dict, delivery: dict, verifier: Party, outcome: str,
 def make_challenge(vtc: dict, delivery: dict, challenger: Party, failing: list[str],
                    costs: str | None = "1.20") -> dict:
     c = {
-        "pact": "0.2",
+        "pact": "0.3",
         "type": "Challenge",
         "vtc_id": vtc["id"],
         "delivery_hash": pc.digest_over(delivery),
@@ -249,14 +261,20 @@ def check_status(status: dict, resolver: pc.KeyResolver, facilitator: str) -> tu
     return pc.verify_object(status, resolver, MEDIA_STATUS, [facilitator])
 
 
-def check_outcome(record: dict, resolver: pc.KeyResolver, facilitator: str) -> tuple[bool, str]:
+def check_outcome(record: dict, resolver: pc.KeyResolver, facilitator: str,
+                  vtc: dict | None = None, delivery: dict | None = None) -> tuple[bool, str]:
     """A party checks the record it is handed rather than taking it on trust:
     the Facilitator's signature is what makes the record evidence, so it has
-    to actually verify; and the transfer list is recomputed from the trace
-    with the named profile, since any holder of the inputs can."""
+    to actually verify; outcome.verdict has to be what the record's own trace
+    gives; and, for a holder of the contract and the Delivery, the copied
+    members and work_hash have to be theirs (Section 12). The transfer list is
+    recomputed from the trace by the caller, with the named profile."""
     ok, why = pc.verify_object(record, resolver, MEDIA_OUTCOME, [facilitator])
     if not ok:
         return False, why
+    problems = pc.outcome_errors(record, vtc, delivery)
+    if problems:
+        return False, "; ".join(problems)
     return True, "ok"
 
 

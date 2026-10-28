@@ -1,5 +1,5 @@
 {
-  "pact": "0.2",
+  "pact": "0.3",
   "type": "FacilitatorCapabilities",
   "facilitator": "did:web:settle.example",
   "issued_at": "2026-11-01T09:00:00Z",
@@ -24,7 +24,7 @@
   "terms_profiles": [
     {
       "id": "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution",
-      "profile_hash": "sha256:9fff6e3f3d99b26eb437a84b9de5b35124ccf6956e835df2653b99d71d363a68"
+      "profile_hash": "sha256:c6b85fc09b885fb082e79a2e833356628e77c18a3211f81fc0accf8b07057192"
     }
   ],
   "max_contract_value": {
@@ -40,6 +40,6 @@
   },
   "signature": {
     "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjpzZXR0bGUuZXhhbXBsZSNrMSIsInR5cCI6ImFwcGxpY2F0aW9uL3ZuZC5wYWN0LmZhY2lsaXRhdG9yK2pzb24ifQ",
-    "signature": "8gd373Neg1u8nXuae2cQvFbbjwBoovlZ4NT1hs_cdHntSEOJdSfXQXqXahrv8QyLaFGrU1inged3ajGJwrsQBg"
+    "signature": "eFDS2zwP3Wv418K2DkS3O0yTu01tMx1cU6QyV7ePtQ2Snlvrj430X2JiIjI0wsvPKkN5Avy65oikoAWTM7SwBQ"
   }
 }

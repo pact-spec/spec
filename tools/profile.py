@@ -1,9 +1,9 @@
-"""The bonded-restitution terms profile, evaluated the way -02 Section 5.3 says.
+"""The bonded-restitution terms profile, evaluated the way Section 5.3 says.
 
 A terms profile is a total, deterministic function from a contract and a trace
 prefix to the entries it emits at the last event of that prefix. This module
 is that function for the one profile in the repository, the non-normative
-Appendix A of draft-laxsharma-pact-02, whose bundle lives under
+Appendix A of draft-laxsharma-pact-03, whose bundle lives under
 profiles/bonded-restitution/. The Facilitator calls it at every event and
 never decides anything about value itself; validate.py calls it to reproduce
 the vectors; nothing in the Internet-Draft depends on what it computes.
@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
-from decimal import ROUND_UP, Decimal
+from fractions import Fraction
 from typing import Any
 
 import pactcore as pc
@@ -32,13 +32,12 @@ BUNDLE = ROOT / "profiles" / "bonded-restitution"
 ID = "tag:laxsharma79@gmail.com,2026:pact:bonded-restitution"
 PROBLEM_BASE = ID + ":problem:"
 INTERNAL = ("escrow", "bond", "fund")
-CENT = Decimal("0.01")
 
 
 class ProfileRefusal(Exception):
     """A refusal arising from a rule of the profile, not of the document.
 
-    Reported per -02 Section 13.3 with `profile` and `profile_section` in the
+    Reported per Section 13.3 with `profile` and `profile_section` in the
     problem body instead of `section`.
     """
 
@@ -50,12 +49,20 @@ class ProfileRefusal(Exception):
         super().__init__(detail)
 
 
-def _d(x: Any) -> Decimal:
-    return Decimal(str(x))
+def _d(x: Any) -> Fraction:
+    """The exact value of an amount, or of q_min as RFC 8785 prints it."""
+    return pc.exact(x)
 
 
-def _money(d: Decimal) -> str:
-    return f"{d.quantize(CENT):f}"
+def _money(d: Fraction) -> str:
+    """Appendix A.5: an entry is emitted exactly, never rounded, with the fewest
+    decimal places that keep its value and never fewer than two. Every amount
+    the schedule computes is a sum, a difference or the lesser of amounts in
+    the contract, the trace or the list, so it has no more places than they
+    do. The -02 code quantized each entry to the cent while the balances stayed
+    exact, which signed 0.10 and 0.40 for 0.105 and 0.395, or broke closure
+    (audit A4)."""
+    return pc.amount_str(d)
 
 
 class BondedRestitution:
@@ -97,15 +104,18 @@ class BondedRestitution:
                                  "open challenge is a backstop, not a source of q; this "
                                  "profile refuses it as the sole declared assurance", "A.4")
         q = _d(prm["assurance"]["q_min"])
-        released_before_verdict = price if prm["principal_on"] == "delivered" else Decimal(0)
+        released_before_verdict = price if prm["principal_on"] == "delivered" else Fraction(0)
         if not pc.assurance_holds(price, bond, q, released_before_verdict):
-            need = (price * (1 - q) / q + released_before_verdict).quantize(CENT, rounding=ROUND_UP)
+            # Exact comparison above; the figure in the message is the bound
+            # rounded up at the precision the contract already writes.
+            places = max(pc.places_of(vtc["price"]["amount"]), pc.places_of(prm["seller_bond"]), 2)
+            need = pc.amount_str(pc.required_bond(price, q, released_before_verdict), places, up=True)
             raise ProfileRefusal(
                 "assurance-constraint-unsatisfied",
-                f"seller_bond {prm['seller_bond']} is below the minimum {need:f} required "
-                f"for q_min {q:f} at price {vtc['price']['amount']} with E "
+                f"seller_bond {prm['seller_bond']} is below the minimum {need} required "
+                f"for q_min {prm['assurance']['q_min']!r} at price {vtc['price']['amount']} with E "
                 f"{_money(released_before_verdict)}", "A.4",
-                required_bond=f"{need:f}", declared_bond=prm["seller_bond"],
+                required_bond=need, declared_bond=prm["seller_bond"],
                 q_min=prm["assurance"]["q_min"], price=vtc["price"]["amount"])
         if bond > cap or fund > cap:
             raise ProfileRefusal("parameters-inconsistent",
@@ -114,8 +124,8 @@ class BondedRestitution:
 
     # -- Appendix A.3: accounts -----------------------------------------------
     @staticmethod
-    def accounts(vtc: dict) -> dict[str, Decimal]:
-        return {name: Decimal(0) for name in INTERNAL}
+    def accounts(vtc: dict) -> dict[str, Fraction]:
+        return {name: Fraction(0) for name in INTERNAL}
 
     # -- Appendix A.5: the schedule over a whole trace ------------------------
     def schedule(self, vtc: dict, trace: list[dict]) -> list[dict]:
@@ -132,12 +142,12 @@ class BondedRestitution:
 
         bal = self.accounts(vtc)
         out: list[dict] = []
-        released = Decimal(0)
-        from_seller = Decimal(0)          # what has left the Seller's accounts, for cap
+        released = Fraction(0)
+        from_seller = Fraction(0)         # what has left the Seller's accounts, for cap
         verdicts: list[dict] = []
         challenges: dict[str, dict] = {}  # digest -> entry
 
-        def emit(i: int, src: str, dst: str, amount: Decimal, code: str) -> None:
+        def emit(i: int, src: str, dst: str, amount: Fraction, code: str) -> None:
             nonlocal released, from_seller
             if amount <= 0:
                 return
@@ -191,7 +201,7 @@ class BondedRestitution:
                     st = standing()
                     upheld = bool(e.get("challenge_upheld")) and st is not None and "answers" in st
                     challenger_account = None
-                    costs = Decimal(0)
+                    costs = Fraction(0)
                     if upheld:
                         ch = challenges.get(st["answers"])
                         if ch is not None:
@@ -204,12 +214,12 @@ class BondedRestitution:
                     if upheld and challenger_account:
                         emit(i, "fund", challenger_account, min(costs, bal["fund"]), "costs")  # 2
                     loss = released if basis == "released" else price - reversed_
-                    room = max(Decimal(0), cap - from_seller)
+                    room = max(Fraction(0), cap - from_seller)
                     emit(i, "bond", "buyer", min(bal["bond"], room, loss), "restitution")  # 3
                     if upheld and challenger_account:
-                        room = max(Decimal(0), cap - from_seller)
+                        room = max(Fraction(0), cap - from_seller)
                         emit(i, "bond", challenger_account, min(bal["bond"], room), "bounty")  # 4
-                    room = max(Decimal(0), cap - from_seller)
+                    room = max(Fraction(0), cap - from_seller)
                     emit(i, "bond", "buyer" if remainder_to == "buyer" else "sink",
                          min(bal["bond"], room), "remainder")                        # 5
                     # anything the cap kept in the bond is not this profile's to move
@@ -380,6 +390,13 @@ def build_vectors(profile: BondedRestitution) -> list[dict]:
         ("FINAL under delivery-first, principal at window-closed",
          _contract(flow="delivery-first", parameters={"principal_on": "window-closed"}),
          _trace_delivery_first()),
+        # Audit A4: entries are exact. Rounded to the cent, 0.105 and 0.405 were
+        # signed as 0.10 and 0.40 and broke closure by 0.01 ...
+        ("FINAL with a verifier fee of 0.105, fund 0.51",
+         _contract(parameters={"verification_fund": "0.51", "verifier_fee": "0.105"}), _trace_final()),
+        # ... and 0.105 and 0.395 were signed as 0.10 and 0.40, which closed.
+        ("FINAL with a verifier fee of 0.105, fund 0.50",
+         _contract(parameters={"verification_fund": "0.50", "verifier_fee": "0.105"}), _trace_final()),
     ]
     out = []
     for name, contract, trace in cases:
@@ -394,6 +411,18 @@ def build_vectors(profile: BondedRestitution) -> list[dict]:
          _contract(parameters={"seller_bond": "17.99", "assurance": q}), "assurance-constraint-unsatisfied"),
         ("admission: admitted, seller_bond 18.00 at q_min 0.9091 on 180.00",
          _contract(parameters={"seller_bond": "18.00", "assurance": q}), None),
+        # Audit A3: B*q falls 1e-34 short of P*(1-q), so the bond is about
+        # 3e-34 below the bound, which a 28-digit decimal context rounds away;
+        # the bound is evaluated exactly. q_min is the JSON number
+        # 0.3333333333333333, read as that decimal (pactcore.exact); at q exactly
+        # one third the bound is 0.02 and this bond would be admitted.
+        ("admission: refused, q_min 0.3333333333333333 on 0.01 with a seller_bond whose "
+         "B*q falls 1e-34 short of P*(1-q)",
+         _contract(price={"amount": "0.01", "currency": "USDC"},
+                   parameters={"seller_bond": "0.020000000000000003", "verification_fund": "0.01",
+                               "cap": "0.03",
+                               "assurance": {"mode": "certain", "q_min": 0.3333333333333333}}),
+         "assurance-constraint-unsatisfied"),
     ]
     for name, contract, refused in admission:
         try:

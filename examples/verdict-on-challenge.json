@@ -1,9 +1,9 @@
 {
-  "pact": "0.2",
+  "pact": "0.3",
   "type": "Verdict",
   "vtc_id": "vtc_9f2c11",
-  "delivery_hash": "sha256:6bcbb831ea27a8754a0df9b44361be12411e45370cb3023331bc8bfbd924fcbe",
-  "challenge_hash": "sha256:2ac4e296e79f681446a43e55aef572ff0bfd2093ec2c6795962e67a6e2ff55ff",
+  "delivery_hash": "sha256:dfabe6a5d1aaf23868dec65e1517dc0dfa911b41054ea10d641bb919aed34c95",
+  "challenge_hash": "sha256:298494c02feb0a51def024b5e22acf11aa65d0f4e175271f07962215f26e71a9",
   "outcome": "FAIL",
   "profile": "acceptance",
   "instrument_hash": "sha256:0bdde1ab6b081d2b4bda580c5393756ae95c10b8351c9c55eb9316416265fc1b",
@@ -11,6 +11,6 @@
   "evaluated_at": "2026-11-10T09:57:40Z",
   "signature": {
     "protected": "eyJhbGciOiJFZDI1NTE5Iiwia2lkIjoiZGlkOndlYjphdWRpdC5leGFtcGxlI2sxIiwidHlwIjoiYXBwbGljYXRpb24vdm5kLnBhY3QudmVyZGljdCtqc29uIn0",
-    "signature": "HRlR3epaYLHMeSJwPZ0Zgexq0Ooz8KEoeCLYCNmlmfrXSp15L46TK8BItIokn8t80MZ_SiJJAyY6VzERCdbUCg"
+    "signature": "8X4jTzCBOGZ0rKbAGfs_ymAeyIYk9WIX6bACZL3Pnp8jMHcCcOKB-sbg2ItFEwu9nmyvbYGy6X3z9-T0rcgWBw"
   }
 }

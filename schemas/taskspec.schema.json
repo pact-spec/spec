@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pact-spec.github.io/spec/schemas/taskspec.schema.json",
-  "title": "PACT TaskSpec (0.2)",
+  "title": "PACT TaskSpec (0.3)",
   "type": "object",
   "required": [
     "description",

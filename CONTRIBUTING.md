@@ -1,6 +1,6 @@
 # Contributing
 
-Feedback is the point of an Internet-Draft, and this one is at -02. Open an issue for design
+Feedback is the point of an Internet-Draft, and this one is at -03. Open an issue for design
 discussion, a PR for concrete text or schema changes.
 
 ## IETF Note Well

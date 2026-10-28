@@ -88,7 +88,7 @@ def build() -> dict[str, dict]:
     spec_hash = pc.digest_over(taskspec)
 
     vtc = {
-        "pact": "0.2",
+        "pact": "0.3",
         "type": "VerifiableTaskContract",
         "id": "vtc_9f2c11",
         "parties": {"buyer": BUYER, "seller": SELLER, "facilitator": FACILITATOR,
@@ -122,7 +122,7 @@ def build() -> dict[str, dict]:
     work = b"customers-clean.csv: the deduplicated deliverable, 2,099,959 rows; bytes not carried in the repository\n"
     results = b'{"schema_valid_rate": 1.0, "dup_rate": 0.0}\n'
     delivery = {
-        "pact": "0.2", "type": "Delivery", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
+        "pact": "0.3", "type": "Delivery", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
         "work_hash": pc.h(work),
         "work_uri": "https://cdn.dataforge.example/o/" + pc.h(work)[7:11],
         "input_hash": content_hash["sample-10k.csv"],
@@ -134,7 +134,7 @@ def build() -> dict[str, dict]:
     delivery_hash = pc.digest_over(delivery)
 
     verdict = {
-        "pact": "0.2", "type": "Verdict", "vtc_id": vtc["id"],
+        "pact": "0.3", "type": "Verdict", "vtc_id": vtc["id"],
         "delivery_hash": delivery_hash, "outcome": "PASS", "profile": "acceptance",
         "instrument_hash": harness_hash, "results_hash": pc.h(results),
         "evaluated_at": "2026-11-10T09:14:22Z",
@@ -143,7 +143,7 @@ def build() -> dict[str, dict]:
     verdict_hash = pc.digest_over(verdict)
 
     challenge = {
-        "pact": "0.2", "type": "Challenge", "vtc_id": vtc["id"],
+        "pact": "0.3", "type": "Challenge", "vtc_id": vtc["id"],
         "delivery_hash": delivery_hash,
         "proof": {"profile": "acceptance", "instrument_hash": harness_hash,
                   "results_hash": pc.h(b"independent re-execution: 41 duplicate rows"),
@@ -155,7 +155,7 @@ def build() -> dict[str, dict]:
     challenge_hash = pc.digest_over(challenge)
 
     verdict2 = {
-        "pact": "0.2", "type": "Verdict", "vtc_id": vtc["id"],
+        "pact": "0.3", "type": "Verdict", "vtc_id": vtc["id"],
         "delivery_hash": delivery_hash, "challenge_hash": challenge_hash,
         "outcome": "FAIL", "profile": "acceptance", "instrument_hash": harness_hash,
         "results_hash": pc.h(b"independent re-execution: 41 duplicate rows"),
@@ -181,7 +181,7 @@ def build() -> dict[str, dict]:
     ]
 
     status = {
-        "pact": "0.2", "type": "ContractStatus", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
+        "pact": "0.3", "type": "ContractStatus", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
         "state": "WINDOW_OPEN", "trace": trace[:5], "issued_at": T_VERDICT,
     }
     status["signature"] = pc.sign(status, keys["facilitator"], agents.MEDIA_STATUS)
@@ -190,18 +190,22 @@ def build() -> dict[str, dict]:
     ok, why = profile.check(vtc, transfers, terminal=True)
     assert ok, why
     outcome = {
-        "pact": "0.2", "type": "OutcomeRecord", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
+        "pact": "0.3", "type": "OutcomeRecord", "vtc_id": vtc["id"], "vtc_hash": vtc_hash,
         "parties": vtc["parties"],
-        "outcome": {"state": "SETTLED", "challenge_upheld": True},
+        **pc.outcome_scope(vtc),
+        "outcome": {"state": "SETTLED", "challenge_upheld": True,
+                    "verdict": pc.outcome_verdict(trace)},
         "work_hash": delivery["work_hash"],
         "trace": trace,
         "terms_result": {"profile": profile.id, "profile_hash": profile.profile_hash,
                          "currency": "USDC", "transfers": transfers},
     }
     outcome["signatures"] = [pc.sign(outcome, keys["facilitator"], agents.MEDIA_OUTCOME)]
+    assert outcome["outcome"]["verdict"] == verdict2_hash
+    assert not pc.outcome_errors(outcome, vtc, delivery), pc.outcome_errors(outcome, vtc, delivery)
 
     capability = {
-        "pact": "0.2", "type": "FacilitatorCapabilities", "facilitator": FACILITATOR,
+        "pact": "0.3", "type": "FacilitatorCapabilities", "facilitator": FACILITATOR,
         "issued_at": "2026-11-01T09:00:00Z",
         "settlement_bindings": [{"id": "https://settle.example/bindings/ledger-1",
                                  "networks": ["eip155:8453"], "assets": ["USDC"]}],
